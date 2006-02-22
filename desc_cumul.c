@@ -8,7 +8,7 @@
 SPECTRAL - SPATIAL
 ******************************************************/
 
-int spat_spec_desc_spiht_cumul(struct pixel_struct pixel, struct list_struct * list_desc, struct imageprop_struct imageprop, long int *image, int thres_ind, long long int * dist)
+int spat_spec_desc_spiht_cumul(struct pixel_struct pixel, struct imageprop_struct imageprop, long int *image, int thres_ind, long long int * dist)
 {
 
 int r1=0;
@@ -30,11 +30,12 @@ int directchildonly = 0;
 
 struct list_el *current_el=NULL;
 struct list_struct *tmp_list=NULL;
+struct list_struct *tmp_list2=NULL;
 
 if (directchildonly == 0){
 	tmp_list=list_init();
 };
-
+tmp_list2=list_init();
 
 /*
 ;Is there any offspring ?
@@ -64,7 +65,7 @@ r1=spec_desc_spiht_cumul(pixel, tmp_list, imageprop, directchildonly, image, thr
 
 
 /* dans tous les cas, on regarde les descendant spatiaux du pixel courant */
-r2=spat_desc_spiht_cumul(pixel, list_desc, imageprop, directchildonly, image, thres_ind, dist);
+r2=spat_desc_spiht_cumul(pixel, tmp_list2, imageprop, directchildonly, image, thres_ind, dist);
 
 if ((r1 == 0) && (r2 == 0)) {
 	if (directchildonly == 0){list_free(tmp_list);};
@@ -77,10 +78,11 @@ if ((r1 == 0) && (r2 == 0)) {
 
   current_el=tmp_list->first;
   while (current_el != NULL){
-  	r=spat_desc_spiht_cumul(current_el->pixel, list_desc, imageprop, directchildonly, image, thres_ind, dist);
+  	r=spat_desc_spiht_cumul(current_el->pixel, tmp_list2, imageprop, directchildonly, image, thres_ind, dist);
   	current_el= current_el->next;
   };
   list_free(tmp_list);
+  list_free(tmp_list2);
 
 value_err = abs(image[trans_pixel(pixel,imageprop)]);
 value_err = value_err - ((value_err >> thres_ind)<<thres_ind);

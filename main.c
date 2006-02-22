@@ -126,6 +126,7 @@ unsigned char * stream;
 long int i_l;
 long int npix;
 // unsigned char output;
+int err=0;
 
 long long int dist=0;
 
@@ -147,15 +148,15 @@ FILE *output_file;
 
 // struct list_el * current_el=NULL;
 
-unsigned char *map = (unsigned char *) malloc(NSMAX_CONST*NLMAX_CONST*NBMAX_CONST*sizeof(unsigned char));
+unsigned char *map = (unsigned char *) calloc(NSMAX_CONST*NLMAX_CONST*NBMAX_CONST,sizeof(unsigned char));
 // int * zero_map = (int *) malloc(NSMAX_CONST*NLMAX_CONST*NBMAX_CONST*sizeof(int));
 
 image = (long int *) malloc(NSMAX_CONST*NLMAX_CONST*NBMAX_CONST*sizeof(long int));
 // image = (short int *) malloc(NSMAX_CONST*NLMAX_CONST*NBMAX_CONST*sizeof(short int));//MODIF
 // imageout = (long int *) malloc(NSMAX_CONST*NLMAX_CONST*NBMAX_CONST*sizeof(long int));
-outputsize = (long int *) malloc((MAXQUANT_CONST+1) * sizeof(long int));
+outputsize = (long int *) calloc((MAXQUANT_CONST+1), sizeof(long int));
 // *outputsize=0;
-stream = (unsigned char *) malloc(NSMAX_CONST*NLMAX_CONST*NBMAX_CONST*2*sizeof(unsigned char));//on prend une marge... a faire en finesse plus tard...
+stream = (unsigned char *) calloc(NSMAX_CONST*NLMAX_CONST*NBMAX_CONST*2,sizeof(unsigned char));//on prend une marge... a faire en finesse plus tard...
 count=(unsigned char *) malloc(sizeof(unsigned char *));
 streamlast=(long int *) malloc(sizeof(long int *));
 // list_desc = list_init();
@@ -326,7 +327,7 @@ spiht_code_ra(image, stream, outputsize, maxquantvalue);
 // waveletDWT(image, imageout);
 // spiht_code_c(image, stream, outputsize, maxquantvalue);
 
-free(image);
+// free(image);
 
 printf("Outputsize: %ld \n", *outputsize);
 #endif
@@ -359,7 +360,7 @@ status = fclose(output_file);
 
 
 
-imageout = (long int *) malloc(NSMAX_CONST*NLMAX_CONST*NBMAX_CONST*sizeof(long int));
+imageout = (long int *) calloc(NSMAX_CONST*NLMAX_CONST*NBMAX_CONST, sizeof(long int));
 
 for (i_l=0;i_l<npix;i_l++){
 // 	image[i_l]=0;
@@ -387,27 +388,38 @@ output_file = fopen("/home/christop/Boulot/images/output_stream/moffett3-ani-spi
 status = fwrite(imageout, 4, npix, output_file);
 status = fclose(output_file);
 
-// for (i_l=0;i_l<npix;i_l++){
-// 	if ((image[i_l]-imageout[i_l]) != 0){
-// 		fprintf(stderr, "ERREUR à %ld\n",i_l);
-// 	};
-// };
 
+err=0;
+for (i_l=0;i_l<npix;i_l++){
+	if ((image[i_l]-imageout[i_l]) != 0){
+		err=1;
+		break;
+	};
+};
+if (err) {
+fprintf(stderr, "ERREUR à %ld\n",i_l);
+} else {
+fprintf(stderr, "Decoding OK\n");
+}
 return 0;
 };
 
 
 /*
 // Attention, changement de l'emploi de count par rapport à IDL !!!
-//on considere que la stream est assez longue deja...
-//a mettre en inline après... */
+//on considere que la stream est assez longue deja... */
+
+/* 
+  WARNING this function only output the 1 and supposed that stream has been properly
+  initialized at 0 (with a calloc for example).
+*/
 void add_to_stream(unsigned char *stream, unsigned char *count, int input, long int *streamlast)
 {
 	long int pos;
 	unsigned char count_local;
 	pos = *streamlast;
 	count_local = *count;
-	stream[pos] += (input << count_local);
+	stream[pos] += (input << count_local); //no effect if input is 0, be aware...
 	(count_local)++;
 	if ((count_local) == 8){
 		(count_local) = 0;
@@ -855,8 +867,8 @@ long long int eval_dist_grp(int iloc, int jloc,int kloc, long int *image, struct
 	int ii, ji, ki;
 	int ie, je, ke;
 	struct pixel_struct pixel;
-	struct list_struct * list_desc =NULL;
-	struct list_el * el =NULL;
+// 	struct list_struct * list_desc =NULL;
+// 	struct list_el * el =NULL;
 	int tmpcount=0;
 	ki=2*kloc;
 	ji=2*jloc;
@@ -865,7 +877,7 @@ long long int eval_dist_grp(int iloc, int jloc,int kloc, long int *image, struct
 	je= (2*jloc+2 < imageprop.nlmin ? 2*jloc+2 : imageprop.nlmin);
 	ie= (2*iloc+2 < imageprop.nsmin ? 2*iloc+2 : imageprop.nsmin);
 // 	printf("pt: %d %d %d -> %lld",i ,j, k, dist);
-	list_desc = list_init();
+// 	list_desc = list_init();
 	for (i=ii; i<ie; i++){
 	for (j=ji; j<je; j++){
 	for (k=ki; k<ke; k++){
@@ -876,7 +888,8 @@ long long int eval_dist_grp(int iloc, int jloc,int kloc, long int *image, struct
 // 		insert_el(list_desc, el);
 		//recherche de TOUS les descendants
 // 		spat_spec_desc_spiht(pixel, list_desc, imageprop, 0, zero_map, 0, zero_map);
-		spat_spec_desc_spiht_cumul(pixel, list_desc, imageprop, image, thres_ind, &dist);
+// 		spat_spec_desc_spiht_cumul(pixel, list_desc, imageprop, image, thres_ind, &dist);
+		spat_spec_desc_spiht_cumul(pixel, imageprop, image, thres_ind, &dist);
 // 		spat_spec_desc_spiht_cumul(pixel, NULL, imageprop, image, thres_ind, &dist);
 
 // 		//parcours des descendant et ajout a dist
@@ -896,7 +909,7 @@ long long int eval_dist_grp(int iloc, int jloc,int kloc, long int *image, struct
 	}
 	}
 // 	free(el);
-// 	free(list_desc);
+// 	list_free(list_desc);
 	return dist;
 }
 
@@ -961,9 +974,12 @@ int compute_cost(struct rddata_struct *rddata, float lambda){
 
 //functions to take care of data_block
 int datablock_init(struct datablock_struct *datablock){
-	(*datablock).stream = (unsigned char *) malloc(SIZEBLOCKSTREAM*sizeof(unsigned char *));
+	(*datablock).stream = (unsigned char *) calloc(SIZEBLOCKSTREAM,sizeof(unsigned char *));
+	if ((*datablock).stream == NULL) {fprintf(stderr, "******** Allocation problem in datablock_init\n");};
 	(*datablock).streamlast = (long int *) malloc(sizeof(long int));
+	if ((*datablock).streamlast == NULL) {fprintf(stderr, "******** Allocation problem in datablock_init\n");};
 	(*datablock).count = (unsigned char *) malloc(sizeof(unsigned char));
+	if ((*datablock).count == NULL) {fprintf(stderr, "******** Allocation problem in datablock_init\n");};
 	*((*datablock).streamlast) = 0;
 	*((*datablock).count)=0;
 	(*datablock).currentpos=0;
@@ -983,7 +999,7 @@ int datablock_free(struct datablock_struct *datablock){
 int add_to_stream_number(unsigned long int number, unsigned char * stream, unsigned char *count, long int *streamlast){
 	int i=0;
 // 	printf("Adding %lu at %ld : %d\n",number, *streamlast, *count);
-	if (number > (1<<(NUMBITSPARTSIZE-2))) {
+	if (number > (1<<(NUMBITSPARTSIZE-2))) { //taking a 2 bits marging again... 
 		printf("********** WARNING Possible error in size encoding *************\n");
 		return 1;
 	}
@@ -1019,7 +1035,10 @@ int copy_to_stream(long int currentpos, long long int rate, unsigned char * stre
 	countin = currentpos % 8;
 	streamlastin = (currentpos) / 8;
 	for (i=0; i < (rate-currentpos); i++){
-		if (streamlastin*8+countin > insize) {return 1;};
+		if (streamlastin*8+countin > insize) {
+			fprintf(stderr, "******** Reading overflow (could be normal if stream truncated, to check\n");
+			return 1;
+		};
 		bit = read_from_stream(streamin, &countin, &streamlastin);
 		add_to_stream(streamout, count, bit, streamlast);
 	}
@@ -1038,8 +1057,12 @@ int interleavingblocks(struct datablock_struct *datablock, int nblock, unsigned 
 		posmin=compute_cost(&(datablock[i].rddata),lambda);
 		rate=datablock[i].rddata.r[posmin];
 		insize = (*(datablock[i].streamlast))*8+(*(datablock[i].count));
+		if (insize > SIZEBLOCKSTREAM*8) {fprintf(stderr, "******** Block size overflow: %ld \n", insize);}
 		//output the size of the next part in stream
-// 		printf("Cutting point for %d : %lld (adding %lld to stream)\n", i, rate, rate - (datablock[i].currentpos));
+		#ifdef DEBUG
+		printf("Cutting point for %d : %lld (adding %lld to stream)\n", i, rate, rate - (datablock[i].currentpos));
+		printf("Block %d begin at position %ld\n",i, (*streamlast)*8+ (*count));
+		#endif
 		add_to_stream_number(rate - (datablock[i].currentpos), stream,count,streamlast);
 		//copy the corresponding number of bits in stream
 		copy_to_stream((datablock[i].currentpos), rate, datablock[i].stream,  stream, count, streamlast, insize);
@@ -1059,6 +1082,7 @@ int desinterleavingblocks(struct datablock_struct *datablock, int nblock, unsign
 	while ((streamlast*8+ count) <= insize){
 		nbits = read_from_stream_number(stream,&count,&streamlast);
 		pos = streamlast*8+count;
+		if (pos < 0) {fprintf(stderr, "******** pos neg in desinterleavingblocks\n");};
 // 		printf("Cutting point for %d : %ld (adding %lu to stream)\n", i, ((*(datablock[i].stream))*8+(*(datablock[i].count))+nbits), nbits);
 		err=copy_to_stream(pos, pos + nbits, stream, datablock[i].stream, datablock[i].count, datablock[i].streamlast, insize);//ce serait plus simple avec un objet stream...
 		if (err) {return 1;}

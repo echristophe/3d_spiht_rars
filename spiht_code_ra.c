@@ -33,12 +33,12 @@ int nbmin=imageprop.nbmin;
 // struct list_struct * LSC=NULL;
 // struct list_struct * LIC=NULL;
 // struct list_struct * LIS=NULL;
-// struct list_struct * LSC[NRES];
-// struct list_struct * LIC[NRES];
-// struct list_struct * LIS[NRES];
-struct list_struct * LSC[NRES+1];
-struct list_struct * LIC[NRES+1];
-struct list_struct * LIS[NRES+1];
+struct list_struct * LSC[NRES];
+struct list_struct * LIC[NRES];
+struct list_struct * LIS[NRES];
+// struct list_struct * LSC[NRES+1];
+// struct list_struct * LIC[NRES+1];
+// struct list_struct * LIS[NRES+1];
 struct pixel_struct pixel;
 struct parents_struct parents;
 int is_accessible=0;
@@ -78,9 +78,14 @@ int blockind;
 int nblock;
 
 int res=0;
+int restmp=0;
+
+// char * savestream
+char * unused[64];
 
 //debit-distortion
 long long int dist=0;
+long long int distup=0;
 // struct rddata_struct rddata;
 float alpha, beta, rate_i, rate_e;
 struct datablock_struct * datablock;
@@ -98,9 +103,9 @@ unsigned char *map_LSC = NULL;
 unsigned char *map_LIC = NULL;
 unsigned char *map_LIS = NULL;
 
-map_LSC=(unsigned char *) malloc(nsmax*nbmax*nlmax*sizeof(unsigned char));
-map_LIC= (unsigned char *) malloc(nsmax*nbmax*nlmax*sizeof(unsigned char));
-map_LIS= (unsigned char *) malloc(nsmax*nbmax*nlmax*sizeof(unsigned char));
+map_LSC=(unsigned char *) calloc(nsmax*nbmax*nlmax,sizeof(unsigned char));
+map_LIC= (unsigned char *) calloc(nsmax*nbmax*nlmax,sizeof(unsigned char));
+map_LIS= (unsigned char *) calloc(nsmax*nbmax*nlmax,sizeof(unsigned char));
 
 *count=0;
 *streamlast=0;
@@ -129,12 +134,12 @@ for (i=0;i<MAXQUANT_CONST-1;i++){
    outputsize[i]=0;
 }
 
-for (i_l=0;i_l<nsmax*nlmax*nbmax;i_l++)
-{
-	map_LSC[i_l]=0;
-	map_LIC[i_l]=0;
-	map_LIS[i_l]=0;
-}
+// for (i_l=0;i_l<nsmax*nlmax*nbmax;i_l++)
+// {
+// 	map_LSC[i_l]=0;
+// 	map_LIC[i_l]=0;
+// 	map_LIS[i_l]=0;
+// }
 
 niloc=(nsmin+1)/2;
 njloc=(nlmin+1)/2;
@@ -148,24 +153,46 @@ datablock=(struct datablock_struct *) malloc(nblock* sizeof(struct datablock_str
 //**********************************************
 //Parcours des differentes localisations
 //**********************************************
+for (kloc=0;kloc<nkloc;kloc++){
+   for (jloc=0;jloc<njloc;jloc++){
+      for (iloc=0;iloc<niloc;iloc++){
+	blockind = iloc + jloc*niloc + kloc * niloc *njloc;
+	datablock_init(&(datablock[blockind]));
+	datablock[blockind].rddata.ptcourant=0;
+	for (i=0;i<NUMRD;i++){
+		((datablock[blockind]).rddata.reval)[i]= (long long int) powf(alpha, beta+i);
+		((datablock[blockind]).rddata.r)[i]=0; //faster to use separate loops for memory access ?
+		((datablock[blockind]).rddata.d)[i]=0;
+	}
+//  		unused[blockind]=(char *) malloc (1000000*sizeof(char));
+	
+      }
+   }
+}
+
+// for (kloc=0;kloc<nkloc;kloc++){for (jloc=0;jloc<njloc;jloc++){for (iloc=0;iloc<niloc;iloc++){
+// blockind = iloc + jloc*niloc + kloc * niloc *njloc;
+// free(unused[blockind]);
+// }}}
 
 for (kloc=0;kloc<nkloc;kloc++){
    for (jloc=0;jloc<njloc;jloc++){
       for (iloc=0;iloc<niloc;iloc++){
 
 #ifdef DEBUG2
-printf("Processing grp: %d %d %d\n",iloc, jloc, kloc);
+printf("Coding grp: %d %d %d\n",iloc, jloc, kloc);
 #endif
 
 blockind = iloc + jloc*niloc + kloc * niloc *njloc;
-datablock_init(&(datablock[blockind]));
+// datablock_init(&(datablock[blockind]));
+// 
+// datablock[blockind].rddata.ptcourant=0;
+// for (i=0;i<NUMRD;i++){
+// datablock[blockind].rddata.reval[i]= (long long int) powf(alpha, beta+i);
+// datablock[blockind].rddata.r[i]=0; //faster to use separate loops for memory access ?
+// datablock[blockind].rddata.d[i]=0;
+// };
 
-datablock[blockind].rddata.ptcourant=0;
-for (i=0;i<NUMRD;i++){
-datablock[blockind].rddata.reval[i]= (long long int) powf(alpha, beta+i);
-datablock[blockind].rddata.r[i]=0; //fastest to use separate loops for memory access ?
-datablock[blockind].rddata.d[i]=0;
-};
 //SPIHT 1)
 // printf("Initialization...\n");
 ki=2*kloc;
@@ -213,18 +240,28 @@ for (k=ki;k<ke;k++){
 // #endif
 
 
-// dist = eval_dist_grp(iloc, jloc, kloc, image, imageprop, thres_ind+1);
+dist = eval_dist_grp(iloc, jloc, kloc, image, imageprop, maxquant+1);
 
 //SPIHT 2)
 for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 
 //remember what was the last one (only in case a of p25
-for (res=0; res<NRES; res++){
-lastLSC[res] = LSC[res]->last;
-lastLIC[res] = LIC[res]->last;
+for (restmp=0; restmp<NRES; restmp++){
+lastLSC[restmp] = LSC[restmp]->last;
+lastLIC[restmp] = LIC[restmp]->last;
 }
 
-dist = eval_dist_grp(iloc, jloc, kloc, image, imageprop, thres_ind+1);
+// dist = eval_dist_grp(iloc, jloc, kloc, image, imageprop, thres_ind+1);
+// printf("Dist before eval (from updating): %lld\n",dist);
+// distup=dist;
+// dist = eval_dist_grp(iloc, jloc, kloc, image, imageprop, thres_ind+1);
+// if (dist != distup) {
+// printf("%lld %lld\n",distup, dist);
+// }
+// printf("Dist after eval (direct processing): %lld\n",dist);
+// printf("------------------------------------------\n");
+
+// printf("Processing for thres_ind %d (threshold: %ld) at resolution %d: %x\n",thres_ind, threshold, 0, datablock[32].stream);
 
 for (res=0; res<NRES; res++){//possible to put it later...
 
@@ -244,7 +281,7 @@ nLISloopB=0;
 #endif
 
 //debit distortion
-// printf("Dist before eval (from updating): %lld\n",dist);
+// printf("Dist (blk %d %d %d) t=%d, res=%d: %lld\n",iloc, jloc, kloc, thres_ind, res, dist);
 // dist = eval_dist_grp(iloc, jloc, kloc, image, imageprop, thres_ind+1);
 // printf("Dist after eval (direct processing): %lld\n",dist);
 
@@ -544,11 +581,13 @@ printf("-------------------------\n");
 // printf("Size for thres %d : %ld \n",thres_ind, *(datablock[blockind].streamlast)*8+*(datablock[blockind].count));
 // }
 #endif
-outputsize[thres_ind] += (*(datablock[blockind].streamlast))*8 + (*(datablock[blockind].count)); 
-
-};//fin threshold
+ 
 
 };//fin resolution
+
+//is it still correct ?
+outputsize[thres_ind] += (*(datablock[blockind].streamlast))*8 + (*(datablock[blockind].count));
+};//fin threshold
 
 datablock[blockind].rddata.r[NUMRD-1]=(*(datablock[blockind].streamlast))*8 + (*(datablock[blockind].count));
 datablock[blockind].rddata.d[NUMRD-1]=dist;
@@ -694,6 +733,8 @@ long int i_l;
 int blockind;
 int nblock;
 
+int err=0;
+
 //debit-distortion
 // long long int dist=0;
 // struct rddata_struct rddata;
@@ -716,9 +757,9 @@ unsigned char *map_LIC = NULL;
 unsigned char *map_LIS = NULL;
 char flagLSC=0;
 
-map_LSC=(unsigned char *) malloc(nsmax*nbmax*nlmax*sizeof(unsigned char));
-map_LIC= (unsigned char *) malloc(nsmax*nbmax*nlmax*sizeof(unsigned char));
-map_LIS= (unsigned char *) malloc(nsmax*nbmax*nlmax*sizeof(unsigned char));
+map_LSC=(unsigned char *) calloc(nsmax*nbmax*nlmax,sizeof(unsigned char));
+map_LIC= (unsigned char *) calloc(nsmax*nbmax*nlmax,sizeof(unsigned char));
+map_LIS= (unsigned char *) calloc(nsmax*nbmax*nlmax,sizeof(unsigned char));
 
 *count=0;
 *streamlast=0;
@@ -751,7 +792,8 @@ for (i=0; i<nblock; i++){
 }
 
 //Desinterlacing stream
-desinterleavingblocks(datablock, nblock, stream, *outputsize);
+err=desinterleavingblocks(datablock, nblock, stream, *outputsize);
+if (err) {fprintf(stderr, "******** ERROR desinterleavingblocks\n");};
 
 for (i=0; i<nblock; i++){
 	datablock[i].currentpos=(*(datablock[i].streamlast))*8+ *(datablock[i].count);
@@ -770,7 +812,7 @@ for (kloc=0;kloc<nkloc;kloc++){
       for (iloc=0;iloc<niloc;iloc++){
 
 #ifdef DEBUG2
-printf("Processing grp: %d %d %d\n",iloc, jloc, kloc);
+printf("Decoding grp: %d %d %d\n",iloc, jloc, kloc);
 #endif
 
 blockind = iloc + jloc*niloc + kloc * niloc *njloc;
@@ -1221,7 +1263,7 @@ if ((*streamlast)*8+ (*count) > *outputsize){//on est sorti car le train de bit 
 	if (flagLSC == 0){
 		current_el=first_el(LSC[res]);
 		if (lastLSC != NULL){
-		   while (current_el != lastLSC){
+		   while (current_el != lastLSC[res]){
 		      if (image[trans_pixel(current_el->pixel,imageprop)] >0){
 			image[trans_pixel(current_el->pixel,imageprop)] += threshold;
 		      };
@@ -1267,8 +1309,8 @@ if ((*streamlast)*8+ (*count) > *outputsize){//on est sorti car le train de bit 
 			image[trans_pixel(current_el->pixel,imageprop)] -= threshold/2;
 		      };
 		   current_el=next_el(LSC[res]);
-		   if (lastLSC != lastprocessed){//attention, un cas particulier
-			while ((current_el != lastLSC) && (current_el !=NULL)){//le cas NULL arrive si on s'est arrete pile a la fin d'une etape, ex: decompression complete->NOPE
+		   if (lastLSC[res] != lastprocessed){//attention, un cas particulier
+			while ((current_el != lastLSC[res]) && (current_el !=NULL)){//le cas NULL arrive si on s'est arrete pile a la fin d'une etape, ex: decompression complete->NOPE
 			if (image[trans_pixel(current_el->pixel,imageprop)] >0){
 				image[trans_pixel(current_el->pixel,imageprop)] += threshold;
 			};

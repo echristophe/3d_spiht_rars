@@ -185,7 +185,7 @@ int add_to_rddata(struct rddata_struct *rddata, long long int rate, long long in
 
 int compute_cost(struct rddata_struct *rddata, float lambda);
 
-int spat_spec_desc_spiht_cumul(struct pixel_struct pixel, struct list_struct * list_desc, struct imageprop_struct imageprop, long int *image, int thres_ind, long long int * dist);
+int spat_spec_desc_spiht_cumul(struct pixel_struct pixel, struct imageprop_struct imageprop, long int *image, int thres_ind, long long int * dist);
 int spec_desc_spiht_cumul(struct pixel_struct pixel, struct list_struct * list_desc, struct imageprop_struct imageprop, int directchildonly, long int *image, int thres_ind, long long int * dist);
 int spat_desc_spiht_cumul(struct pixel_struct pixel, struct list_struct * list_desc, struct imageprop_struct imageprop, int directchildonly, long int *image, int thres_ind, long long int * dist);
 
@@ -199,14 +199,15 @@ struct datablock_struct{
 
 //Warning, valable pour au pire une compression nulle sur 16 bit avec des arbres a 5 niveaux
 // dans un second temps, verifier les depassements.
+// size in bytes...
 #define SIZEBLOCKSTREAM 524288
 
 int datablock_init(struct datablock_struct *datablock);
 
 int datablock_free(struct datablock_struct *datablock);
 
-//codage des longueurs sur 30 bits (une bonne marge)
-#define NUMBITSPARTSIZE 30
+//codage des longueurs sur 24 bits (une bonne marge)
+#define NUMBITSPARTSIZE 24
 int add_to_stream_number(unsigned long int number, unsigned char * stream, unsigned char *count, long int *streamlast);
 unsigned long int read_from_stream_number(unsigned char * stream, unsigned char *count, long int *streamlast);
 

@@ -12,7 +12,8 @@
 CC = LC_ALL=C gcc
 
 # LIBS = -lQccPack -lm
-LIBS = -lm
+LIBS = -lm 
+# LIBS = -lm -lefence
 
 # C_OPT = -g  -DEZWTREE -DS64 -DEZW #pour debug
 # C_OPT = -g 
@@ -31,7 +32,8 @@ LIBS = -lm
 # test
 # C_OPT = -O3 -DNEWTREE -DINPLACE -DDEBUG
 # Suppression de la liste B
-C_OPT = -g -DNOLISTB  -DNEWTREE -DDEBUG2 
+# C_OPT = -g -DNOLISTB  -DNEWTREE -DDEBUG2 -DS64
+C_OPT = -O3 -DNOLISTB  -DNEWTREE -DDEBUG2
 # C_OPT = -g -DNOLISTB  -DNEWTREE -DDEBUG2 -DNOENC
 
 PROF = 
