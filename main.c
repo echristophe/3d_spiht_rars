@@ -126,7 +126,7 @@ unsigned char * stream;
 long int i_l;
 long int npix;
 // unsigned char output;
-int err=0;
+
 long long int dist=0;
 
 unsigned char *count;
@@ -152,8 +152,7 @@ unsigned char *map = (unsigned char *) malloc(NSMAX_CONST*NLMAX_CONST*NBMAX_CONS
 
 image = (long int *) malloc(NSMAX_CONST*NLMAX_CONST*NBMAX_CONST*sizeof(long int));
 // image = (short int *) malloc(NSMAX_CONST*NLMAX_CONST*NBMAX_CONST*sizeof(short int));//MODIF
-imageout = (long int *) malloc(NSMAX_CONST*NLMAX_CONST*NBMAX_CONST*sizeof(long int));
-
+// imageout = (long int *) malloc(NSMAX_CONST*NLMAX_CONST*NBMAX_CONST*sizeof(long int));
 outputsize = (long int *) malloc((MAXQUANT_CONST+1) * sizeof(long int));
 // *outputsize=0;
 stream = (unsigned char *) malloc(NSMAX_CONST*NLMAX_CONST*NBMAX_CONST*2*sizeof(unsigned char));//on prend une marge... a faire en finesse plus tard...
@@ -327,6 +326,7 @@ spiht_code_ra(image, stream, outputsize, maxquantvalue);
 // waveletDWT(image, imageout);
 // spiht_code_c(image, stream, outputsize, maxquantvalue);
 
+free(image);
 
 printf("Outputsize: %ld \n", *outputsize);
 #endif
@@ -340,33 +340,35 @@ status = fwrite(stream, 1, (*outputsize+7)/8, output_file);
 status = fclose(output_file);
 #endif
 
-// free(image);
-
 //put stream to 0
 for (i_l=0;i_l<npix*2;i_l++){
 	stream[i_l]=0;
 };
 
 #ifdef NOENC
-// *outputsize = 89525721;//just a test value...
-*outputsize = 87195960;
+// *outputsize = 24529191;
+*outputsize = 89525721;
 #endif
 //Read from file
 output_file = fopen("/home/christop/Boulot/images/output_stream/moffett3-ani-spiht.dat","r");
-
 // *outputsize=*outputsize-2; //on enleve 2 octets pour voir...
 // *outputsize = 1069354-1;
 // *outputsize =33347743-1;
-printf("Reading %d bits\n",*outputsize);
 status = fread(stream, 1, (*outputsize+7)/8, output_file);//same as for writing...
 status = fclose(output_file);
 
+
+
+imageout = (long int *) malloc(NSMAX_CONST*NLMAX_CONST*NBMAX_CONST*sizeof(long int));
+
+for (i_l=0;i_l<npix;i_l++){
+// 	image[i_l]=0;
+	imageout[i_l]=0;
+// 	zero_map[i_l]=0;
+};
+
 printf("Decodage...\n");
 
-// imageout = (long int *) malloc(NSMAX_CONST*NLMAX_CONST*NBMAX_CONST*sizeof(long int));
-for (i_l=0;i_l<npix;i_l++){
-	imageout[i_l]=0;
-};
 //decode
 #ifdef EZW
 // ezw_decode_c(imageout, stream, outputsize, maxquantvalue);
@@ -384,18 +386,12 @@ output_file = fopen("/home/christop/Boulot/images/output_stream/moffett3-ani-spi
 // status = fwrite(stream, 1, *outputsize, output_file);//chgt 14-02-06 a verifier sur le spiht standard outputsize en bit ou byte ???
 status = fwrite(imageout, 4, npix, output_file);
 status = fclose(output_file);
-err=0;
-for (i_l=0;i_l<npix;i_l++){
-	if ((image[i_l]-imageout[i_l]) != 0){
-		err=1;
-		break;
-	};
-};
-if (err) {
-fprintf(stderr, "ERREUR à %ld\n",i_l);
-} else {
-fprintf(stderr, "Decoding OK\n");
-}
+
+// for (i_l=0;i_l<npix;i_l++){
+// 	if ((image[i_l]-imageout[i_l]) != 0){
+// 		fprintf(stderr, "ERREUR à %ld\n",i_l);
+// 	};
+// };
 
 return 0;
 };
@@ -505,17 +501,23 @@ struct list_el * first_el(struct list_struct * list){
 };
 
 
+// struct list_el * next_el(struct list_struct * list){
+// 	list->previous=list->current;
+// 	list->current=list->previous->next;
+// 	return list->current;
+// };
+
 struct list_el * next_el(struct list_struct * list){
 //modif 21-02-06
-// 	if (list->current != NULL){
+	if (list->current != NULL){
 		list->previous=list->current;
 		list->current=list->previous->next;
 		return list->current;
-// 	} else {
-// 		list->previous = NULL;
-// 		list->current = list->first;
-// 		return list->current;
-// 	}
+	} else {
+		list->previous = NULL;
+		list->current = list->first;
+		return list->current;
+	}
 };
 
 /*Insert el at the end of list*/
@@ -532,37 +534,37 @@ void insert_el(struct list_struct * list, struct list_el * el)
 	}
 };
 
-/* Insert element just after list->current, if list->current == NULL put it at first position */
+
 void insert_el_inplace(struct list_struct * list, struct list_el * el)
 {
-	//modification 21-02-06 to check
-	if (list->current == NULL){ /* The list is still empty*/
+// 	if (list->current == NULL){ /* The list is still empty*/
+// 		list->last = el;
+// 		list->first = el;
+// 		printf("WARNING WARNING: empty list situation");
+// 	}
+// 	else {
+// 		if (list->current == list->last){//on ajoute a la fin
+// 			list->last = el;
+// 		};
+// 		el->next = list->current->next;
+// 		list->current->next = el;
+// 	}
+	if (list->first == NULL){ /* The list is still empty*/
 		list->last = el;
 		list->first = el;
 		printf("WARNING WARNING: empty list situation");
 	} else {
-		if (list->current == list->last){//on ajoute a la fin
-			list->last = el;
-		};
-		el->next = list->current->next;
-		list->current->next = el;
+		if (list->current == NULL){//we want to put this element at the first place
+			el->next = list->first;
+			list->first = el;
+		} else {
+			if (list->current == list->last){//on ajoute a la fin
+				list->last = el;
+			};
+			el->next = list->current->next;
+			list->current->next = el;
+		}
 	}
-// 	if (list->first == NULL){ /* The list is still empty*/
-// 		list->last = el;
-// 		list->first = el;
-// 		printf("WARNING WARNING: empty list situation");
-// 	} else {
-// 		if (list->current == NULL){//we want to put this element at the first place
-// 			el->next = list->first;
-// 			list->first = el;
-// 		} else {
-// 			if (list->current == list->last){//on ajoute a la fin
-// 				list->last = el;
-// 			};
-// 			el->next = list->current->next;
-// 			list->current->next = el;
-// 		}
-// 	}
 };
 
 struct list_el * remove_current_el(struct list_struct * list)
@@ -853,8 +855,8 @@ long long int eval_dist_grp(int iloc, int jloc,int kloc, long int *image, struct
 	int ii, ji, ki;
 	int ie, je, ke;
 	struct pixel_struct pixel;
-// 	struct list_struct * list_desc =NULL;
-// 	struct list_el * el =NULL;
+	struct list_struct * list_desc =NULL;
+	struct list_el * el =NULL;
 	int tmpcount=0;
 	ki=2*kloc;
 	ji=2*jloc;
@@ -863,7 +865,7 @@ long long int eval_dist_grp(int iloc, int jloc,int kloc, long int *image, struct
 	je= (2*jloc+2 < imageprop.nlmin ? 2*jloc+2 : imageprop.nlmin);
 	ie= (2*iloc+2 < imageprop.nsmin ? 2*iloc+2 : imageprop.nsmin);
 // 	printf("pt: %d %d %d -> %lld",i ,j, k, dist);
-// 	list_desc = list_init();
+	list_desc = list_init();
 	for (i=ii; i<ie; i++){
 	for (j=ji; j<je; j++){
 	for (k=ki; k<ke; k++){
@@ -874,8 +876,8 @@ long long int eval_dist_grp(int iloc, int jloc,int kloc, long int *image, struct
 // 		insert_el(list_desc, el);
 		//recherche de TOUS les descendants
 // 		spat_spec_desc_spiht(pixel, list_desc, imageprop, 0, zero_map, 0, zero_map);
-// 		spat_spec_desc_spiht_cumul(pixel, list_desc, imageprop, image, thres_ind, &dist);
-		spat_spec_desc_spiht_cumul(pixel, NULL, imageprop, image, thres_ind, &dist);
+		spat_spec_desc_spiht_cumul(pixel, list_desc, imageprop, image, thres_ind, &dist);
+// 		spat_spec_desc_spiht_cumul(pixel, NULL, imageprop, image, thres_ind, &dist);
 
 // 		//parcours des descendant et ajout a dist
 // 		el = first_el(list_desc);
@@ -1037,7 +1039,7 @@ int interleavingblocks(struct datablock_struct *datablock, int nblock, unsigned 
 		rate=datablock[i].rddata.r[posmin];
 		insize = (*(datablock[i].streamlast))*8+(*(datablock[i].count));
 		//output the size of the next part in stream
-		printf("Cutting point for %d : %lld (adding %lld to stream)\n", i, rate, rate - (datablock[i].currentpos));
+// 		printf("Cutting point for %d : %lld (adding %lld to stream)\n", i, rate, rate - (datablock[i].currentpos));
 		add_to_stream_number(rate - (datablock[i].currentpos), stream,count,streamlast);
 		//copy the corresponding number of bits in stream
 		copy_to_stream((datablock[i].currentpos), rate, datablock[i].stream,  stream, count, streamlast, insize);
@@ -1057,7 +1059,7 @@ int desinterleavingblocks(struct datablock_struct *datablock, int nblock, unsign
 	while ((streamlast*8+ count) <= insize){
 		nbits = read_from_stream_number(stream,&count,&streamlast);
 		pos = streamlast*8+count;
-		printf("Cutting point for %d : %ld (adding %lu to stream)\n", i, ((*(datablock[i].stream))*8+(*(datablock[i].count))+nbits), nbits);
+// 		printf("Cutting point for %d : %ld (adding %lu to stream)\n", i, ((*(datablock[i].stream))*8+(*(datablock[i].count))+nbits), nbits);
 		err=copy_to_stream(pos, pos + nbits, stream, datablock[i].stream, datablock[i].count, datablock[i].streamlast, insize);//ce serait plus simple avec un objet stream...
 		if (err) {return 1;}
 		streamlast =  (pos + nbits)/8;
