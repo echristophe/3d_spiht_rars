@@ -1,7 +1,7 @@
 #include "main.h"
 
 
-int spiht_code_c(long int *image, unsigned char *stream, long int *outputsize, int *maxquantvalue)
+int spiht_code_ra(long int *image, unsigned char *stream, long int *outputsize, int *maxquantvalue)
 {
 
 // struct imageprop_struct imageprop={NSMAX_CONST, NLMAX_CONST, NBMAX_CONST, 8, 8, 7};
@@ -46,7 +46,20 @@ long int *streamlast = (long int *) malloc(sizeof(long int));
 long int threshold=0;
 int thres_ind=0;
 int i,j,k;
+int iloc,jloc,kloc;
+int niloc, njloc, nkloc;
+int ii,ji,ki;
+int ie,je,ke;
 long int i_l;
+int blockind;
+int nblock;
+
+//debit-distortion
+long long int dist=0;
+// struct rddata_struct rddata;
+float alpha, beta, rate_i, rate_e;
+struct datablock_struct * datablock;
+float lambda=0.0;
 
 #ifdef DEBUG
 long int nLICloop;
@@ -73,6 +86,16 @@ LIS = list_init();
 // list_desc=list_init();
 // tmp_list=list_init();
 
+//This is just to get NUMRD point with exp spacing between rate_i and rate_e
+rate_i = 200.;
+rate_e = 3000000.;
+alpha = expf(1./NUMRD * logf(rate_e/rate_i));
+beta = NUMRD * logf(rate_i) / logf(rate_e/rate_i);
+
+for (i=0;i<MAXQUANT_CONST-1;i++){
+   outputsize[i]=0;
+}
+
 for (i_l=0;i_l<nsmax*nlmax*nbmax;i_l++)
 {
 	map_LSC[i_l]=0;
@@ -80,11 +103,48 @@ for (i_l=0;i_l<nsmax*nlmax*nbmax;i_l++)
 	map_LIS[i_l]=0;
 }
 
+niloc=(nsmin+1)/2;
+njloc=(nlmin+1)/2;
+nkloc=(nbmin+1)/2;
+nblock=niloc* njloc* nkloc;
+
+datablock=(struct datablock_struct *) malloc(nblock* sizeof(struct datablock_struct));
+
+
+
+//**********************************************
+//Parcours des differentes localisations
+//**********************************************
+
+for (kloc=0;kloc<nkloc;kloc++){
+   for (jloc=0;jloc<njloc;jloc++){
+      for (iloc=0;iloc<niloc;iloc++){
+
+#ifdef DEBUG2
+printf("Processing grp: %d %d %d\n",iloc, jloc, kloc);
+#endif
+
+blockind = iloc + jloc*niloc + kloc * niloc *njloc;
+datablock_init(&(datablock[blockind]));
+
+datablock[blockind].rddata.ptcourant=0;
+for (i=0;i<NUMRD;i++){
+datablock[blockind].rddata.reval[i]= (long long int) powf(alpha, beta+i);
+datablock[blockind].rddata.r[i]=0; //fastest to use separate loops for memory access ?
+datablock[blockind].rddata.d[i]=0;
+};
 //SPIHT 1)
 // printf("Initialization...\n");
-for (k=0;k<nbmin;k++){
-   for (j=0;j<nlmin;j++){
-      for (i=0;i<nsmin;i++){
+ki=2*kloc;
+ji=2*jloc;
+ii=2*iloc;
+ke= (2*kloc+2 < nbmin ? 2*kloc+2 : nbmin);
+je= (2*jloc+2 < nlmin ? 2*jloc+2 : nlmin);
+ie= (2*iloc+2 < nsmin ? 2*iloc+2 : nsmin);
+
+for (k=ki;k<ke;k++){
+   for (j=ji;j<je;j++){
+      for (i=ii;i<ie;i++){
 //       for (j=0;j<nlmin;j++){
 //       for (k=0;k<nbmin;k++){
 	pixel.x=i;
@@ -124,8 +184,10 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 
 threshold= 1 << (long int)thres_ind;
 
+#ifdef DEBUG
 printf("Processing for thres_ind %d (threshold: %ld)...\n",thres_ind, threshold);
 // printf("Sorting pass for thres_ind %d (threshold: %ld)...\n",thres_ind, threshold);
+#endif
 
 #ifdef DEBUG
 nLSCloop=0;
@@ -134,6 +196,11 @@ nLISloop=0;
 nLISloopA=0;
 nLISloopB=0;
 #endif
+
+//debit distortion
+// printf("Dist before eval (from updating): %lld\n",dist);
+dist = eval_dist_grp(iloc, jloc, kloc, image, imageprop, thres_ind+1);
+// printf("Dist after eval (direct processing): %lld\n",dist);
 
 // Used for Significant pass
 lastLSC = LSC->last;
@@ -150,10 +217,12 @@ while (current_el != NULL){
    value_pix=image[trans_pixel(current_el->pixel,imageprop)];
 //    bit = ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold));//TODO possibilite d'enlever un abs
    bit = get_bit(value_pix, thres_ind);	
-   add_to_stream(stream, count, (int) bit, streamlast);//SPIHT 2.1.1)
+   add_to_stream((datablock[blockind].stream), (datablock[blockind].count), (int) bit, (datablock[blockind].streamlast));//SPIHT 2.1.1)
   if (bit == 1) { //SPIHT 2.1.2)
      bitsig = (value_pix > 0);
-     add_to_stream(stream, count, (int) bitsig, streamlast);
+     add_to_stream((datablock[blockind].stream), (datablock[blockind].count), (int) bitsig, (datablock[blockind].streamlast));
+     update_dist(current_el->pixel, thres_ind, &dist, image, imageprop);
+     add_to_rddata(&datablock[blockind].rddata, *(datablock[blockind].streamlast)*8+*(datablock[blockind].count), dist);
      (map_LIC[trans_pixel(current_el->pixel, imageprop)])--;
      (map_LSC[trans_pixel(current_el->pixel, imageprop)])++;
      remove_current_el(LIC);
@@ -184,7 +253,7 @@ nLISloop++;
 	r=spat_spec_desc_spiht(current_el->pixel, /*tmp_list*/list_desc, imageprop, 0, image, thres_ind, map_LSC);
 // 	list_free(tmp_list);//test
 	bit = (r == -1);//il y a au moins un des descendants qui est significatif
-        add_to_stream(stream, count, (int) bit, streamlast); //SPIHT 2.2.1.1
+        add_to_stream((datablock[blockind].stream), (datablock[blockind].count), (int) bit, (datablock[blockind].streamlast)); //SPIHT 2.2.1.1
         if (bit == 1) { //SPIHT 2.2.1.2
 	   list_desc=list_init();//list_free(list_desc);//TODO faire juste un nettoyage de la liste sans la liberer pour eviter un malloc (voir list_free plus bas) done
 	   r=spat_spec_desc_spiht(current_el->pixel, list_desc, imageprop, 1, image, thres_ind, map_LSC);//verifier qu'on va jusqu'au bout avec le onlychild a 1
@@ -196,14 +265,16 @@ nLISloop++;
         	value_pix=image[trans_pixel(current_child->pixel,imageprop)]; 
 // 		bit = ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold));
 		bit = get_bit(value_pix, thres_ind);	
-		add_to_stream(stream, count, (int) bit, streamlast); //SPIHT 2.2.1.2.1.1
+		add_to_stream((datablock[blockind].stream), (datablock[blockind].count), (int) bit, (datablock[blockind].streamlast)); //SPIHT 2.2.1.2.1.1
 		if (bit == 0){ //SPIHT 2.2.1.2.1.3
  			(map_LIC[trans_pixel(current_child->pixel, imageprop)])++;
 			el=el_init(current_child->pixel);
 			insert_el(LIC,el);
 		} else { //SPIHT 2.2.1.2.1.2
 			bitsig = (value_pix > 0);
-			add_to_stream(stream, count, (int) bitsig, streamlast);
+			add_to_stream((datablock[blockind].stream), (datablock[blockind].count), (int) bitsig, (datablock[blockind].streamlast));
+			update_dist(current_child->pixel, thres_ind, &dist, image, imageprop);
+			add_to_rddata(&datablock[blockind].rddata, *(datablock[blockind].streamlast)*8+*(datablock[blockind].count), dist);
 			(map_LSC[trans_pixel(current_child->pixel, imageprop)])++;
 			el=el_init(current_child->pixel);
 			insert_el(LSC,el);			
@@ -312,7 +383,7 @@ nLISloop++;
 		};
 		current_child=next_el(list_desc);
 	 };
-	 add_to_stream(stream, count, (int) bit, streamlast);
+	 add_to_stream((datablock[blockind].stream), (datablock[blockind].count), (int) bit, (datablock[blockind].streamlast));
 
 	 if (bit == 1){
 		current_child = first_el(list_desc);
@@ -354,7 +425,11 @@ while (current_el != lastLSC){
 #endif
 	value_pix=image[trans_pixel(current_el->pixel,imageprop)];
 	bit = get_bit(value_pix, thres_ind);
-	add_to_stream(stream, count, (int) bit, streamlast);
+	add_to_stream((datablock[blockind].stream), (datablock[blockind].count), (int) bit, (datablock[blockind].streamlast));
+	if (bit ==1) {
+		update_dist(current_el->pixel, thres_ind, &dist, image, imageprop);
+		add_to_rddata(&datablock[blockind].rddata, *(datablock[blockind].streamlast)*8+*(datablock[blockind].count), dist);
+	}
 	current_el=next_el(LSC);
 };
 if (current_el != NULL){/*a priori c'est jamais le cas (== lastLSC)*/
@@ -364,13 +439,17 @@ if (current_el != NULL){/*a priori c'est jamais le cas (== lastLSC)*/
 	value_pix=image[trans_pixel(current_el->pixel,imageprop)];
 // 	bit = ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold));
 	bit = get_bit(value_pix, thres_ind);	
-	add_to_stream(stream, count, (int) bit, streamlast);
+	add_to_stream((datablock[blockind].stream), (datablock[blockind].count), (int) bit, (datablock[blockind].streamlast));
+	if (bit ==1) {
+		update_dist(current_el->pixel, thres_ind, &dist,image,  imageprop);
+		add_to_rddata(&datablock[blockind].rddata, *(datablock[blockind].streamlast)*8+*(datablock[blockind].count), dist);
+	}
 };
 };
 #ifdef DEBUG
-printf("Stream size: %ld \n",*streamlast);
-printf("count:       %uc \n",*count);
-printf("Size in bit: %ld \n", *streamlast*8+*count);
+printf("Stream size: %ld \n",*(datablock[blockind].streamlast));
+printf("count:       %uc \n",*(datablock[blockind].count));
+printf("Size in bit: %ld \n", *(datablock[blockind].streamlast)*8+*(datablock[blockind].count));
 printf("nLSCloop: %ld\n",nLSCloop);
 printf("nLICloop: %ld\n",nLICloop);
 printf("nLISloop: %ld\n",nLISloop);
@@ -385,23 +464,85 @@ printf("nLSCmap: %ld\n",count_map(map_LSC,nsmax*nbmax*nlmax));
 printf("nLICmap: %ld\n",count_map(map_LIC,nsmax*nbmax*nlmax));
 printf("nLISmap: %ld\n",count_map(map_LIS,nsmax*nbmax*nlmax));
 
-// if (thres_ind <= 12){
-// if (check_accessibility_of_all(imageprop, map_LSC, map_LIC, map_LIS) == 0) {
-//     printf("Probleme d'accessibilite");
-// }
-// }
 
 printf("-------------------------\n");
 #endif
 
-outputsize[thres_ind]=(*streamlast)*8 + (*count); //add a +1 ???
+#ifdef DEBUG
+printf("Size for thres %d : %ld \n",thres_ind, *(datablock[blockind].streamlast)*8+*(datablock[blockind].count));
+#endif
+outputsize[thres_ind] += (*(datablock[blockind].streamlast))*8 + (*(datablock[blockind].count)); 
 
-};
+};//fin threshold
+
+datablock[blockind].rddata.r[NUMRD-1]=(*(datablock[blockind].streamlast))*8 + (*(datablock[blockind].count));
+datablock[blockind].rddata.d[NUMRD-1]=dist;
+
+list_flush(LSC);
+list_flush(LIC);
+list_flush(LIS);
+
+/*lambda=100.;
+compute_cost(&(datablock[blockind].rddata),lambda)*/;
+
+#ifdef DEBUG2
+//print the rd admissible points
+// printf("Rate  --- Distortion (reval)   ------> Cost (J)\n");
+// for (i=0; i<NUMRD; i++){
+// printf("%lld --- %lld (%lld)  ------> %f\n", datablock[blockind].rddata.r[i], datablock[blockind].rddata.d[i], datablock[blockind].rddata.reval[i], datablock[blockind].rddata.cost_j[i]);
+// }
+// printf("Optimal for lambda=%f at %d\n",lambda,datablock[blockind].rddata.ptcourant);
+
+#endif
+
+
+}// Fin du 
+}// parcours 
+}// en bloc
+
+printf("Interleaving for lambda=200\n");
+lambda=200.;
+interleavingblocks(datablock, nblock, stream, count, streamlast, lambda);
+
+#ifdef DEBUG2
+printf("Stream size: %ld \n",*streamlast);
+printf("count:       %uc \n",*count);
+printf("Size in bit: %ld \n", *streamlast*8+*count);
+#endif
+
+printf("Interleaving for lambda=100\n");
+lambda=100.;
+interleavingblocks(datablock, nblock, stream, count, streamlast, lambda);
+
+#ifdef DEBUG2
+printf("Stream size: %ld \n",*streamlast);
+printf("count:       %uc \n",*count);
+printf("Size in bit: %ld \n", *streamlast*8+*count);
+#endif
+
+printf("Interleaving for lambda=0 (lossless)\n");
+lambda=0.;
+interleavingblocks(datablock, nblock, stream, count, streamlast, lambda);
+
+#ifdef DEBUG2
+printf("Stream size: %ld \n",*streamlast);
+printf("count:       %uc \n",*count);
+printf("Size in bit: %ld \n", *streamlast*8+*count);
+#endif
+
+//WARNING no more full size...
+*outputsize = *streamlast*8+*count;
+
 
 free(map_LSC);
 free(map_LIC);
 free(map_LIS);
 
+//do not forget to free each block separatly first
+for (i=0;i<nblock;i++){
+	datablock_free(&(datablock[i]));
+}
+free(datablock);
 
 // return, 0
 // outputsize[thres_ind]=*streamlast+1; //add a +1 ???
@@ -409,18 +550,15 @@ free(map_LIS);
 free(count);
 free(streamlast);
 list_free(LSC);
-// free(LSC);
 list_free(LIC);
-// free(LIC);
 list_free(LIS);
-// free(LIS);
 
 
 return 0;
 };
 
 
-int spiht_decode_c(long int *image, unsigned char *stream, long int *outputsize, int *maxquantvalue)
+int spiht_decode_ra(long int *image, unsigned char *stream, long int *outputsize, int *maxquantvalue)
 {
 
 // struct imageprop_struct imageprop={NSMAX_CONST, NLMAX_CONST, NBMAX_CONST, 8, 8, 7};
@@ -464,7 +602,22 @@ long int *streamlast = (long int *) malloc(sizeof(long int));
 long int threshold=0;
 int thres_ind=0;
 int i,j,k;
+int iloc,jloc,kloc;
+int niloc, njloc, nkloc;
+int ii,ji,ki;
+int ie,je,ke;
 long int i_l;
+int blockind;
+int nblock;
+
+//debit-distortion
+// long long int dist=0;
+// struct rddata_struct rddata;
+// float alpha, beta, rate_i, rate_e;
+struct datablock_struct * datablock;
+// float lambda=0.0;
+
+
 
 #ifdef DEBUG
 long int nLICloop;
@@ -498,11 +651,55 @@ for (i_l=0;i_l<nsmax*nlmax*nbmax;i_l++)
 	map_LIS[i_l]=0;
 }
 
+
+niloc=(nsmin+1)/2;
+njloc=(nlmin+1)/2;
+nkloc=(nbmin+1)/2;
+nblock=niloc* njloc* nkloc;
+
+datablock=(struct datablock_struct *) malloc(nblock* sizeof(struct datablock_struct));
+
+for (i=0; i<nblock; i++){
+	datablock_init(&(datablock[i]));
+}
+
+//Desinterlacing stream
+desinterleavingblocks(datablock, nblock, stream, *outputsize);
+
+for (i=0; i<nblock; i++){
+	datablock[i].currentpos=(*(datablock[i].streamlast))*8+ *(datablock[i].count);
+	*(datablock[i].streamlast)=0;
+	*(datablock[i].count)=0;
+}
+
+
+
+//******************************************
+//Parcours des differentes localisations
+//******************************************
+
+for (kloc=0;kloc<nkloc;kloc++){
+   for (jloc=0;jloc<njloc;jloc++){
+      for (iloc=0;iloc<niloc;iloc++){
+
+#ifdef DEBUG2
+printf("Processing grp: %d %d %d\n",iloc, jloc, kloc);
+#endif
+
+blockind = iloc + jloc*niloc + kloc * niloc *njloc;
+*outputsize = datablock[blockind].currentpos;
 //SPIHT 1)
 // printf("Initialization...\n");
-for (k=0;k<nbmin;k++){
-   for (j=0;j<nlmin;j++){
-      for (i=0;i<nsmin;i++){
+ki=2*kloc;
+ji=2*jloc;
+ii=2*iloc;
+ke= (2*kloc+2 < nbmin ? 2*kloc+2 : nbmin);
+je= (2*jloc+2 < nlmin ? 2*jloc+2 : nlmin);
+ie= (2*iloc+2 < nsmin ? 2*iloc+2 : nsmin);
+
+for (k=ki;k<ke;k++){
+   for (j=ji;j<je;j++){
+      for (i=ii;i<ie;i++){
 //       for (j=0;j<nlmin;j++){
 //       for (k=0;k<nbmin;k++){
 	pixel.x=i;
@@ -558,7 +755,7 @@ lastLSC = LSC->last;
 //SPIHT 2.1)
 current_el=first_el(LIC);
 // printf("LIC processing \n");
-while ((current_el != NULL) && ((*streamlast)*8+ (*count) <= *outputsize)){
+while ((current_el != NULL) && ((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) <= *outputsize)){
 // printf(".");
 #ifdef DEBUG
    nLICloop++;
@@ -567,15 +764,15 @@ while ((current_el != NULL) && ((*streamlast)*8+ (*count) <= *outputsize)){
 //    bit = ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold));//TODO possibilite d'enlever un abs
 //    bit = get_bit(value_pix, thres_ind);	
 //    add_to_stream(stream, count, (int) bit, streamlast);//SPIHT 2.1.1)
-   if ((*streamlast)*8+ (*count) <= *outputsize){
-      bit = read_from_stream(stream, count, streamlast);
+   if ((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) <= *outputsize){
+      bit = read_from_stream((datablock[blockind].stream), (datablock[blockind].count), (datablock[blockind].streamlast));
    } else break;
 
   if (bit == 1) { //SPIHT 2.1.2)
 //      bitsig = (value_pix > 0);
 //      add_to_stream(stream, count, (int) bitsig, streamlast);
-     if ((*streamlast)*8+ (*count) <= *outputsize){
-        bitsig = read_from_stream(stream, count, streamlast);
+     if ((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) <= *outputsize){
+        bitsig = read_from_stream((datablock[blockind].stream), (datablock[blockind].count), (datablock[blockind].streamlast));
      } else break;
      image[trans_pixel(current_el->pixel,imageprop)] += threshold;
      if (bitsig == 0) {
@@ -595,7 +792,7 @@ while ((current_el != NULL) && ((*streamlast)*8+ (*count) <= *outputsize)){
 // ;for each entry in the LIS
 current_el=first_el(LIS);
 // printf("LIS processing \n");
-while ((current_el != NULL)&& ((*streamlast)*8+ (*count) <= *outputsize)){ //SPIHT 2.2)
+while ((current_el != NULL)&& ((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) <= *outputsize)){ //SPIHT 2.2)
 // printf("Processing in LIS: %d %d %d\n",current_el->pixel.x,current_el->pixel.y,current_el->pixel.l);
 #ifdef DEBUG
 nLISloop++;
@@ -610,8 +807,8 @@ nLISloop++;
 // 	r=spat_spec_desc_spiht(current_el->pixel, list_desc, imageprop, 0, image, thres_ind, map_LSC);
 // 	bit = (r == -1);//il y a au moins un des descendants qui est significatif
 //         add_to_stream(stream, count, (int) bit, streamlast); //SPIHT 2.2.1.1
-        if ((*streamlast)*8+ (*count) <= *outputsize){
-	   bit = read_from_stream(stream, count, streamlast);
+        if ((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) <= *outputsize){
+	   bit = read_from_stream((datablock[blockind].stream), (datablock[blockind].count), (datablock[blockind].streamlast));
         } else break;
         if (bit == 1) { //SPIHT 2.2.1.2
 	   list_desc=list_init();//list_free(list_desc);//TODO faire juste un nettoyage de la liste sans la liberer pour eviter un malloc (voir list_free plus bas) done
@@ -619,13 +816,13 @@ nLISloop++;
 	   current_child = first_el(list_desc);
  	   ngrandchild = 0;
 	   list_grand_desc=list_init();
-	   while ((current_child !=NULL)&& ((*streamlast)*8+ (*count) <= *outputsize)){ //SPIHT 2.2.1.2.1
+	   while ((current_child !=NULL)&& ((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) <= *outputsize)){ //SPIHT 2.2.1.2.1
 	      if ((map_LSC[trans_pixel(current_child->pixel, imageprop)] == 0) && (map_LIC[trans_pixel(current_child->pixel, imageprop)] == 0)){ 
 // 		value_pix=image[trans_pixel(current_child->pixel,imageprop)]; 
 // 		bit = get_bit(value_pix, thres_ind);	
 // 		add_to_stream(stream, count, (int) bit, streamlast); //SPIHT 2.2.1.2.1.1
-		if ((*streamlast)*8+ (*count) <= *outputsize){
-		   bit = read_from_stream(stream, count, streamlast);
+		if ((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) <= *outputsize){
+		   bit = read_from_stream((datablock[blockind].stream), (datablock[blockind].count), (datablock[blockind].streamlast));
 		} else break;
 		if (bit == 0){ //SPIHT 2.2.1.2.1.3
  			(map_LIC[trans_pixel(current_child->pixel, imageprop)])++;
@@ -635,8 +832,8 @@ nLISloop++;
 			image[trans_pixel(current_child->pixel,imageprop)] += threshold; //le signe est vu apres
 // 			bitsig = (value_pix > 0);
 // 			add_to_stream(stream, count, (int) bitsig, streamlast);
-			if ((*streamlast)*8+ (*count) <= *outputsize){
-			   bitsig = read_from_stream(stream, count, streamlast);
+			if ((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) <= *outputsize){
+			   bitsig = read_from_stream((datablock[blockind].stream), (datablock[blockind].count), (datablock[blockind].streamlast));
 			} else break;
 			if (bitsig == 0){
 				image[trans_pixel(current_child->pixel,imageprop)] = -image[trans_pixel(current_child->pixel,imageprop)];
@@ -760,8 +957,8 @@ nLISloop++;
 // 		current_child=next_el(list_desc);
 // 	 };
 // 	 add_to_stream(stream, count, (int) bit, streamlast);
-	if ((*streamlast)*8+ (*count) <= *outputsize){
-	   bit = read_from_stream(stream, count, streamlast);
+	if ((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) <= *outputsize){
+	   bit = read_from_stream((datablock[blockind].stream), (datablock[blockind].count), (datablock[blockind].streamlast));
 	} else break;
 	  if (bit == 1){
 		list_desc=list_init();//list_free(list_desc);  //decode only done
@@ -800,15 +997,15 @@ current_el=LIS->current;
 current_el=first_el(LSC);
 // printf("LSC processing \n");
 if (lastLSC != NULL){//Attention à la premiere boucle quand c'est encore vide
-while ((current_el != lastLSC) && ((*streamlast)*8+ (*count) <= *outputsize)){
+while ((current_el != lastLSC) && ((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) <= *outputsize)){
 #ifdef DEBUG
 	nLSCloop++;
 #endif
 // 	value_pix=image[trans_pixel(current_el->pixel,imageprop)];
 // 	bit = get_bit(value_pix, thres_ind);
 // 	add_to_stream(stream, count, (int) bit, streamlast);
-	if ((*streamlast)*8+ (*count) <= *outputsize){
-	   bit = read_from_stream(stream, count, streamlast);
+	if ((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) <= *outputsize){
+	   bit = read_from_stream((datablock[blockind].stream), (datablock[blockind].count), (datablock[blockind].streamlast));
 	   flagLSC=1;
 	} else break;
 	if (bit == 1){
@@ -820,7 +1017,7 @@ while ((current_el != lastLSC) && ((*streamlast)*8+ (*count) <= *outputsize)){
 	};
 	current_el=next_el(LSC);
 };
-if ((current_el != NULL) && ((*streamlast)*8+ (*count) <= *outputsize)){/*a priori c'est jamais le cas (== lastLSC)*/
+if ((current_el != NULL) && ((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) <= *outputsize)){/*a priori c'est jamais le cas (== lastLSC)*/
 #ifdef DEBUG
 	nLSCloop++;
 #endif
@@ -828,8 +1025,8 @@ if ((current_el != NULL) && ((*streamlast)*8+ (*count) <= *outputsize)){/*a prio
 // // 	bit = ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold));
 // 	bit = get_bit(value_pix, thres_ind);	
 // 	add_to_stream(stream, count, (int) bit, streamlast);
-	if ((*streamlast)*8+ (*count) <= *outputsize){
-	   bit = read_from_stream(stream, count, streamlast);
+	if ((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) <= *outputsize){
+	   bit = read_from_stream((datablock[blockind].stream), (datablock[blockind].count), (datablock[blockind].streamlast));
 	//}; else break; 
 	if (bit == 1){
 		if (image[trans_pixel(current_el->pixel,imageprop)] > 0){
@@ -845,8 +1042,8 @@ if ((current_el != NULL) && ((*streamlast)*8+ (*count) <= *outputsize)){/*a prio
 };
 
 #ifdef DEBUG
-printf("Stream size: %ld \n",*streamlast);
-printf("count:       %uc \n",*count);
+printf("Stream size: %ld \n",*(datablock[blockind].streamlast));
+printf("count:       %uc \n",*(datablock[blockind].count));
 printf("nLSCloop: %ld\n",nLSCloop);
 printf("nLICloop: %ld\n",nLICloop);
 printf("nLISloop: %ld\n",nLISloop);
@@ -854,11 +1051,11 @@ printf("nLISloopA: %ld\n",nLISloopA);
 printf("nLISloopB: %ld\n",nLISloopB);
 printf("-------------------------\n");
 
-printf("*streamlast)*8+ (*count): %ld\n", (*streamlast)*8+ (*count));
+printf("*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)): %ld\n", (*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)));
 printf("*outputsize: %ld\n", *outputsize);
 #endif
 
-if ((*streamlast)*8+ (*count) > *outputsize){
+if ((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) > *outputsize){
 #ifdef DEBUG
  	printf("Sortie: fin du train de bit (threshold %ld)\n", threshold);
 #endif
@@ -866,6 +1063,20 @@ if ((*streamlast)*8+ (*count) > *outputsize){
 };
 
 };
+
+list_flush(LSC);
+list_flush(LIC);
+list_flush(LIS);
+
+}// Fin codage
+}// des 
+}// groupes
+
+#ifdef DEBUG2
+printf("Stream size: %ld \n",*streamlast);
+printf("count:       %uc \n",*count);
+#endif
+
 
 //correction finale eventuelle 
 //TODO: la sortie est calculee a l'octet pres, pas au bit

@@ -1,7 +1,586 @@
-#include "main.h"
+#include "spiht_code_c.h"
+#include "desc.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h> 
+//unistd.h for using sleep function
+
+// #ifdef S64
+// #define NSMAX_CONST 64
+// #define NLMAX_CONST 64
+// #define NBMAX_CONST 56
+// #define NSMIN_CONST 8
+// #define NLMIN_CONST 8
+// #define NBMIN_CONST 7
+// #define MAXQUANT_CONST 16
+// #endif
+
+// #define NSMAX_CONST 8
+// #define NLMAX_CONST 8
+// #define NBMAX_CONST 1
+// #define NSMIN_CONST 2
+// #define NLMIN_CONST 2
+// #define NBMIN_CONST 1
+// #define MAXQUANT_CONST 5
+
+// #ifdef S256
+// #define NSMAX_CONST 256
+// #define NLMAX_CONST 256
+// #define NBMAX_CONST 224
+// #define NSMIN_CONST 8
+// #define NLMIN_CONST 8
+// #define NBMIN_CONST 7
+// #define MAXQUANT_CONST 19
+// #endif
+// #define NSMIN_CONST 32
+// #define NLMIN_CONST 32
+// #define NBMIN_CONST 28
+// #define MAXQUANT_CONST 16
+// #define MAXQUANT_CONST 0
+//Be careful and check if MAXQUANT_CONST is enough
+
+// int main(void) /*Uniquement dans un but de test...*/
+// {
+// int i;
+// long int image_data[100];
+// long int *image = &image_data[0];
+// char stream_data[100];
+// char *stream = &stream_data[0];
+// long int *outputsize;
+// struct list_struct *LSP;
+// struct list_el *current_el;
+// struct list_el *list_el[10];
+// struct pixel_struct pixel;
+// 
+// outputsize = (long int *) malloc( sizeof( long int ));
+// LSP = list_init();
+// 
+// for (i=0;i<10;i++){
+//         pixel.x = i;
+// 	pixel.y = i;
+// 	pixel.l = i;
+// 	list_el[i] = el_init(pixel);
+// };	
+// 
+// /*printf("current_el->pixel %ld\n",current_el->pixel);*/
+// 
+// for (i=0;i<10;i++){
+//    insert_el(LSP,list_el[i]);
+// };   
+// 
+// /*
+// *outputsize = 0;
+// spiht_code_c(image,stream, outputsize);*/
+// 
+// current_el = LSP->first;
+// for (i=0;i<10;i++){
+//    printf("current_el->pixel : %d \n",current_el->pixel.x);
+//    current_el=current_el->next;
+// };
+// 
+// LSP->previous = LSP->first->next->next;
+// LSP->current = LSP->first->next->next->next;
+// remove_current_el(LSP);
+// 
+// current_el = LSP->first;
+// i=0;
+// while (current_el != NULL){
+//    printf("current_el->pixel : %d \n",current_el->pixel.x);
+//    current_el=current_el->next;
+//    i++;
+// };
+// 
+// return 0;
+// };
 
 
-int spiht_code_c(long int *image, unsigned char *stream, long int *outputsize, int *maxquantvalue)
+int main(void) {
+
+struct pixel_struct pixel;
+// struct list_struct * list_desc=NULL;
+struct imageprop_struct imageprop;
+// int directchildonly=1;
+long int *image;
+// short int *image;
+long int *imageout;
+long int *outputsize;
+unsigned char * stream;
+// long int threshold=0;
+long int i_l;
+long int npix;
+// unsigned char output;
+
+unsigned char *count;
+ long int *streamlast;
+
+// int i,r;
+// struct list_struct *LSP;
+// struct list_el *el;
+// struct pixel pix;
+// long int value=123456;
+//00000000 00000001 11100010 01000000
+// unsigned char testbit;
+// int thres_ind;
+
+int status;
+FILE *data_file;
+FILE *output_file;
+
+// struct list_el * current_el=NULL;
+
+image = (long int *) malloc(NSMAX_CONST*NLMAX_CONST*NBMAX_CONST*sizeof(long int));
+// image = (short int *) malloc(NSMAX_CONST*NLMAX_CONST*NBMAX_CONST*sizeof(short int));//MODIF
+imageout = (long int *) malloc(NSMAX_CONST*NLMAX_CONST*NBMAX_CONST*sizeof(long int));
+outputsize = (long int *) malloc(MAXQUANT_CONST * sizeof(long int));
+*outputsize=0;
+stream = (unsigned char *) malloc(NSMAX_CONST*NLMAX_CONST*NBMAX_CONST*2*sizeof(unsigned char));//on prend une marge... a faire en finesse plus tard...
+count=(unsigned char *) malloc(sizeof(unsigned char *));
+streamlast=(long int *) malloc(sizeof(long int *));
+// list_desc = list_init();
+imageprop.nsmax=NSMAX_CONST;
+imageprop.nlmax=NLMAX_CONST;
+imageprop.nbmax=NBMAX_CONST;
+// imageprop.nsmin=8;
+// imageprop.nlmin=8;
+// imageprop.nbmin=7;
+imageprop.nsmin=NSMIN_CONST;
+imageprop.nlmin=NLMIN_CONST;
+imageprop.nbmin=NBMIN_CONST;
+int *maxquantvalue=(int*) malloc(sizeof(int));
+
+*maxquantvalue=19;
+
+npix=imageprop.nsmax*imageprop.nlmax*imageprop.nbmax;
+for (i_l=0;i_l<npix;i_l++){
+	image[i_l]=0;
+	imageout[i_l]=0;
+};
+for (i_l=0;i_l<npix*2;i_l++){
+	stream[i_l]=0;
+};
+
+
+//test
+// LSP=list_init();
+// for (i=0;i<10;i++){
+// // 	pix={i,i,i};
+// 	el=el_init((struct pixel_struct) {i,i,i});
+// 	insert_el(LSP,el);
+// 	printf("%d at address %ud\n",i,el);
+// };
+// 
+// LSP->current = LSP->first;
+// 
+// r=print_list(LSP);
+// r=check_list(LSP);
+// printf("check list %d\n",r);
+// el=remove_current_el(LSP);//on enleve le 0  et on va au 1
+// printf("0 at address %ud\n",el);
+// r=print_list(LSP);
+// next_el(LSP);//va au 2
+// next_el(LSP);//va au 3abs(value)>>thres_ind
+// el=remove_current_el(LSP);//enleve le 3 et va au 4
+// printf("3 at address %ud\n",el);
+// r=print_list(LSP);
+// r=check_list(LSP);
+// printf("check list %d\n",r);
+// next_el(LSP);//5
+// next_el(LSP);
+// next_el(LSP);
+// next_el(LSP);
+// next_el(LSP);//9
+// el=remove_current_el(LSP);//enleve le 9 et va au NULL
+// printf("9 at address %ud\n",el);
+// r=print_list(LSP);
+// r=check_list(LSP);
+// printf("check list %d\n",r);
+// 
+// 
+// printf("fin test\n");
+
+//fin test
+
+//test2
+// for (thres_ind=0;i<20;i++){
+// 	testbit=get_bit(value,i);
+// 	printf("(+)%d : %uc\n",i,testbit);
+// 	testbit=get_bit(-value,i);
+// 	printf("(-)%d : %uc\n",i,testbit);	
+// };
+
+
+// printf("debut test\n");
+// *count=0;
+// *streamlast=0;
+// printf("Input\n");
+// for (i=0;i<20;i++){
+// testbit=get_bit(value,i);
+// printf(" %uc \n",testbit);
+// add_to_stream(stream,count, testbit, streamlast);
+// };
+// 
+// printf("Output\n");
+// *count=0;
+// *streamlast=0;
+// for (i=0;i<20;i++){
+// output=read_from_stream(stream, count, streamlast);
+// printf(" %uc \n",output);
+// };
+// printf("fin test\n");
+// printf("\n");
+
+
+//fin test2
+
+
+// pixel.x=1;
+// pixel.y=1;
+// pixel.l=1;
+// spat_desc_spiht(pixel, list_desc, imageprop, directchildonly, image, threshold);
+// spec_desc_spiht(pixel, list_desc, imageprop, directchildonly, image, threshold);
+// spat_spec_desc_spiht(pixel, list_desc, imageprop, directchildonly, image, threshold);
+
+// printf("Print descendant list\n");
+// current_el = list_desc->first;
+// while (current_el != NULL){
+//    printf("current_el->pixel : %d, %d, %d \n",current_el->pixel.x,current_el->pixel.y,current_el->pixel.l);
+//    current_el=current_el->next;
+// };
+
+// sleep(5);
+#ifdef S64
+data_file = fopen("moff-64-dwt","r");
+// #endif
+// data_file = fopen("shapirodata","r");
+#else
+data_file = fopen("/home/christop/Boulot/images/hyper_test/moffett3-ani-lsb.img","r");
+#endif
+status = fread(image, 4, npix, data_file);
+// data_file = fopen("/home/christop/Boulot/images/hyper_test/moffett3-lsb.img","r");
+// status = fread(image, 2, npix, data_file);
+
+status = fclose(data_file);
+
+printf("image[0]: %ld\n",image[0]);
+// #ifdef EZW
+// ezw_code_c(image, stream, outputsize, maxquantvalue);
+// #else
+//spiht_code_c(image, stream, outputsize, maxquantvalue);
+// #endif
+// waveletDWT(image, imageout);
+spiht_code_c(image, stream, outputsize, maxquantvalue);
+
+
+printf("Outputsize: %ld \n", *outputsize);
+
+
+
+//output of coded stream
+output_file = fopen("/home/christop/Boulot/images/output_stream/moffett3-ani-spiht.dat","w");
+status = fwrite(stream, 1, *outputsize, output_file);
+status = fclose(output_file);
+
+//put stream to 0
+for (i_l=0;i_l<npix*2;i_l++){
+	stream[i_l]=0;
+};
+
+//Read from file
+output_file = fopen("/home/christop/Boulot/images/output_stream/moffett3-ani-spiht.dat","r");
+// *outputsize=*outputsize-2; //on enleve 2 octets pour voir...
+// *outputsize = 1069354-1;
+// *outputsize =33347743-1;
+status = fread(stream, 1, *outputsize, output_file);
+status = fclose(output_file);
+
+//decode
+// #ifdef EZW
+// ezw_decode_c(imageout, stream, outputsize, maxquantvalue);
+// #else
+spiht_decode_c(imageout, stream, outputsize, maxquantvalue);
+// #endif
+printf("Fin decodage\n");
+
+// sleep(10);
+
+
+for (i_l=0;i_l<npix;i_l++){
+	if ((image[i_l]-imageout[i_l]) != 0){
+		fprintf(stderr, "ERREUR à %ld\n",i_l);
+	};
+};
+
+return 0;
+};
+
+
+/*
+// Attention, changement de l'emploi de count par rapport à IDL !!!
+//on considere que la stream est assez longue deja...
+//a mettre en inline après... */
+void add_to_stream(unsigned char *stream, unsigned char *count, int input, long int *streamlast)
+{
+	long int pos;
+	unsigned char count_local;
+	pos = *streamlast;
+	count_local = *count;
+	stream[pos] += (input << count_local);
+	(count_local)++;
+	if ((count_local) == 8){
+		(count_local) = 0;
+		pos++;
+		*streamlast = pos;
+	}
+	*count = count_local;
+	
+};
+
+// ;count indicate the number of BIT from the begining of the stream
+// ;if over streamlength, consider every bit as 0
+unsigned char read_from_stream(unsigned char * stream, unsigned char * count, long int *streamlast){
+	unsigned char output=0;
+// 	streamlength=n_elements(stream)*8
+// 	for i=0, output_length-1 do begin
+// 		if (count GE streamlength) then begin ;buffer overflow...
+// 		output[i]=0
+// 		endif else begin ;normal situation
+// 		streampos=floor(count / 8)
+// 		bitpos= count mod 8
+// 		output[i]=get_bit(stream[streampos],2L^(bitpos))
+// 		endelse
+// 		count++
+// 	endfor
+	output=get_bit((long int) stream[*streamlast],(int) *count);
+	(*count)++;
+	if ((*count) == 8){
+		*count = 0;
+		(*streamlast)++;
+	};
+	return output;
+};
+
+struct list_el * el_init(struct pixel_struct pixel){
+    struct list_el * ptr;
+    ptr = (struct list_el *) malloc( sizeof(struct list_el));
+    ptr->next = NULL;
+    ptr->pixel = pixel;
+    ptr->type = 0;
+    return ptr;
+};
+
+struct list_struct * list_init(void){
+    struct list_struct * ptr;
+    ptr = (struct list_struct *) malloc( sizeof(struct list_struct));
+    ptr->first = NULL;
+    ptr->last = NULL;
+    ptr->current = NULL;
+    ptr->previous = NULL;	
+    return ptr;
+};
+
+void list_free(struct list_struct * list){
+	struct list_el * previous=NULL;
+	struct list_el * current_el=NULL;
+	if (list != NULL){
+	previous=list->first;
+	current_el=list->first;
+	while (current_el != NULL){
+		previous=current_el;
+		current_el=current_el->next;
+		free(previous);
+	};
+	free(list);
+	};
+};
+
+struct list_el * first_el(struct list_struct * list){
+	list->previous=NULL;
+	list->current=list->first;
+	return list->current;
+};
+
+
+struct list_el * next_el(struct list_struct * list){
+	list->previous=list->current;
+	list->current=list->previous->next;
+	return list->current;
+};
+
+/*Insert el at the end of list*/
+void insert_el(struct list_struct * list, struct list_el * el)
+{
+	if (list->last == NULL){/* The list is still empty*/ 
+		list->last = el;
+		list->first = el;
+	}
+	else {
+		list->last->next = el;
+		list->last = el;
+		list->last->next=NULL;/*Et oui, si on se met à la fin, il ne faut plus rien derrière...*/
+	}
+};
+
+
+void insert_el_inplace(struct list_struct * list, struct list_el * el)
+{
+	if (list->current == NULL){ /* The list is still empty*/
+		list->last = el;
+		list->first = el;
+		printf("WARNING WARNING: empty list situation");
+	}
+	else {
+		if (list->current == list->last){//on ajoute a la fin
+			list->last = el;
+		};
+		el->next = list->current->next;
+		list->current->next = el;
+	}
+};
+
+struct list_el * remove_current_el(struct list_struct * list)
+{
+	struct list_el * ptr;
+	ptr=list->current;
+	if (list->current == list->first){/*if current is the first*/
+		if (list->current->next == NULL){/*list is now empty*/
+			list->first = NULL;
+			list->last = NULL;
+			list->current = NULL;
+			list->previous = NULL;
+		}
+		else {
+			list->first = list->current->next; 
+			list->current = list->first;//on passe au suivant
+			list->previous = NULL;
+		}
+	}
+	else {
+		if (list->current == list->last){/*if current is the last*/
+			if (list->previous == NULL){/*This should NEVER happen*/
+				list->first = NULL;
+				list->last = NULL;
+				list->current = NULL;
+				list->previous = NULL;
+				printf("This should NEVER happen: list inconsistent");
+			}
+			else {
+				list->last = list->previous;  /* Attention */
+				list->current=NULL;//on passe au suivant qui n'existe pas
+				list->last->next=NULL;
+			};
+		}
+		else {
+			list->previous->next = list->current->next;
+			list->current = list->previous->next;//on passe directement au suivant
+		};
+	};
+	return ptr; /*Pour eventuellement liberer la memoire si ce n'est pas un deplacement*/
+};
+
+int check_list(struct list_struct * list){
+	struct list_el * el_current=NULL;
+	struct list_el * el_previous=NULL;
+	struct list_el * el;
+	el_current=list->current;
+	el_previous=list->previous;
+	el = first_el(list);
+	while (el != NULL){
+		el=next_el(list);
+// 		el=el->next;
+	};
+	if ((list->previous) == (list->last)){
+	  list->current=el_current;
+	  list->previous=el_previous;
+	  return 0;
+	} else {
+	  list->current=el_current;
+	  list->previous=el_previous;
+	  return 1;
+	}
+};
+
+int count_list(struct list_struct * list){
+	int count=0;
+	printf("WARNING: destructif effect on list");
+	list->current=list->first;
+	list->previous=NULL;
+	while (list->current !=NULL){
+		count++;
+		next_el(list);
+	};
+	return count;	
+};
+
+int check_map(unsigned char * map, struct imageprop_struct imageprop){
+	int i,j,k;
+	for (k=0;k<imageprop.nbmax;k++){
+	for (j=0;j<imageprop.nlmax;j++){
+	for (i=0;i<imageprop.nsmax;i++){	
+		if (map[i + j*imageprop.nsmax + k*imageprop.nsmax*imageprop.nlmax] > 1) {
+		  fprintf(stderr, "Map erronee: %d %d %d\n",i,j,k);
+		  return 1;
+		};
+	};
+	};
+	};
+	return 0;
+};
+
+int print_list(struct list_struct * list)
+{
+	struct list_el * el_current=NULL;
+	struct list_el * el_previous=NULL;
+	struct list_el * el=NULL;
+	int output;
+	el_current=list->current;
+	el_previous=list->previous;
+	el = first_el(list);
+	while (el != NULL){
+		printf("%d %d %d \n",el->pixel.x,el->pixel.y,el->pixel.l);
+		el=next_el(list);
+	};
+	
+	if ((list->previous) == (list->last)) {
+	  list->current=el_current;
+	  list->previous=el_previous;
+	  output= 0;
+	} else 
+	{
+	  list->current=el_current;
+	  list->previous=el_previous;
+	  output= 1;
+	};
+	return output;
+};
+
+
+long int count_map(unsigned char * map, long int size){
+	long int i=0;
+	long int count=0;
+	for (i=0; i<size; i++){
+		if (map[i] == 1){count++;};
+	};
+	return count;
+};
+
+
+long int trans_pixel(struct pixel_struct pixel, struct imageprop_struct imageprop)
+{
+   return pixel.x + pixel.y*imageprop.nsmax + pixel.l*imageprop.nsmax*imageprop.nlmax;
+};
+
+unsigned char get_bit(long int value,int thres_ind){
+	unsigned char bitvalue;
+// 	bitvalue= byte(
+// (floor(abs(value)/threshold)*threshold-floor(abs(value)/(threshold*2))*threshold*2) /threshold
+// )
+	bitvalue= (((abs(value)>>thres_ind)<<thres_ind) - ((abs(value)>>(thres_ind+1))<<(thres_ind+1)
+	)) >>thres_ind;
+	return bitvalue;
+}
+
+
+int spiht_code_c(long int *image, unsigned char *stream, long int *outputsize, long int *maxquantvalue)
 {
 
 // struct imageprop_struct imageprop={NSMAX_CONST, NLMAX_CONST, NBMAX_CONST, 8, 8, 7};
@@ -18,8 +597,6 @@ struct list_struct * LSC=NULL;
 struct list_struct * LIC=NULL;
 struct list_struct * LIS=NULL;
 struct pixel_struct pixel;
-struct parents_struct parents;
-int is_accessible=0;
 // int maxquant=imageprop.maxquant;
 // int maxquant=MAXQUANT_CONST;
 int maxquant= (int) (*maxquantvalue);
@@ -32,7 +609,7 @@ struct list_el * lastLSC=NULL;
 
 
 struct list_struct * list_desc=NULL;
-// struct list_struct * tmp_list=NULL;
+struct list_struct * tmp_list=NULL;
 struct list_struct * list_grand_desc=NULL;
 
 long int value_pix=0;
@@ -47,14 +624,11 @@ long int threshold=0;
 int thres_ind=0;
 int i,j,k;
 long int i_l;
-
-#ifdef DEBUG
 long int nLICloop;
 long int nLSCloop;
 long int nLISloop;
 long int nLISloopA;
 long int nLISloopB;
-#endif
 
 unsigned char *map_LSC = NULL;
 unsigned char *map_LIC = NULL;
@@ -85,8 +659,6 @@ for (i_l=0;i_l<nsmax*nlmax*nbmax;i_l++)
 for (k=0;k<nbmin;k++){
    for (j=0;j<nlmin;j++){
       for (i=0;i<nsmin;i++){
-//       for (j=0;j<nlmin;j++){
-//       for (k=0;k<nbmin;k++){
 	pixel.x=i;
 	pixel.y=j;
 	pixel.l=k;
@@ -113,11 +685,6 @@ for (k=0;k<nbmin;k++){
 //    return 1;
 // };
 
-// #ifdef DEBUG
-// if (check_accessibility_of_all(imageprop, map_LSC, map_LIC, map_LIS) == 0) {
-//     printf("Probleme d'accessibilite");
-// }
-// #endif
 
 //SPIHT 2)
 for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
@@ -127,13 +694,11 @@ threshold= 1 << (long int)thres_ind;
 printf("Processing for thres_ind %d (threshold: %ld)...\n",thres_ind, threshold);
 // printf("Sorting pass for thres_ind %d (threshold: %ld)...\n",thres_ind, threshold);
 
-#ifdef DEBUG
 nLSCloop=0;
 nLICloop=0;
 nLISloop=0;
 nLISloopA=0;
 nLISloopB=0;
-#endif
 
 // Used for Significant pass
 lastLSC = LSC->last;
@@ -144,9 +709,7 @@ current_el=first_el(LIC);
 // printf("LIC processing \n");
 while (current_el != NULL){
 // printf(".");
-#ifdef DEBUG
    nLICloop++;
-#endif
    value_pix=image[trans_pixel(current_el->pixel,imageprop)];
 //    bit = ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold));//TODO possibilite d'enlever un abs
    bit = get_bit(value_pix, thres_ind);	
@@ -171,16 +734,12 @@ current_el=first_el(LIS);
 // printf("LIS processing \n");
 while (current_el != NULL){ //SPIHT 2.2)
 // printf("Processing in LIS: %d %d %d\n",current_el->pixel.x,current_el->pixel.y,current_el->pixel.l);
-#ifdef DEBUG
 nLISloop++;
-#endif
 // if (LIS->current == NULL) printf("Uh Oh 2.2\n");
 #ifndef NOLISTB
     if (current_el->type == 0) { //SPIHT 2.2.1);if the set is of type A
 #endif
-#ifdef DEBUG
         nLISloopA++;
-#endif
 	r=spat_spec_desc_spiht(current_el->pixel, /*tmp_list*/list_desc, imageprop, 0, image, thres_ind, map_LSC);
 // 	list_free(tmp_list);//test
 	bit = (r == -1);//il y a au moins un des descendants qui est significatif
@@ -213,11 +772,6 @@ nLISloop++;
 		if (r != 0) ngrandchild++;
 #else
 	 if (map_LIS[trans_pixel(current_child->pixel, imageprop)] == 0){
-	  r=spat_spec_desc_spiht(current_child->pixel, list_grand_desc, imageprop, 1, image, thres_ind, map_LSC);//pour L(x,y,l)
-	  if (r != 0) {	 
-#ifndef NEWTREE
-	 	if (bit == 1) { 
-#endif
 		el=el_init(current_child->pixel);
 		#ifndef INPLACE
 		insert_el(LIS,el);
@@ -225,34 +779,6 @@ nLISloop++;
 		insert_el_inplace(LIS,el);
 		#endif
 		(map_LIS[trans_pixel(el->pixel, imageprop)])++;
-#ifndef NEWTREE
-		} else {//si on met k,l dans la LIC on verifie si il est accessible
-			is_accessible=0;
-			parents=find_parents(current_child->pixel, imageprop);
-			if ((parents.spat.x != current_el->pixel.x) ||
-				(parents.spat.y != current_el->pixel.y) ||
-				(parents.spat.l != current_el->pixel.l) ){//on s'arrure qu'on n'est pas arrive par le spatial
-			is_accessible=is_accessible_from(parents.spat,imageprop,map_LIS);
-			}
-			if ((parents.spec.x != current_el->pixel.x) ||
-				(parents.spec.y != current_el->pixel.y) ||
-				(parents.spec.l != current_el->pixel.l) ){//on s'arrure qu'on n'est pas arrive par le spatial
-			if (is_accessible ==1) printf("********** UH OH*******\n");
-			is_accessible=is_accessible_from(parents.spec,imageprop,map_LIS);
-			}
-			if (is_accessible ==0){
-				el=el_init(current_child->pixel);
-				#ifndef INPLACE
-				insert_el(LIS,el);
-				#else
-				insert_el_inplace(LIS,el);
-				#endif
-				(map_LIS[trans_pixel(el->pixel, imageprop)])++;
-			}
-		}
-#endif
-		
-	  }
 	}
 #endif
 	      };
@@ -297,9 +823,7 @@ nLISloop++;
 	};
 #ifndef NOLISTB
 	} else { //SPIHT 2.2.2 ;else the set is of type B
-#ifdef DEBUG
 	  nLISloopB++;
-#endif
 		//On doit faire l'output de Sn(L(i,j))
 	  list_desc=list_init();//list_free(list_desc);//done
 	  r=spat_spec_desc_spiht(current_el->pixel, list_desc, imageprop, 1, image, thres_ind, map_LSC);
@@ -349,25 +873,21 @@ current_el=first_el(LSC);
 // printf("LSC processing \n");
 if (lastLSC != NULL){//Attention à la premiere boucle quand c'est encore vide
 while (current_el != lastLSC){
-#ifdef DEBUG
 	nLSCloop++;
-#endif
 	value_pix=image[trans_pixel(current_el->pixel,imageprop)];
 	bit = get_bit(value_pix, thres_ind);
 	add_to_stream(stream, count, (int) bit, streamlast);
 	current_el=next_el(LSC);
 };
 if (current_el != NULL){/*a priori c'est jamais le cas (== lastLSC)*/
-#ifdef DEBUG
 	nLSCloop++;
-#endif
 	value_pix=image[trans_pixel(current_el->pixel,imageprop)];
 // 	bit = ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold));
 	bit = get_bit(value_pix, thres_ind);	
 	add_to_stream(stream, count, (int) bit, streamlast);
 };
 };
-#ifdef DEBUG
+
 printf("Stream size: %ld \n",*streamlast);
 printf("count:       %uc \n",*count);
 printf("Size in bit: %ld \n", *streamlast*8+*count);
@@ -377,25 +897,12 @@ printf("nLISloop: %ld\n",nLISloop);
 printf("nLISloopA: %ld\n",nLISloopA);
 printf("nLISloopB: %ld\n",nLISloopB);
 
-// if (check_map(map_LSC, imageprop)) printf("Error in LSC\n");
-// if (check_map(map_LIC, imageprop)) printf("Error in LIC\n");
-// if (check_map(map_LIS, imageprop)) printf("Error in LIS\n");
-
 printf("nLSCmap: %ld\n",count_map(map_LSC,nsmax*nbmax*nlmax));
 printf("nLICmap: %ld\n",count_map(map_LIC,nsmax*nbmax*nlmax));
 printf("nLISmap: %ld\n",count_map(map_LIS,nsmax*nbmax*nlmax));
 
-// if (thres_ind <= 12){
-// if (check_accessibility_of_all(imageprop, map_LSC, map_LIC, map_LIS) == 0) {
-//     printf("Probleme d'accessibilite");
-// }
-// }
-
-printf("-------------------------\n");
-#endif
-
 outputsize[thres_ind]=(*streamlast)*8 + (*count); //add a +1 ???
-
+printf("-------------------------\n");
 };
 
 free(map_LSC);
@@ -420,7 +927,7 @@ return 0;
 };
 
 
-int spiht_decode_c(long int *image, unsigned char *stream, long int *outputsize, int *maxquantvalue)
+int spiht_decode_c(long int *image, unsigned char *stream, long int *outputsize, long int *maxquantvalue)
 {
 
 // struct imageprop_struct imageprop={NSMAX_CONST, NLMAX_CONST, NBMAX_CONST, 8, 8, 7};
@@ -437,8 +944,6 @@ struct list_struct * LSC=NULL;
 struct list_struct * LIC=NULL;
 struct list_struct * LIS=NULL;
 struct pixel_struct pixel;
-struct parents_struct parents;
-int is_accessible=0;
 // int maxquant=imageprop.maxquant;
 // int maxquant=MAXQUANT_CONST;
 int maxquant=(int) *maxquantvalue;
@@ -465,14 +970,11 @@ long int threshold=0;
 int thres_ind=0;
 int i,j,k;
 long int i_l;
-
-#ifdef DEBUG
 long int nLICloop;
 long int nLSCloop;
 long int nLISloop;
 long int nLISloopA;
 long int nLISloopB;
-#endif
 
 unsigned char *map_LSC = NULL;
 unsigned char *map_LIC = NULL;
@@ -503,8 +1005,6 @@ for (i_l=0;i_l<nsmax*nlmax*nbmax;i_l++)
 for (k=0;k<nbmin;k++){
    for (j=0;j<nlmin;j++){
       for (i=0;i<nsmin;i++){
-//       for (j=0;j<nlmin;j++){
-//       for (k=0;k<nbmin;k++){
 	pixel.x=i;
 	pixel.y=j;
 	pixel.l=k;
@@ -536,20 +1036,16 @@ for (k=0;k<nbmin;k++){
 for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 
 threshold= 1 << (long int)thres_ind;
-#ifdef DEBUG
+
 printf("Processing for thres_ind %d (threshold: %ld)...\n",thres_ind, threshold);
 // printf("Sorting pass for thres_ind %d (threshold: %ld)...\n",thres_ind, threshold);
-#endif
 
 flagLSC=0;
-
-#ifdef DEBUG
 nLSCloop=0;
 nLICloop=0;
 nLISloop=0;
 nLISloopA=0;
 nLISloopB=0;
-#endif
 
 // Used for Significant pass
 lastLSC = LSC->last;
@@ -560,9 +1056,7 @@ current_el=first_el(LIC);
 // printf("LIC processing \n");
 while ((current_el != NULL) && ((*streamlast)*8+ (*count) <= *outputsize)){
 // printf(".");
-#ifdef DEBUG
    nLICloop++;
-#endif
 //    value_pix=image[trans_pixel(current_el->pixel,imageprop)];
 //    bit = ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold));//TODO possibilite d'enlever un abs
 //    bit = get_bit(value_pix, thres_ind);	
@@ -597,16 +1091,12 @@ current_el=first_el(LIS);
 // printf("LIS processing \n");
 while ((current_el != NULL)&& ((*streamlast)*8+ (*count) <= *outputsize)){ //SPIHT 2.2)
 // printf("Processing in LIS: %d %d %d\n",current_el->pixel.x,current_el->pixel.y,current_el->pixel.l);
-#ifdef DEBUG
 nLISloop++;
-#endif
 // if (LIS->current == NULL) printf("Uh Oh 2.2\n");
 #ifndef NOLISTB
     if (current_el->type == 0) { //SPIHT 2.2.1);if the set is of type A
 #endif
-#ifdef DEBUG
         nLISloopA++;
-#endif
 // 	r=spat_spec_desc_spiht(current_el->pixel, list_desc, imageprop, 0, image, thres_ind, map_LSC);
 // 	bit = (r == -1);//il y a au moins un des descendants qui est significatif
 //         add_to_stream(stream, count, (int) bit, streamlast); //SPIHT 2.2.1.1
@@ -645,67 +1135,8 @@ nLISloop++;
 			el=el_init(current_child->pixel);
 			insert_el(LSC,el);			
 		};
-#ifndef NOLISTB
 		r=spat_spec_desc_spiht(current_child->pixel, list_grand_desc, imageprop, 1, image, thres_ind, map_LSC);//pour L(x,y,l)
 		if (r != 0) ngrandchild++;
-#else
-	//Si l'enfant k,l a lui meme des enfants, il faut le rajouter à la LIS (seulement si il n'y est pas déjà...
-// 	if (map_LIS[trans_pixel(current_child->pixel, imageprop)] == 0){
-// 	r=spat_spec_desc_spiht(current_child->pixel, list_grand_desc, imageprop, 1, image, thres_ind, map_LSC);//pour L(x,y,l)
-// 	if (r != 0) {	 
-// 	 
-// 		el=el_init(current_child->pixel);
-// 		#ifndef INPLACE
-// 		insert_el(LIS,el);
-// 		#else
-// 		insert_el_inplace(LIS,el);
-// 		#endif
-// 		(map_LIS[trans_pixel(el->pixel, imageprop)])++;
-// 	}
-// 	}
-	 if (map_LIS[trans_pixel(current_child->pixel, imageprop)] == 0){
-	  r=spat_spec_desc_spiht(current_child->pixel, list_grand_desc, imageprop, 1, image, thres_ind, map_LSC);//pour L(x,y,l)
-	  if (r != 0) {	 
-#ifndef NEWTREE
-	 	if (bit == 1) { 
-#endif
-		el=el_init(current_child->pixel);
-		#ifndef INPLACE
-		insert_el(LIS,el);
-		#else
-		insert_el_inplace(LIS,el);
-		#endif
-		(map_LIS[trans_pixel(el->pixel, imageprop)])++;
-#ifndef NEWTREE
-		} else {//si on met k,l dans la LIC on verifie si il est accessible
-			is_accessible=0;
-			parents=find_parents(current_child->pixel, imageprop);
-			if ((parents.spat.x != current_el->pixel.x) ||
-				(parents.spat.y != current_el->pixel.y) ||
-				(parents.spat.l != current_el->pixel.l) ){//on s'arrure qu'on n'est pas arrive par le spatial
-			is_accessible=is_accessible_from(parents.spat,imageprop,map_LIS);
-			}
-			if ((parents.spec.x != current_el->pixel.x) ||
-				(parents.spec.y != current_el->pixel.y) ||
-				(parents.spec.l != current_el->pixel.l) ){//on s'arrure qu'on n'est pas arrive par le spatial
-			if (is_accessible ==1) printf("********** UH OH*******\n");
-			is_accessible=is_accessible_from(parents.spec,imageprop,map_LIS);
-			}
-			if (is_accessible ==0){
-				el=el_init(current_child->pixel);
-				#ifndef INPLACE
-				insert_el(LIS,el);
-				#else
-				insert_el_inplace(LIS,el);
-				#endif
-				(map_LIS[trans_pixel(el->pixel, imageprop)])++;
-			}
-		}
-#endif
-		
-	  }
-	}
-#endif
 	      };  
 	      current_child=next_el(list_desc);
 	   };
@@ -719,7 +1150,6 @@ nLISloop++;
 // 	   };
 	   list_free(list_grand_desc);
 	   list_free(list_desc);//TODO a modifier pour eviter un malloc
-#ifndef NOLISTB
 	   if (ngrandchild > 0){//SPIHT 2.2.1.2.2
 #ifndef INPLACE 
 		tmp_el=remove_current_el(LIS); //il ne faut pas liberer la memoire ici...	
@@ -730,25 +1160,19 @@ nLISloop++;
 #endif
 		current_el->type=1; // on ne peut pas le rajouter à la fin avant de le supprimer du milieu
 	   } else {
-#endif
 		tmp_el=remove_current_el(LIS);
 		(map_LIS[trans_pixel(tmp_el->pixel, imageprop)])--;
 		free(tmp_el); //la par contre, il disparait...
 		
-#ifndef NOLISTB
 	   };
-#endif
 	   tmp_el=NULL;
 // 	   if (LIS->current == NULL) printf("Uh Oh 2.2.1.2 (if)\n");
 	}else{//fin du 2.2.1.2
 	   current_el=next_el(LIS);
 // 	   if (LIS->current == NULL) printf("Uh Oh 2.2.1.2 (else)\n");
 	};
-#ifndef NOLISTB
 	} else { //SPIHT 2.2.2 ;else the set is of type B
-#ifdef DEBUG
 	  nLISloopB++;
-#endif
 		//On doit faire l'output de Sn(L(i,j))
 // 	  list_desc=list_init();
 // 	  r=spat_spec_desc_spiht(current_el->pixel, list_desc, imageprop, 1, image, thres_ind, map_LSC);
@@ -791,7 +1215,6 @@ nLISloop++;
 	  //list_free(list_desc); //possibilite de les recuperer direct... (pareil dans 2.2.1.2.1)
 
     };
-#endif
 // if (check_map(map_LIS, imageprop)== 1) {printf("erreur");}; //TODO remove after
 current_el=LIS->current;   
 }; //endwhile
@@ -801,9 +1224,7 @@ current_el=first_el(LSC);
 // printf("LSC processing \n");
 if (lastLSC != NULL){//Attention à la premiere boucle quand c'est encore vide
 while ((current_el != lastLSC) && ((*streamlast)*8+ (*count) <= *outputsize)){
-#ifdef DEBUG
 	nLSCloop++;
-#endif
 // 	value_pix=image[trans_pixel(current_el->pixel,imageprop)];
 // 	bit = get_bit(value_pix, thres_ind);
 // 	add_to_stream(stream, count, (int) bit, streamlast);
@@ -821,9 +1242,7 @@ while ((current_el != lastLSC) && ((*streamlast)*8+ (*count) <= *outputsize)){
 	current_el=next_el(LSC);
 };
 if ((current_el != NULL) && ((*streamlast)*8+ (*count) <= *outputsize)){/*a priori c'est jamais le cas (== lastLSC)*/
-#ifdef DEBUG
 	nLSCloop++;
-#endif
 // 	value_pix=image[trans_pixel(current_el->pixel,imageprop)];
 // // 	bit = ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold));
 // 	bit = get_bit(value_pix, thres_ind);	
@@ -844,7 +1263,6 @@ if ((current_el != NULL) && ((*streamlast)*8+ (*count) <= *outputsize)){/*a prio
 };
 };
 
-#ifdef DEBUG
 printf("Stream size: %ld \n",*streamlast);
 printf("count:       %uc \n",*count);
 printf("nLSCloop: %ld\n",nLSCloop);
@@ -856,12 +1274,9 @@ printf("-------------------------\n");
 
 printf("*streamlast)*8+ (*count): %ld\n", (*streamlast)*8+ (*count));
 printf("*outputsize: %ld\n", *outputsize);
-#endif
 
 if ((*streamlast)*8+ (*count) > *outputsize){
-#ifdef DEBUG
  	printf("Sortie: fin du train de bit (threshold %ld)\n", threshold);
-#endif
 	break;
 };
 
@@ -870,9 +1285,7 @@ if ((*streamlast)*8+ (*count) > *outputsize){
 //correction finale eventuelle 
 //TODO: la sortie est calculee a l'octet pres, pas au bit
 // if (thres_ind !=0){//si on a entame la boucle finale on ne va pas faire de correc
-#ifdef DEBUG
 printf("Correction finale (flagLSC= %d)\n", flagLSC);
-#endif
 if ((*streamlast)*8+ (*count) > *outputsize){//on est sorti car le train de bit etait trop court
 	if (flagLSC == 0){
 		current_el=first_el(LSC);
@@ -907,6 +1320,8 @@ if ((*streamlast)*8+ (*count) > *outputsize){//on est sorti car le train de bit 
 		lastprocessed=LSC->previous;
 		current_el=first_el(LSC);
 // 		if (lastLSC != NULL){
+		printf("lastLSC %d\n", lastLSC );
+		printf("lastprocessed %d\n", lastprocessed);
 		   while (current_el != lastprocessed){
 		      if (image[trans_pixel(current_el->pixel,imageprop)] >0){
 			image[trans_pixel(current_el->pixel,imageprop)] += threshold/2;
