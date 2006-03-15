@@ -226,7 +226,11 @@ if (pixel.l < nbmin){/*lower frequency*/
 // 	if ((directchildonly == 1) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) out= -1;
 // 	if ((directchildonly == 0) && get_bit(value_pix, thres_ind)) {return -1; };
 // 	if ((directchildonly == 1) && get_bit(value_pix, thres_ind)) {out= -1;	};
+#ifndef NEWTREE
         if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(new_pixel,imageprop)]==0)) {
+#else
+        if (isLSC(value_pix, thres_ind)) {
+#endif
 		if (directchildonly == 0) {return -1; };
 		if (directchildonly == 1) {out= -1;	};
 	};
@@ -268,7 +272,11 @@ if (pixel.l < nbmin){/*lower frequency*/
 // 	if ((directchildonly == 1) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) out=-1;
 // 	if ((directchildonly == 0) && get_bit(value_pix, thres_ind)) {return -1; };
 // 	if ((directchildonly == 1) && get_bit(value_pix, thres_ind)) {out= -1;	};
-	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(current_el1->pixel,imageprop)]==0)) {		
+#ifndef NEWTREE
+	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(current_el1->pixel,imageprop)]==0)) {
+#else
+	if (isLSC(value_pix, thres_ind) ) {
+#endif		
 		if (directchildonly == 0) {return -1; };
 		if (directchildonly == 1) {out= -1;	};
 	};
@@ -278,7 +286,11 @@ if (pixel.l < nbmin){/*lower frequency*/
 // 	if ((directchildonly == 1) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) out=-1;
 // 	if ((directchildonly == 0) && get_bit(value_pix, thres_ind)) {return -1; };
 // 	if ((directchildonly == 1) && get_bit(value_pix, thres_ind)) {out= -1;	};
-	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(current_el2->pixel,imageprop)]==0)) {		
+#ifndef NEWTREE
+	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(current_el2->pixel,imageprop)]==0)) {	
+#else
+	if (isLSC(value_pix, thres_ind) ) {
+#endif		
 		if (directchildonly == 0) {return -1; };
 		if (directchildonly == 1) {out= -1;	};
 	};	
@@ -359,7 +371,11 @@ if (pixel.l < nbmin){/*lower frequency*/
 	if ((directchildonly == 1) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) out=-1;*/	
 // 	if ((directchildonly == 0) && get_bit(value_pix, thres_ind)) {return -1; };
 // 	if ((directchildonly == 1) && get_bit(value_pix, thres_ind)) {out= -1;	};
-	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(current_el1->pixel,imageprop)]==0)) {		
+#ifndef NEWTREE
+	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(current_el1->pixel,imageprop)]==0)) {
+#else
+	if (isLSC(value_pix, thres_ind)) {
+#endif		
 		if (directchildonly == 0) {return -1; };
 		if (directchildonly == 1) {out= -1;	};
 	};
@@ -368,7 +384,11 @@ if (pixel.l < nbmin){/*lower frequency*/
 // 	if ((directchildonly == 1) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) out=-1;
 // 	if ((directchildonly == 0) && get_bit(value_pix, thres_ind)) {return -1; };
 // 	if ((directchildonly == 1) && get_bit(value_pix, thres_ind)) {out= -1;	};
-	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(current_el2->pixel,imageprop)]==0)) {		
+#ifndef NEWTREE
+	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(current_el2->pixel,imageprop)]==0)) {
+#else
+	if (isLSC(value_pix, thres_ind)) {
+#endif		
 		if (directchildonly == 0) {return -1; };
 		if (directchildonly == 1) {out= -1;	};
 	};	
@@ -552,7 +572,11 @@ value_pix=image[trans_pixel(new_pixel1,imageprop)];
 // 	if ((directchildonly == 1) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) out=-1;
 // 	if ((directchildonly == 0) && get_bit(value_pix, thres_ind)) {return -1; };
 // 	if ((directchildonly == 1) && get_bit(value_pix, thres_ind)) {out= -1;	};
+#ifndef NEWTREE
 	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(new_pixel1,imageprop)]==0)) {		
+#else
+	if (isLSC(value_pix, thres_ind)) {
+#endif
 		if (directchildonly == 0) {return -1; };
 		if (directchildonly == 1) {out= -1;	};
 	};
@@ -561,7 +585,11 @@ value_pix=image[trans_pixel(new_pixel2,imageprop)];
 // 	if ((directchildonly == 1) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) out=-1;
 // 	if ((directchildonly == 0) && get_bit(value_pix, thres_ind)) {return -1; };
 // 	if ((directchildonly == 1) && get_bit(value_pix, thres_ind)) {out= -1;	};
-	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(new_pixel2,imageprop)]==0)) {		
+#ifndef NEWTREE
+	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(new_pixel2,imageprop)]==0)) {	
+#else
+	if (isLSC(value_pix, thres_ind)) {
+#endif	
 		if (directchildonly == 0) {return -1; };
 		if (directchildonly == 1) {out= -1;	};
 	};
@@ -570,7 +598,11 @@ value_pix=image[trans_pixel(new_pixel3,imageprop)];
 // 	if ((directchildonly == 1) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) out=-1;
 // 	if ((directchildonly == 0) && get_bit(value_pix, thres_ind)) {return -1; };
 // 	if ((directchildonly == 1) && get_bit(value_pix, thres_ind)) {out= -1;	};
-	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(new_pixel3,imageprop)]==0)) {		
+#ifndef NEWTREE
+	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(new_pixel3,imageprop)]==0)) {	
+#else
+	if (isLSC(value_pix, thres_ind)) {
+#endif		
 		if (directchildonly == 0) {return -1; };
 		if (directchildonly == 1) {out= -1;	};
 	};
@@ -582,7 +614,11 @@ value_pix=image[trans_pixel(new_pixel4,imageprop)];
 // 	if ((directchildonly == 1) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) out=-1;
 // 	if ((directchildonly == 0) && get_bit(value_pix, thres_ind)) {return -1; };
 // 	if ((directchildonly == 1) && get_bit(value_pix, thres_ind)) {out= -1;	};
-	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(new_pixel4,imageprop)]==0)) {		
+#ifndef NEWTREE
+	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(new_pixel4,imageprop)]==0)) {
+#else
+	if (isLSC(value_pix, thres_ind)) {
+#endif		
 		if (directchildonly == 0) {return -1; };
 		if (directchildonly == 1) {out= -1;	};
 	};
