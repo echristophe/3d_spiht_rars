@@ -6,11 +6,12 @@
 // #include <unistd.h> 
 #include "main.h"
 
-int ezw_code_c(long int *image, unsigned char *stream, long int *outputsize, int *maxquantvalue){
+// int ezw_code_c(long int *image, unsigned char *stream, long int *outputsize, int *maxquantvalue){
+int ezw_code_c(long int *image, struct stream_struct streamstruct, long int *outputsize, int maxquantvalue){
 
-struct imageprop_struct imageprop={NSMAX_CONST, NLMAX_CONST, NBMAX_CONST, NSMIN_CONST, NLMIN_CONST, NBMIN_CONST};
+// struct imageprop_struct imageprop={NSMAX_CONST, NLMAX_CONST, NBMAX_CONST, NSMIN_CONST, NLMIN_CONST, NBMIN_CONST};
 // int maxquant=MAXQUANT_CONST;
-int maxquant=(int) *maxquantvalue;
+int maxquant=(int) maxquantvalue;
 int minquant=0;
 long int npix=0;
 long int i;
@@ -21,6 +22,9 @@ int x,y,l;
 
 long int threshold=0;
 int thres_ind=0;
+#ifdef LATEX
+float m =0.0;
+#endif
 
 unsigned char *map_zt = NULL;
 unsigned char *map_sig = NULL;
@@ -28,10 +32,14 @@ unsigned char *map_sig = NULL;
 struct list_struct * list_desc=NULL;
 struct list_el * current_el=NULL;
 
-unsigned char * count = (unsigned char *) malloc(sizeof(unsigned char));
-long int *streamlast = (long int *) malloc(sizeof(long int));
-*count=0;
-*streamlast=0;
+unsigned char *stream = streamstruct.stream;
+unsigned char * count = streamstruct.count;
+long int *streamlast = streamstruct.streamlast;
+// unsigned char * count = (unsigned char *) malloc(sizeof(unsigned char));
+// long int *streamlast = (long int *) malloc(sizeof(long int));
+
+// *count=0;
+// *streamlast=0;
 
 long int nref=0;
 long int npos=0;
@@ -50,16 +58,22 @@ for (i=0;i<npix;i++){
 
 }
 
-
+#ifdef LATEX
+m = ((imageprop.nsmax*imageprop.nlmax*imageprop.nbmax) - npos - nneg) / (nzeroisol + nzerotree);
+printf("Bit plane & Significant & IZ & ZTR & Average\\\\ \n");
+printf("\\hline \n");
+#endif
 
 //codage EZW
 for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 	
 	threshold= 1 << (long int)thres_ind;
+#ifdef DEBUG
 	printf("Processing for thres_ind %d (threshold: %ld)...\n",thres_ind, threshold);
+#endif
 	nref=0;
-	npos=0;
-	nneg=0;
+// 	npos=0;
+// 	nneg=0;
 	nzeroisol=0;
 	nzerotree=0;	
 	
@@ -76,9 +90,13 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 	//significance pass
 	
 	for (i=0;i< npix;i++){
+// 	for (x=0;x<imageprop.nsmax;x++){
+// 	for (y=0;y<imageprop.nlmax;y++){
+// 	for (l=0;l<imageprop.nbmax;l++){
 		x=i % (imageprop.nsmax);
 		y=(i/imageprop.nsmax) % (imageprop.nlmax);
 		l=(i/(imageprop.nsmax*imageprop.nlmax));
+// 		i = x + (y + l*imageprop.nlmax)*imageprop.nsmax;
 		if ( (map_zt[i] == 0) && (map_sig[i] ==0) ){
 		//This point is NOT part of a zerotree already and is NOT processed during refinement
 			if (image[i] >= threshold){//POS
@@ -99,7 +117,8 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 			};
 			if ((image[i] < threshold) &&  (image[i] > -threshold)){ // IZ ou ZT
 				list_desc=NULL;//should be the case if freed properly before
-				r=spat_spec_desc_ezw((struct pixel_struct) {x,y,l}, list_desc, imageprop, 0, image,thres_ind, map_sig);
+				r=spat_spec_desc_ezw((struct pixel_struct) {x,y,l}, list_desc, 0, image,thres_ind, map_sig);
+// 				r=spec_desc_ezw((struct pixel_struct) {x,y,l}, list_desc, 0, image,thres_ind, map_sig);
 				//une modification est-elle necessaire pour tenir compte des elements appartenat deja aux ZT ?
 				if ((r ==-1)||(r == 0)){// zero isole (early ending ou pas de desc
 					bit = 0;
@@ -118,11 +137,12 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 					add_to_stream(stream, count, (int) bit, streamlast);
 					//do not forget to update map_zt
 					list_desc=list_init();
-					r=spat_spec_desc_ezw((struct pixel_struct) {x,y,l}, list_desc, imageprop, 1, image, thres_ind, map_sig);//sans early ending...
+					r=spat_spec_desc_ezw((struct pixel_struct) {x,y,l}, list_desc, 1, image, thres_ind, map_sig);//sans early ending...
+// 					r=spec_desc_ezw((struct pixel_struct) {x,y,l}, list_desc, 1, image, thres_ind, map_sig);//sans early ending...
 					map_zt[i]=1;
 					current_el=first_el(list_desc);
 					while (current_el != NULL){
-						map_zt[trans_pixel(current_el->pixel,imageprop)]=1;
+						map_zt[trans_pixel(current_el->pixel)]=1;
 						current_el=next_el(list_desc);
 					};
 					nzerotree++;
@@ -134,13 +154,16 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 // 			if (map_zt[i] = 1) printf("Skip for map %ld\n",i); 
 		};
 	};
+// 	}
+// 	}
+// 	}
 	
 	//on remet la map_zt a zero...
 	for (i=0; i<npix; i++){
 		map_zt[i]=0;
 	};
 outputsize[thres_ind]=(*streamlast)*8 + (*count);
-
+#ifdef DEBUG
 printf("Stream size: %ld \n",*streamlast);
 printf("count:       %uc \n",*count);
 printf("Size in bit: %ld \n", *streamlast*8+*count);
@@ -151,6 +174,12 @@ printf("nneg: %ld \n",nneg);
 printf("nzeroisol: %ld \n",nzeroisol);
 printf("nzerotree: %ld \n",nzerotree);
 printf("-------------------------\n");
+#endif
+
+#ifdef LATEX
+m = ((double) (imageprop.nsmax*imageprop.nlmax*imageprop.nbmax) - npos - nneg) / (nzeroisol + nzerotree);
+printf("%d & %ld & %ld & %ld & %f \\\\ \n",thres_ind, npos+nneg, nzeroisol, nzerotree, m);
+#endif
 
 };
 
@@ -158,13 +187,14 @@ return 0;
 };
 
 
-int ezw_decode_c(long int *image, unsigned char *stream, long int *outputsize, int *maxquantvalue)
+// int ezw_decode_c(long int *image, unsigned char *stream, long int *outputsize, int *maxquantvalue)
+int ezw_decode_c(long int *image, struct stream_struct streamstruct, long int *outputsize, int maxquantvalue)
 {
 
 
-struct imageprop_struct imageprop={NSMAX_CONST, NLMAX_CONST, NBMAX_CONST, NSMIN_CONST, NLMIN_CONST, NBMIN_CONST};
+// struct imageprop_struct imageprop={NSMAX_CONST, NLMAX_CONST, NBMAX_CONST, NSMIN_CONST, NLMIN_CONST, NBMIN_CONST};
 // int maxquant=MAXQUANT_CONST;
-int maxquant=(int) *maxquantvalue;
+int maxquant=(int) maxquantvalue;
 int minquant=0;
 long int npix=0;
 long int i;
@@ -185,10 +215,20 @@ unsigned char *map_sig = NULL;
 struct list_struct * list_desc=NULL;
 struct list_el * current_el=NULL;
 
-unsigned char * count = (unsigned char *) malloc(sizeof(unsigned char));
-long int *streamlast = (long int *) malloc(sizeof(long int));
-*count=0;
-*streamlast=0;
+unsigned char *stream = streamstruct.stream;
+unsigned char * count = streamstruct.count;
+long int *streamlast = streamstruct.streamlast;
+// unsigned char * count = (unsigned char *) malloc(sizeof(unsigned char));
+// long int *streamlast = (long int *) malloc(sizeof(long int));
+
+// *count=0;
+// *streamlast=0;
+
+long int nref=0;
+long int npos=0;
+long int nneg=0;
+long int nzeroisol=0;
+long int nzerotree=0;
 
 map_zt=(unsigned char *) malloc(imageprop.nsmax*imageprop.nbmax*imageprop.nlmax*sizeof(unsigned char));
 map_sig= (unsigned char *) malloc(imageprop.nsmax*imageprop.nbmax*imageprop.nlmax*sizeof(unsigned char));
@@ -205,8 +245,14 @@ npix=imageprop.nsmax * imageprop.nlmax * imageprop.nbmax;
 for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 	
 	threshold= 1 << (long int)thres_ind;
+#ifdef DEBUG
 	printf("Processing for thres_ind %d (threshold: %ld)...\n",thres_ind, threshold);
-	
+#endif
+	nref=0;
+// 	npos=0;
+// 	nneg=0;
+	nzeroisol=0;
+	nzerotree=0;		
 	
 	//refinement pass
 	flagsig=1;
@@ -222,6 +268,7 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 				image[i] -= threshold;
 			};
 			};
+			nref++;
 		};
 	};
 	
@@ -245,24 +292,29 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 			if ((bit == 0) && (bit2 == 1)){//POS
 				map_sig[i] = 1;
 				image[i] += threshold;
+				npos++;
 			};
 			if ((bit == 1) && (bit2 == 0)){//NEG
 				map_sig[i] = 1;
 				image[i] -= threshold;
+				nneg++;
 			};
 			if ((bit == 0) && (bit2 == 0)){//IZ
 				//nothing to do
+				nzeroisol++;
 			};
 			if ((bit == 1) && (bit2 == 1)){//ZT
 				list_desc=list_init();
-				r=spat_spec_desc_ezw((struct pixel_struct) {x,y,l}, list_desc, imageprop, 1, image, thres_ind, map_sig);//sans early ending...
+				r=spat_spec_desc_ezw((struct pixel_struct) {x,y,l}, list_desc, 1, image, thres_ind, map_sig);//sans early ending...
+// 				r=spec_desc_ezw((struct pixel_struct) {x,y,l}, list_desc, 1, image, thres_ind, map_sig);//sans early ending...
 				map_zt[i]=1;
 				current_el=first_el(list_desc);
 				while (current_el != NULL){
-					map_zt[trans_pixel(current_el->pixel,imageprop)]=1;
+					map_zt[trans_pixel(current_el->pixel)]=1;
 					current_el=next_el(list_desc);
 				};
 				list_free(list_desc);
+				nzerotree++;
 			};
 				//ne pas oublier de liberer la liste
 		};
@@ -273,11 +325,18 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 		map_zt[i]=0;
 	};
 	if ((*streamlast)*8+ (*count) > *outputsize) break;
-
+#ifdef DEBUG
 printf("Stream size: %ld \n",*streamlast);
 printf("count:       %uc \n",*count);
 printf("Size in bit: %ld \n", *streamlast*8+*count);
+
+printf("nref: %ld \n",nref);
+printf("npos: %ld \n",npos);
+printf("nneg: %ld \n",nneg);
+printf("nzeroisol: %ld \n",nzeroisol);
+printf("nzerotree: %ld \n",nzerotree);
 printf("-------------------------\n");
+#endif
 };
 
 //correction finale eventuelle

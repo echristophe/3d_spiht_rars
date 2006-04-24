@@ -17,14 +17,7 @@ avec option:
 recherche tous les descendant, mais pas de sortie anticipée
 */
 
-// int isLSC(long int value_pix, int thres_ind){
-// 	long int threshold= 1 << (long int)thres_ind;
-// 	if ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold)) {
-// 		return 1;
-// 	} else {
-// 		return 0;
-// 	}
-// };
+
 
 /****************************************************
 SPECTRAL - SPATIAL
@@ -32,7 +25,7 @@ SPECTRAL - SPATIAL
 
 /*function spat_spec_desc_spiht_fast, current_pix_x, current_pix_y, current_pix_l, desc_array_x, desc_array_y, desc_array_l, thres_cube, imageprop, directchildonly=directchildonly*/
 
-int spat_spec_desc_ezw(struct pixel_struct pixel, struct list_struct * list_desc, struct imageprop_struct imageprop, int directchildonly, long int *image, int thres_ind, unsigned char *map_LSC)
+int spat_spec_desc_ezw(struct pixel_struct pixel, struct list_struct * list_desc, int directchildonly, long int *image, int thres_ind, unsigned char *map_LSC)
 {
 
 int r1=0;
@@ -84,13 +77,14 @@ desc_array_spec_l=current_pix_l*/
 if ((pixel.x < nsmin) && (pixel.y < nlmin)){//modif 02-01-2006 chgmt structure arbre
 #endif
 if (directchildonly == 0){
-r1=spec_desc_ezw(pixel, tmp_list, imageprop, directchildonly, image, thres_ind, map_LSC);
+// r1=spec_desc_ezw(pixel, tmp_list, directchildonly, image, thres_ind, map_LSC);
+r1=spec_desc_ezw(pixel, tmp_list, 1, image, thres_ind, map_LSC);
 	if (r1 == -1) {
 		if (directchildonly == 0){list_free(tmp_list);};
 		return -1;
 	};
 } else {
-r1=spec_desc_ezw(pixel, list_desc, imageprop, directchildonly, image, thres_ind, map_LSC);
+r1=spec_desc_ezw(pixel, list_desc, directchildonly, image, thres_ind, map_LSC);
 };
 #ifdef NEWTREE
 };
@@ -117,7 +111,7 @@ endif*/
 
 
 /* dans tous les cas, on regarde les descendant spatiaux du pixel courant */
-r2=spat_desc_ezw(pixel, list_desc, imageprop, directchildonly, image, thres_ind, map_LSC);
+r2=spat_desc_ezw(pixel, list_desc, directchildonly, image, thres_ind, map_LSC);
 
 if ((directchildonly == 0) && ((r1 == -1) || (r2 == -1))) {
 	if (directchildonly == 0){list_free(tmp_list);};
@@ -142,7 +136,7 @@ if (directchildonly == 0) {
 //   current_el=list_desc->first;
   current_el=tmp_list->first;
   while (current_el != NULL){
-  	r=spat_desc_ezw(current_el->pixel, list_desc, imageprop, directchildonly, image, thres_ind, map_LSC);
+  	r=spat_desc_ezw(current_el->pixel, list_desc, directchildonly, image, thres_ind, map_LSC);
   	current_el= current_el->next;
 	if ((directchildonly == 0) && (r == -1)) {return -1; list_free(tmp_list);};
 // 	if ((directchildonly == 1) && (r == -1)) out= -1;
@@ -156,12 +150,12 @@ if (directchildonly == 1) {
    if(tmp_el !=NULL){
   current_el=list_desc->first;
   while (current_el != tmp_el){
-  	r=spat_desc_ezw(current_el->pixel, list_desc, imageprop, directchildonly, image, thres_ind, map_LSC);
+  	r=spat_desc_ezw(current_el->pixel, list_desc, directchildonly, image, thres_ind, map_LSC);
   	current_el= current_el->next;
 	if ((directchildonly == 0) && (r == -1)) {return -1; list_free(tmp_list);};
 // 	if ((directchildonly == 1) && (r == -1)) out= -1;
   };
-  r=spat_desc_ezw(current_el->pixel, list_desc, imageprop, directchildonly, image, thres_ind, map_LSC);
+  r=spat_desc_ezw(current_el->pixel, list_desc, directchildonly, image, thres_ind, map_LSC);
   current_el= current_el->next;
   if ((directchildonly == 0) && (r == -1)) {return -1; list_free(tmp_list);};
   list_free(tmp_list);
@@ -176,13 +170,14 @@ return out;
 SPECTRAL
 ******************************************************/
 
-int spec_desc_ezw(struct pixel_struct pixel, struct list_struct * list_desc, struct imageprop_struct imageprop, int directchildonly, long int *image, int thres_ind, unsigned char *map_LSC){
+int spec_desc_ezw(struct pixel_struct pixel, struct list_struct * list_desc, int directchildonly, long int *image, int thres_ind, unsigned char *map_LSC){
 
 struct pixel_struct new_pixel;
+struct pixel_struct new_pixel1;
+struct pixel_struct new_pixel2;
 long int value_pix;
 struct list_el * current_el=NULL;
 
-// long int threshold=0; /*WARNING temporaire*/
 int r=0;
 int out=1;
 
@@ -196,208 +191,126 @@ int nbmin=imageprop.nbmin;
 struct list_el *current_el1=NULL;
 struct list_el *current_el2=NULL;
 
-// printf("Processing pixel : %d, %d, %d \n",pixel.x,pixel.y,pixel.l);
 
-/*if (current_pix_l GE nbmax / 2) then return, 0*/
 if (pixel.l >= nbmax / 2) return 0;
 
 
 if (pixel.l < nbmin){/*lower frequency*/
-// #ifndef EZWTREE
-//    if ((pixel.l %  2) == 0) {
-//      if (pixel.l != nbmin-1){
-//         return 0;/*no offspring*/
-//      } else {
-//         /*;Add offspring coordinate to the array*/
-// 	new_pixel.x=pixel.x;
-// 	new_pixel.y=pixel.y;
-// 	new_pixel.l=pixel.l+nbmin;
-// 	//TODO check...
-// // 	if (directchildonly == 1){/* On le rajoute à la liste seuleument si c'est pour la sortie directchild*/
-// 		/*desc_array_x = [desc_array_x,current_pix_x]
-// 		desc_array_y = [desc_array_y,current_pix_y]
-// 		desc_array_l = [desc_array_l,current_pix_l+nbmin]*/
-// 		current_el=el_init(new_pixel);	
-// 		insert_el(list_desc, current_el);
-// // 	}
-// 	
-// 	/*if (thres_cube[current_pix_x,current_pix_y,current_pix_l+nbmin] EQ 1) then return, -1*/
-// 	value_pix=image[trans_pixel(new_pixel,imageprop)];
-// // 	if ((directchildonly == 0) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) return -1;
-// // 	if ((directchildonly == 1) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) out= -1;
-// // 	if ((directchildonly == 0) && get_bit(value_pix, thres_ind)) {return -1; };
-// // 	if ((directchildonly == 1) && get_bit(value_pix, thres_ind)) {out= -1;	};
-//         if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(new_pixel,imageprop)]==0)) {
-// 		if (directchildonly == 0) {return -1; };
-// 		if (directchildonly == 1) {out= -1;	};
-// 	};
-// 	/*;Recursive call on offspring*/
-// // 	#ifndef EZW
-// 	if (directchildonly == 0){
-// // 	#endif
-// 		r = spec_desc_ezw(new_pixel, list_desc, imageprop, directchildonly, image, thres_ind, map_LSC);
-// 		if ((directchildonly == 0) && (r == -1)) return -1;
-// 		if ((directchildonly == 1) && (r == -1)) out= -1;
-// // 	#ifndef EZW
-// 	};
-// // 	#endif
-//      };
-//    };
-//    if ((pixel.l % 2) == 1 ){
-// 	/*;Add offspring coordinate to the array
-// 	desc_array_x = [desc_array_x,current_pix_x,current_pix_x]
-// 	desc_array_y = [desc_array_y,current_pix_y,current_pix_y]
-// 	desc_array_l = [desc_array_l,current_pix_l+nbmin-1,current_pix_l+nbmin]
-// 	if (thres_cube[current_pix_x,current_pix_y,current_pix_l+nbmin-1] EQ 1) then return, -1
-// 	if (thres_cube[current_pix_x,current_pix_y,current_pix_l+nbmin] EQ 1) then return, -1*/
-// 	new_pixel.x=pixel.x;
-// 	new_pixel.y=pixel.y;
-// 	new_pixel.l=pixel.l+nbmin-1;
-// 	current_el1=el_init(new_pixel);		
-// 	new_pixel.x=pixel.x;
-// 	new_pixel.y=pixel.y;
-// 	new_pixel.l=pixel.l+nbmin;
-// 	current_el2=el_init(new_pixel);	
-// 	//TODO check...		
-// // 	if (directchildonly == 1){
-// 		insert_el(list_desc, current_el1);
-// 		insert_el(list_desc, current_el2);
-// // 	}
-// 	
-// 	value_pix=image[trans_pixel(current_el1->pixel,imageprop)];
-// // 	if ((directchildonly == 0) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) return -1;
-// // 	if ((directchildonly == 1) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) out=-1;
-// // 	if ((directchildonly == 0) && get_bit(value_pix, thres_ind)) {return -1; };
-// // 	if ((directchildonly == 1) && get_bit(value_pix, thres_ind)) {out= -1;	};
-// 	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(current_el1->pixel,imageprop)]==0)) {		
-// 		if (directchildonly == 0) {return -1; };
-// 		if (directchildonly == 1) {out= -1;	};
-// 	};
-// 
-// 	value_pix=image[trans_pixel(current_el2->pixel,imageprop)];
-// // 	if ((directchildonly == 0) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) return -1;
-// // 	if ((directchildonly == 1) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) out=-1;
-// // 	if ((directchildonly == 0) && get_bit(value_pix, thres_ind)) {return -1; };
-// // 	if ((directchildonly == 1) && get_bit(value_pix, thres_ind)) {out= -1;	};
-// 	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(current_el2->pixel,imageprop)]==0)) {		
-// 		if (directchildonly == 0) {return -1; };
-// 		if (directchildonly == 1) {out= -1;	};
-// 	};	
-// 		
-// 	/*;Recursive call on offspring*/
-// // 	#ifndef EZW
-// 	if (directchildonly != 1){
-// // 	#endif
-// 		r = spec_desc_ezw(current_el1->pixel, list_desc, imageprop, directchildonly, image, thres_ind, map_LSC);
-// 		if ((directchildonly == 0) && (r == -1)) return -1;
-// 		if ((directchildonly == 1) && (r == -1)) out=-1;
-// 		r = spec_desc_ezw(current_el2->pixel, list_desc, imageprop, directchildonly, image, thres_ind, map_LSC);
-// 		if ((directchildonly == 0) && (r == -1)) return -1;
-// 		if ((directchildonly == 1) && (r == -1)) out=-1;
-// // 	#ifndef EZW
-// 	};
-// // 	#endif
-//    };
-// #else
+
        /*;Add offspring coordinate to the array*/
 	new_pixel.x=pixel.x;
 	new_pixel.y=pixel.y;
 	new_pixel.l=pixel.l+nbmin;
-	//TODO check...
-// 	if (directchildonly == 1){/* On le rajoute à la liste seuleument si c'est pour la sortie directchild*/
-		/*desc_array_x = [desc_array_x,current_pix_x]
-		desc_array_y = [desc_array_y,current_pix_y]
-		desc_array_l = [desc_array_l,current_pix_l+nbmin]*/
-		current_el=el_init(new_pixel);	
-		insert_el(list_desc, current_el);
-// 	}
+	if (directchildonly == 1){//chgt 09-04-06
+	current_el=el_init(new_pixel);
+	insert_el(list_desc, current_el);
+	}
 	
-	/*if (thres_cube[current_pix_x,current_pix_y,current_pix_l+nbmin] EQ 1) then return, -1*/
-	value_pix=image[trans_pixel(new_pixel,imageprop)];
-// 	if ((directchildonly == 0) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) return -1;
-// 	if ((directchildonly == 1) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) out= -1;
-// 	if ((directchildonly == 0) && get_bit(value_pix, thres_ind)) {return -1; };
-// 	if ((directchildonly == 1) && get_bit(value_pix, thres_ind)) {out= -1;	};
-        if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(new_pixel,imageprop)]==0)) {
+	value_pix=image[trans_pixel(new_pixel)];
+        if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(new_pixel)]==0)) {
 		if (directchildonly == 0) {return -1; };
 		if (directchildonly == 1) {out= -1;	};
 	};
-	/*;Recursive call on offspring*/
-// 	#ifndef EZW
-	if (directchildonly == 0){
-// 	#endif
-		r = spec_desc_ezw(new_pixel, list_desc, imageprop, directchildonly, image, thres_ind, map_LSC);
+// 	if (directchildonly == 0){//chgt 05-04-06
+		r = spec_desc_ezw(new_pixel, list_desc, directchildonly, image, thres_ind, map_LSC);
 		if ((directchildonly == 0) && (r == -1)) return -1;
 		if ((directchildonly == 1) && (r == -1)) out= -1;
-// 	#ifndef EZW
-	};
-// 	#endif
-// #endif
+// 	};//chgt 05-04-06
 } else { /*;general case*/
-	/*;Add offspring coordinate to the array*/
-	/*desc_array_x = [desc_array_x,current_pix_x,current_pix_x]
-	desc_array_y = [desc_array_y,current_pix_y,current_pix_y]
-	desc_array_l = [desc_array_l,2*current_pix_l,2*current_pix_l+1]
-	if (thres_cube[current_pix_x,current_pix_y,2*current_pix_l] EQ 1) then return, -1
-	if (thres_cube[current_pix_x,current_pix_y,2*current_pix_l+1] EQ 1) then return, -1*/
 	
 	new_pixel.x=pixel.x;
 	new_pixel.y=pixel.y;
 	new_pixel.l=2*pixel.l;
-	current_el1=el_init(new_pixel);		
-	new_pixel.x=pixel.x;
-	new_pixel.y=pixel.y;
-	new_pixel.l=2*pixel.l+1;
-	current_el2=el_init(new_pixel);	
-	//TODO check...
-// 	if (directchildonly == 1){
-		insert_el(list_desc, current_el1);
-		insert_el(list_desc, current_el2);
-// 	};
+	
+	new_pixel2.x=pixel.x;
+	new_pixel2.y=pixel.y;
+	new_pixel2.l=2*pixel.l+1;
 
-	value_pix=image[trans_pixel(current_el1->pixel,imageprop)];
-/*	if ((directchildonly == 0) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) return -1;
-	if ((directchildonly == 1) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) out=-1;*/	
-// 	if ((directchildonly == 0) && get_bit(value_pix, thres_ind)) {return -1; };
-// 	if ((directchildonly == 1) && get_bit(value_pix, thres_ind)) {out= -1;	};
-	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(current_el1->pixel,imageprop)]==0)) {		
+if (directchildonly == 1){//chgt 09-04-06	
+	current_el1=el_init(new_pixel);	
+	current_el2=el_init(new_pixel2);	
+	insert_el(list_desc, current_el1);
+	insert_el(list_desc, current_el2);
+	}
+
+	value_pix=image[trans_pixel(new_pixel)];
+	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(new_pixel)]==0)) {		
 		if (directchildonly == 0) {return -1; };
 		if (directchildonly == 1) {out= -1;	};
 	};
-	value_pix=image[trans_pixel(current_el2->pixel,imageprop)];
-// 	if ((directchildonly == 0) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) return -1;
-// 	if ((directchildonly == 1) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) out=-1;
-// 	if ((directchildonly == 0) && get_bit(value_pix, thres_ind)) {return -1; };
-// 	if ((directchildonly == 1) && get_bit(value_pix, thres_ind)) {out= -1;	};
-	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(current_el2->pixel,imageprop)]==0)) {		
+	value_pix=image[trans_pixel(new_pixel2)];
+	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(new_pixel2)]==0)) {		
 		if (directchildonly == 0) {return -1; };
 		if (directchildonly == 1) {out= -1;	};
 	};	
 		
-	/*;Recursive call on offspring*/
-// #ifndef EZW
-// 	if (directchildonly != 1){
-// #endif
-		r = spec_desc_ezw(current_el1->pixel, list_desc, imageprop, directchildonly, image, thres_ind, map_LSC);
-		if ((directchildonly == 0) && (r == -1)) return -1;
-		if ((directchildonly == 1) && (r == -1)) out=-1;
-		r = spec_desc_ezw(current_el2->pixel, list_desc, imageprop, directchildonly, image, thres_ind, map_LSC);
-		if ((directchildonly == 0) && (r == -1)) return -1;
-		if ((directchildonly == 1) && (r == -1)) out=-1;
-// #ifndef EZW
-// 	};
-// #endif
+	r = spec_desc_ezw(new_pixel, list_desc, directchildonly, image, thres_ind, map_LSC);
+	if ((directchildonly == 0) && (r == -1)) return -1;
+	if ((directchildonly == 1) && (r == -1)) out=-1;
+	r = spec_desc_ezw(new_pixel2, list_desc, directchildonly, image, thres_ind, map_LSC);
+	if ((directchildonly == 0) && (r == -1)) return -1;
+	if ((directchildonly == 1) && (r == -1)) out=-1;
 
 };
+
+//on en fait un nouveau plus simple
+// if (pixel.l >= nbmax / 2) return 0;
+// 
+// if (pixel.l < nbmin){
+// 	new_pixel1.x=pixel.x;
+// 	new_pixel1.y=pixel.y;
+// 	new_pixel1.l=pixel.l+nbmin;
+// 	if (directchildonly == 1){current_el1=el_init(new_pixel1);};
+// 
+// } else {
+// 	new_pixel1.x=pixel.x;
+// 	new_pixel1.y=pixel.y;
+// 	new_pixel1.l=2*pixel.l;
+// 	if (directchildonly == 1){current_el1=el_init(new_pixel1);}	
+// 	new_pixel2.x=pixel.x;
+// 	new_pixel2.y=pixel.y;
+// 	new_pixel2.l=2*pixel.l+1;
+// 	if (directchildonly == 1){current_el2=el_init(new_pixel2);}
+// }
+// 
+// if (directchildonly == 1){/*Si on ne veut que les descendant, il faut les ajouter à la liste...*/
+// 	insert_el(list_desc, current_el1);
+// 	if (!(pixel.l < nbmin)){
+// 		insert_el(list_desc, current_el2);
+// 	}
+// }
+// 
+// value_pix=image[trans_pixel(new_pixel1)];
+// 	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(new_pixel1)]==0)) {		
+// 		if (directchildonly == 0) {return -1; };
+// 		if (directchildonly == 1) {out= -1;	};
+// 	};
+// if (!(pixel.l < nbmin)){
+// value_pix=image[trans_pixel(new_pixel2)];
+// 	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(new_pixel2)]==0)) {		
+// 		if (directchildonly == 0) {return -1; };
+// 		if (directchildonly == 1) {out= -1;	};
+// 	};
+// 
+// }
+// 
+// 	r = spec_desc_ezw(new_pixel1, list_desc, directchildonly, image, thres_ind, map_LSC);
+// 	if ((directchildonly == 0) && (r == -1)) return -1;
+// if (!(pixel.l < nbmin)){
+// 	r = spec_desc_ezw(new_pixel2, list_desc, directchildonly, image, thres_ind, map_LSC);
+// 	if ((directchildonly == 0) && (r == -1)) return -1;
+// }
 
 return out;
+
 };
+
 
 /****************************************************
 SPATIAL
 ******************************************************/
 
-int spat_desc_ezw(struct pixel_struct pixel, struct list_struct * list_desc, struct imageprop_struct imageprop, int directchildonly, long int *image, int thres_ind, unsigned char *map_LSC){
+int spat_desc_ezw(struct pixel_struct pixel, struct list_struct * list_desc, int directchildonly, long int *image, int thres_ind, unsigned char *map_LSC){
 
 int nsmax=imageprop.nsmax;
 int nlmax=imageprop.nlmax;
@@ -416,83 +329,17 @@ struct pixel_struct new_pixel2;
 struct pixel_struct new_pixel3;
 struct pixel_struct new_pixel4;
 
-// long int threshold=0; /*WARNING temporaire*/
 long int value_pix;
 
 int r;
 int out=1;
 
-// printf("Processing pixel : %d, %d, %d \n",pixel.x,pixel.y,pixel.l);
 
 /* Any offspring ?*/
 if (pixel.x >= nsmax / 2) return 0;
 if (pixel.y >= nlmax / 2) return 0;
 
-/*Lower subband and not offspring*/
-// #ifndef EZWTREE
-// if ((pixel.x < nsmin) && (pixel.y < nlmin) && ((pixel.x % 2) == 0) && ((pixel.y % 2) == 0) ){
-//    if ((pixel.x != nsmin-1)&&(pixel.y != nlmin-1)){
-// 	return 0;
-//    };
-// };
-// 
-// 
-// if ((pixel.x < nsmin) && (pixel.y < nlmin)){
-//      if ( ((pixel.x % 2) == 1) && ((pixel.y % 2) == 0) ){  /* 2 */
-// 	new_pixel1.x=pixel.x+nsmin-1;
-// 	new_pixel1.y=pixel.y;
-// 	new_pixel1.l=pixel.l;
-// 	if (directchildonly == 1){current_el1=el_init(new_pixel1);};
-// 	new_pixel2.x=pixel.x+nsmin;
-// 	new_pixel2.y=pixel.y;
-// 	new_pixel2.l=pixel.l;
-// 	if (directchildonly == 1){current_el2=el_init(new_pixel2);};
-// 	new_pixel3.x=pixel.x+nsmin-1;
-// 	new_pixel3.y=pixel.y+1;
-// 	new_pixel3.l=pixel.l;
-// 	if (directchildonly == 1){current_el3=el_init(new_pixel3);};
-// 	new_pixel4.x=pixel.x+nsmin;
-// 	new_pixel4.y=pixel.y+1;
-// 	new_pixel4.l=pixel.l;
-// 	if (directchildonly == 1){current_el4=el_init(new_pixel4);};
-//      };
-//      if ( ((pixel.x % 2) == 0) && ((pixel.y % 2) == 1) ){  /* 3 */
-// 	new_pixel1.x=pixel.x;
-// 	new_pixel1.y=pixel.y+nlmin-1;
-// 	new_pixel1.l=pixel.l;
-// 	if (directchildonly == 1){current_el1=el_init(new_pixel1);};
-// 	new_pixel2.x=pixel.x+1;
-// 	new_pixel2.y=pixel.y+nlmin-1;
-// 	new_pixel2.l=pixel.l;
-// 	if (directchildonly == 1){current_el2=el_init(new_pixel2);};
-// 	new_pixel3.x=pixel.x;
-// 	new_pixel3.y=pixel.y+nlmin;
-// 	new_pixel3.l=pixel.l;
-// 	if (directchildonly == 1){current_el3=el_init(new_pixel3);};
-// 	new_pixel4.x=pixel.x+1;
-// 	new_pixel4.y=pixel.y+nlmin;
-// 	new_pixel4.l=pixel.l;
-// 	if (directchildonly == 1){current_el4=el_init(new_pixel4);};     
-//      };
-//      if ( ((pixel.x % 2) == 1) && ((pixel.y % 2) == 1) ){  /* 4 */
-// 	new_pixel1.x=pixel.x+nsmin-1;
-// 	new_pixel1.y=pixel.y+nlmin-1;
-// 	new_pixel1.l=pixel.l;
-// 	if (directchildonly == 1){current_el1=el_init(new_pixel1);};
-// 	new_pixel2.x=pixel.x+nsmin;
-// 	new_pixel2.y=pixel.y+nlmin-1;
-// 	new_pixel2.l=pixel.l;
-// 	if (directchildonly == 1){current_el2=el_init(new_pixel2);};
-// 	new_pixel3.x=pixel.x+nsmin-1;
-// 	new_pixel3.y=pixel.y+nlmin;
-// 	new_pixel3.l=pixel.l;
-// 	if (directchildonly == 1){current_el3=el_init(new_pixel3);};
-// 	new_pixel4.x=pixel.x+nsmin;
-// 	new_pixel4.y=pixel.y+nlmin;
-// 	new_pixel4.l=pixel.l;
-// 	if (directchildonly == 1){current_el4=el_init(new_pixel4);}; 
-//      };
-// #else
+
 if ((pixel.x < nsmin) && (pixel.y < nlmin)){
 	new_pixel1.x=pixel.x+nsmin;
 	new_pixel1.y=pixel.y;
@@ -508,30 +355,26 @@ if ((pixel.x < nsmin) && (pixel.y < nlmin)){
 	if (directchildonly == 1){current_el3=el_init(new_pixel3);};
 
 	if (directchildonly == 1){current_el4=NULL;};
-// #endif
 } else {
-// 	printf("Standard case:\n");
 	new_pixel1.x = 2*pixel.x;
 	new_pixel1.y = 2*pixel.y;
 	new_pixel1.l = pixel.l;	
 	if (directchildonly == 1){current_el1 = el_init(new_pixel1);};
-// 	printf("new_pixel : %d, %d, %d \n",new_pixel.x,new_pixel.y,new_pixel.l);
+
 	new_pixel2.x = 2*pixel.x;
 	new_pixel2.y = 2*pixel.y+1;
 	new_pixel2.l = pixel.l;
 	if (directchildonly == 1){current_el2 = el_init(new_pixel2);};
-// 	printf("new_pixel : %d, %d, %d \n",new_pixel.x,new_pixel.y,new_pixel.l);
+
 	new_pixel3.x = 2*pixel.x+1;
 	new_pixel3.y = 2*pixel.y;
 	new_pixel3.l = pixel.l;
 	if (directchildonly == 1){current_el3 = el_init(new_pixel3);};
-// 	printf("new_pixel : %d, %d, %d \n",new_pixel.x,new_pixel.y,new_pixel.l);
+
 	new_pixel4.x = 2*pixel.x+1;
 	new_pixel4.y = 2*pixel.y+1;
 	new_pixel4.l = pixel.l;
 	if (directchildonly == 1){current_el4 = el_init(new_pixel4);}; 
-// 	printf("new_pixel : %d, %d, %d \n",new_pixel.x,new_pixel.y,new_pixel.l);
-// // 	printf("--------------\n");
 };
 
 
@@ -539,79 +382,49 @@ if (directchildonly == 1){/*Si on ne veut que les descendant, il faut les ajoute
 	insert_el(list_desc, current_el1);
 	insert_el(list_desc, current_el2);
 	insert_el(list_desc, current_el3);
-// #ifdef EZWTREE
 	if (!((pixel.x < nsmin) && (pixel.y < nlmin))){
-// #endif
-	insert_el(list_desc, current_el4);
-// #ifdef EZWTREE
+		insert_el(list_desc, current_el4);
 	};
-// #endif
 }; 
 
-value_pix=image[trans_pixel(new_pixel1,imageprop)];
-// 	if ((directchildonly == 0) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) return -1;
-// 	if ((directchildonly == 1) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) out=-1;
-// 	if ((directchildonly == 0) && get_bit(value_pix, thres_ind)) {return -1; };
-// 	if ((directchildonly == 1) && get_bit(value_pix, thres_ind)) {out= -1;	};
-	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(new_pixel1,imageprop)]==0)) {		
-		if (directchildonly == 0) {return -1; };
-		if (directchildonly == 1) {out= -1;	};
-	};
-value_pix=image[trans_pixel(new_pixel2,imageprop)];
-// 	if ((directchildonly == 0) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) return -1;
-// 	if ((directchildonly == 1) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) out=-1;
-// 	if ((directchildonly == 0) && get_bit(value_pix, thres_ind)) {return -1; };
-// 	if ((directchildonly == 1) && get_bit(value_pix, thres_ind)) {out= -1;	};
-	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(new_pixel2,imageprop)]==0)) {		
-		if (directchildonly == 0) {return -1; };
-		if (directchildonly == 1) {out= -1;	};
-	};
-value_pix=image[trans_pixel(new_pixel3,imageprop)];
-// 	if ((directchildonly == 0) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) return -1;
-// 	if ((directchildonly == 1) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) out=-1;
-// 	if ((directchildonly == 0) && get_bit(value_pix, thres_ind)) {return -1; };
-// 	if ((directchildonly == 1) && get_bit(value_pix, thres_ind)) {out= -1;	};
-	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(new_pixel3,imageprop)]==0)) {		
-		if (directchildonly == 0) {return -1; };
-		if (directchildonly == 1) {out= -1;	};
-	};
-// #ifdef EZWTREE
-if (!((pixel.x < nsmin) && (pixel.y < nlmin))){
-// #endif
-value_pix=image[trans_pixel(new_pixel4,imageprop)];
-// 	if ((directchildonly == 0) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) return -1;
-// 	if ((directchildonly == 1) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) out=-1;
-// 	if ((directchildonly == 0) && get_bit(value_pix, thres_ind)) {return -1; };
-// 	if ((directchildonly == 1) && get_bit(value_pix, thres_ind)) {out= -1;	};
-	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(new_pixel4,imageprop)]==0)) {		
-		if (directchildonly == 0) {return -1; };
-		if (directchildonly == 1) {out= -1;	};
-	};
-// #ifdef EZWTREE
-};
-// #endif
+value_pix=image[trans_pixel(new_pixel1)];
 
-//dans le cas EZW on fait l'appel recursif dans le cas directchildonly=1 aussi.
-// #ifndef EZW	
-// if (directchildonly != 1) {/*Sinon, on fait un appel recursif pour visiter les points*/ 
-// #endif
-	r = spat_desc_ezw(new_pixel1, list_desc, imageprop, directchildonly, image, thres_ind, map_LSC);
-	if ((directchildonly == 0) && (r == -1)) return -1;
-	r = spat_desc_ezw(new_pixel2, list_desc, imageprop, directchildonly, image, thres_ind, map_LSC);
-	if ((directchildonly == 0) && (r == -1)) return -1;
-	r = spat_desc_ezw(new_pixel3, list_desc, imageprop, directchildonly, image, thres_ind, map_LSC);
-	if ((directchildonly == 0) && (r == -1)) return -1;
-// #ifdef EZWTREE
+	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(new_pixel1)]==0)) {		
+		if (directchildonly == 0) {return -1; };
+		if (directchildonly == 1) {out= -1;	};
+	};
+value_pix=image[trans_pixel(new_pixel2)];
+
+	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(new_pixel2)]==0)) {		
+		if (directchildonly == 0) {return -1; };
+		if (directchildonly == 1) {out= -1;	};
+	};
+value_pix=image[trans_pixel(new_pixel3)];
+
+	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(new_pixel3)]==0)) {		
+		if (directchildonly == 0) {return -1; };
+		if (directchildonly == 1) {out= -1;	};
+	};
 if (!((pixel.x < nsmin) && (pixel.y < nlmin))){
-// #endif
-	r = spat_desc_ezw(new_pixel4, list_desc, imageprop, directchildonly, image, thres_ind, map_LSC);
-	if ((directchildonly == 0) && (r == -1)) return -1;//qq test en trop... ==0 supprimables
-// #ifdef EZWTREE
+value_pix=image[trans_pixel(new_pixel4)];
+
+	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(new_pixel4)]==0)) {		
+		if (directchildonly == 0) {return -1; };
+		if (directchildonly == 1) {out= -1;	};
+	};
 };
-// #endif
-// #ifndef EZW
-// };
-// #endif
+
+
+	r = spat_desc_ezw(new_pixel1, list_desc, directchildonly, image, thres_ind, map_LSC);
+	if ((directchildonly == 0) && (r == -1)) return -1;
+	r = spat_desc_ezw(new_pixel2, list_desc, directchildonly, image, thres_ind, map_LSC);
+	if ((directchildonly == 0) && (r == -1)) return -1;
+	r = spat_desc_ezw(new_pixel3, list_desc, directchildonly, image, thres_ind, map_LSC);
+	if ((directchildonly == 0) && (r == -1)) return -1;
+if (!((pixel.x < nsmin) && (pixel.y < nlmin))){
+	r = spat_desc_ezw(new_pixel4, list_desc, directchildonly, image, thres_ind, map_LSC);
+	if ((directchildonly == 0) && (r == -1)) return -1;//qq test en trop... ==0 supprimables
+};
 
 
 return out;

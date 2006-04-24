@@ -27,7 +27,7 @@ int spiht_code_ra2(long int *image, unsigned char *stream, long int *outputsize,
 {
 
 // struct imageprop_struct imageprop={NSMAX_CONST, NLMAX_CONST, NBMAX_CONST, 8, 8, 7};
-struct imageprop_struct imageprop={NSMAX_CONST, NLMAX_CONST, NBMAX_CONST, NSMIN_CONST, NLMIN_CONST, NBMIN_CONST};
+// struct imageprop_struct imageprop={NSMAX_CONST, NLMAX_CONST, NBMAX_CONST, NSMIN_CONST, NLMIN_CONST, NBMIN_CONST};
 
 int nsmax=imageprop.nsmax;
 int nlmax=imageprop.nlmax;
@@ -232,12 +232,12 @@ for (k=ki;k<ke;k++){
 	el=el_init(pixel);
 	el->type=(coder_param.maxquant[blockind])+1;
 	insert_el(LIC[0],el);
-	(map_LIC[trans_pixel(pixel, imageprop)])++;
+	(map_LIC[trans_pixel(pixel)])++;
 	if ((i % 2) || (j % 2) || (k % 2) || (((nbmin % 2) == 1) && (k == nbmin-1) && (k!=0))){ 
 		el=el_init(pixel);
 		el->type=(coder_param.maxquant[blockind])+1;
 		insert_el(LIS[0],el);
-		(map_LIS[trans_pixel(pixel, imageprop)])++;
+		(map_LIS[trans_pixel(pixel)])++;
 	 };
       };
    };
@@ -261,7 +261,7 @@ for (k=ki;k<ke;k++){
 // #endif
 
 //the distance is processed once for each block then updated for tracking
-dist = eval_dist_grp(iloc, jloc, kloc, image, imageprop, (coder_param.maxquant[blockind])+1);
+dist = eval_dist_grp(iloc, jloc, kloc, image, (coder_param.maxquant[blockind])+1);
 
 // for (res=0; res<NRES; res++){
 // lastLICm[res][maxquant]=NULL;
@@ -359,17 +359,17 @@ while ((current_el != NULL) && (current_el->type > thres_ind)){
 #ifdef DEBUG
    nLICloop++;
 #endif
-   value_pix=image[trans_pixel(current_el->pixel,imageprop)];
+   value_pix=image[trans_pixel(current_el->pixel)];
 //    bit = ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold));//TODO possibilite d'enlever un abs
    bit = get_bit(value_pix, thres_ind);	
    add_to_stream((datablock[blockind].stream), (datablock[blockind].count), (int) bit, (datablock[blockind].streamlast));//SPIHT 2.1.1)
   if (bit == 1) { //SPIHT 2.1.2)
      bitsig = (value_pix > 0);
      add_to_stream((datablock[blockind].stream), (datablock[blockind].count), (int) bitsig, (datablock[blockind].streamlast));
-     update_dist(current_el->pixel, thres_ind, &dist, image, imageprop);
+     update_dist(current_el->pixel, thres_ind, &dist, image);
      add_to_rddata(&datablock[blockind].rddata, *(datablock[blockind].streamlast)*8+*(datablock[blockind].count), dist);
-     (map_LIC[trans_pixel(current_el->pixel, imageprop)])--;
-     (map_LSC[trans_pixel(current_el->pixel, imageprop)])++;
+     (map_LIC[trans_pixel(current_el->pixel)])--;
+     (map_LSC[trans_pixel(current_el->pixel)])++;
      remove_current_el(LIC[res]);
 //      insert_el(LSC[res], current_el);
      insert_el_inplace(LSC[res], current_el);
@@ -446,43 +446,43 @@ nLISloop++;
 #ifdef DEBUG
         nLISloopA++;
 #endif
-	r=spat_spec_desc_spiht(current_el->pixel, /*tmp_list*/list_desc, imageprop, 0, image, thres_ind, map_LSC);
+	r=spat_spec_desc_spiht(current_el->pixel, /*tmp_list*/list_desc, 0, image, thres_ind, map_LSC);
 // 	list_free(tmp_list);//test
 	bit = (r == -1);//il y a au moins un des descendants qui est significatif
         add_to_stream((datablock[blockind].stream), (datablock[blockind].count), (int) bit, (datablock[blockind].streamlast)); //SPIHT 2.2.1.1
         if (bit == 1) { //SPIHT 2.2.1.2
 	   list_desc=list_init();//list_free(list_desc);//TODO faire juste un nettoyage de la liste sans la liberer pour eviter un malloc (voir list_free plus bas) done
-	   r=spat_spec_desc_spiht(current_el->pixel, list_desc, imageprop, 1, image, thres_ind, map_LSC);//verifier qu'on va jusqu'au bout avec le onlychild a 1
+	   r=spat_spec_desc_spiht(current_el->pixel, list_desc, 1, image, thres_ind, map_LSC);//verifier qu'on va jusqu'au bout avec le onlychild a 1
 	   current_child = first_el(list_desc);
  	   ngrandchild = 0;
 	   list_grand_desc=list_init();
 	   while (current_child !=NULL){ //SPIHT 2.2.1.2.1
-	      if ((map_LSC[trans_pixel(current_child->pixel, imageprop)] == 0) && (map_LIC[trans_pixel(current_child->pixel, imageprop)] == 0)){ 
-        	value_pix=image[trans_pixel(current_child->pixel,imageprop)]; 
+	      if ((map_LSC[trans_pixel(current_child->pixel)] == 0) && (map_LIC[trans_pixel(current_child->pixel)] == 0)){ 
+        	value_pix=image[trans_pixel(current_child->pixel)]; 
 // 		bit = ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold));
 		bit = get_bit(value_pix, thres_ind);	
 		add_to_stream((datablock[blockind].stream), (datablock[blockind].count), (int) bit, (datablock[blockind].streamlast)); //SPIHT 2.2.1.2.1.1
 		if (bit == 0){ //SPIHT 2.2.1.2.1.3
- 			(map_LIC[trans_pixel(current_child->pixel, imageprop)])++;
+ 			(map_LIC[trans_pixel(current_child->pixel)])++;
 			el=el_init(current_child->pixel);
 			el->type = thres_ind;
 			insert_el(LIC[res+1],el);
 		} else { //SPIHT 2.2.1.2.1.2
 			bitsig = (value_pix > 0);
 			add_to_stream((datablock[blockind].stream), (datablock[blockind].count), (int) bitsig, (datablock[blockind].streamlast));
-			update_dist(current_child->pixel, thres_ind, &dist, image, imageprop);
+			update_dist(current_child->pixel, thres_ind, &dist, image);
 			add_to_rddata(&datablock[blockind].rddata, *(datablock[blockind].streamlast)*8+*(datablock[blockind].count), dist);
-			(map_LSC[trans_pixel(current_child->pixel, imageprop)])++;
+			(map_LSC[trans_pixel(current_child->pixel)])++;
 			el=el_init(current_child->pixel);
 			el->type = thres_ind;
 			insert_el(LSC[res+1],el);			
 		};
 #ifndef NOLISTB
-		r=spat_spec_desc_spiht(current_child->pixel, list_grand_desc, imageprop, 1, image, thres_ind, map_LSC);//pour L(x,y,l)
+		r=spat_spec_desc_spiht(current_child->pixel, list_grand_desc, 1, image, thres_ind, map_LSC);//pour L(x,y,l)
 		if (r != 0) ngrandchild++;
 #else
-	 if (map_LIS[trans_pixel(current_child->pixel, imageprop)] == 0){
-	  r=spat_spec_desc_spiht(current_child->pixel, list_grand_desc, imageprop, 1, image, thres_ind, map_LSC);//pour L(x,y,l)
+	 if (map_LIS[trans_pixel(current_child->pixel)] == 0){
+	  r=spat_spec_desc_spiht(current_child->pixel, list_grand_desc, 1, image, thres_ind, map_LSC);//pour L(x,y,l)
 	  if (r != 0) {	 
 #ifndef NEWTREE
 	 	if (bit == 1) { 
@@ -494,21 +494,21 @@ nLISloop++;
 		#else
 		insert_el_inplace(LIS[res+1],el);
 		#endif
-		(map_LIS[trans_pixel(el->pixel, imageprop)])++;
+		(map_LIS[trans_pixel(el->pixel)])++;
 #ifndef NEWTREE
 		} else {//si on met k,l dans la LIC on verifie si il est accessible
 			is_accessible=0;
-			parents=find_parents(current_child->pixel, imageprop);
+			parents=find_parents(current_child->pixel);
 			if ((parents.spat.x != current_el->pixel.x) ||
 				(parents.spat.y != current_el->pixel.y) ||
 				(parents.spat.l != current_el->pixel.l) ){//on s'arrure qu'on n'est pas arrive par le spatial
-			is_accessible=is_accessible_from(parents.spat,imageprop,map_LIS);
+			is_accessible=is_accessible_from(parents.spat,map_LIS);
 			}
 			if ((parents.spec.x != current_el->pixel.x) ||
 				(parents.spec.y != current_el->pixel.y) ||
 				(parents.spec.l != current_el->pixel.l) ){//on s'arrure qu'on n'est pas arrive par le spatial
 			if (is_accessible ==1) printf("********** UH OH*******\n");
-			is_accessible=is_accessible_from(parents.spec,imageprop,map_LIS);
+			is_accessible=is_accessible_from(parents.spec,map_LIS);
 			}
 			if (is_accessible ==0){
 				el=el_init(current_child->pixel);
@@ -518,7 +518,7 @@ nLISloop++;
 				#else
 				insert_el_inplace(LIS[res+1],el);
 				#endif
-				(map_LIS[trans_pixel(el->pixel, imageprop)])++;
+				(map_LIS[trans_pixel(el->pixel)])++;
 			}
 		}
 #endif
@@ -554,7 +554,7 @@ nLISloop++;
 	   } else {
 #endif
 		tmp_el=remove_current_el(LIS[res]);
-		(map_LIS[trans_pixel(tmp_el->pixel, imageprop)])--;
+		(map_LIS[trans_pixel(tmp_el->pixel)])--;
 		free(tmp_el); //la par contre, il disparait...
 		
 #ifndef NOLISTB
@@ -573,12 +573,12 @@ nLISloop++;
 #endif
 		//On doit faire l'output de Sn(L(i,j))
 	  list_desc=list_init();//list_free(list_desc);//done
-	  r=spat_spec_desc_spiht(current_el->pixel, list_desc, imageprop, 1, image, thres_ind, map_LSC);
+	  r=spat_spec_desc_spiht(current_el->pixel, list_desc, 1, image, thres_ind, map_LSC);
 	  current_child = first_el(list_desc);
 	  bit = 0;
 	  while ((bit == 0) && (current_child !=NULL)){
-		if(map_LIS[trans_pixel(current_child->pixel,imageprop)] == 0){//attention, ca c'est fin... (i512)
-		   r=spat_spec_desc_spiht(current_child->pixel, /*tmp_list*/list_desc, imageprop, 0, image, thres_ind, map_LSC);
+		if(map_LIS[trans_pixel(current_child->pixel)] == 0){//attention, ca c'est fin... (i512)
+		   r=spat_spec_desc_spiht(current_child->pixel, /*tmp_list*/list_desc, 0, image, thres_ind, map_LSC);
 		   if (r == -1) {bit = 1;};
 		};
 		current_child=next_el(list_desc);
@@ -588,19 +588,19 @@ nLISloop++;
 	 if (bit == 1){
 		current_child = first_el(list_desc);
 		while (current_child !=NULL){
-			if (map_LIS[trans_pixel(current_child->pixel,imageprop)] == 0){
+			if (map_LIS[trans_pixel(current_child->pixel)] == 0){
 				el=el_init(current_child->pixel); //TODO possibilite de recuperer direct sans faire de malloc..
 #ifndef INPLACE
 				insert_el(LIS,el);
 #else
 				insert_el_inplace(LIS,el);
 #endif
-				(map_LIS[trans_pixel(el->pixel, imageprop)])++;
+				(map_LIS[trans_pixel(el->pixel)])++;
 			};
 			current_child=next_el(list_desc);
 		};
 	  	tmp_el=remove_current_el(LIS);
-		(map_LIS[trans_pixel(tmp_el->pixel, imageprop)])--;
+		(map_LIS[trans_pixel(tmp_el->pixel)])--;
 	  	free(tmp_el);
 // 		if (LIS->current == NULL) printf("Uh Oh 2.2.2 (if)\n");
 	  } else {
@@ -624,11 +624,11 @@ while ((current_el != NULL) && (current_el->type > thres_ind)){
 #ifdef DEBUG
 	nLSCloop++;
 #endif
-	value_pix=image[trans_pixel(current_el->pixel,imageprop)];
+	value_pix=image[trans_pixel(current_el->pixel)];
 	bit = get_bit(value_pix, thres_ind);
 	add_to_stream((datablock[blockind].stream), (datablock[blockind].count), (int) bit, (datablock[blockind].streamlast));
 	if (bit ==1) {
-		update_dist(current_el->pixel, thres_ind, &dist, image, imageprop);
+		update_dist(current_el->pixel, thres_ind, &dist, image);
 		add_to_rddata(&datablock[blockind].rddata, *(datablock[blockind].streamlast)*8+*(datablock[blockind].count), dist);
 	}
 	current_el=next_el(LSC[res]);
@@ -863,7 +863,7 @@ int spiht_decode_ra2(long int *image, unsigned char *stream, long int *outputsiz
 {
 
 // struct imageprop_struct imageprop={NSMAX_CONST, NLMAX_CONST, NBMAX_CONST, 8, 8, 7};
-struct imageprop_struct imageprop={NSMAX_CONST, NLMAX_CONST, NBMAX_CONST, NSMIN_CONST, NLMIN_CONST, NBMIN_CONST};
+// struct imageprop_struct imageprop={NSMAX_CONST, NLMAX_CONST, NBMAX_CONST, NSMIN_CONST, NLMIN_CONST, NBMIN_CONST};
 
 int nsmax=imageprop.nsmax;
 int nlmax=imageprop.nlmax;
@@ -1031,12 +1031,12 @@ for (k=ki;k<ke;k++){
 	el=el_init(pixel);
 	el->type=(coder_param.maxquant[blockind])+1;
 	insert_el(LIC[0],el);
-	(map_LIC[trans_pixel(pixel, imageprop)])++;
+	(map_LIC[trans_pixel(pixel)])++;
 	if ((i % 2) || (j % 2) || (k % 2) || (((nbmin % 2) == 1) && (k == nbmin-1) && (k!=0))){ 
 		el=el_init(pixel);
 		el->type=(coder_param.maxquant[blockind])+1;
 		insert_el(LIS[0],el);
-		(map_LIS[trans_pixel(pixel, imageprop)])++;
+		(map_LIS[trans_pixel(pixel)])++;
 	 };
       };
    };
@@ -1134,12 +1134,12 @@ while ((current_el != NULL) && (current_el->type > thres_ind) && ((*(datablock[b
 	     current_el=first_el(LSC[res]); //correct positionning for the final correction
 	     break;
      }
-     image[trans_pixel(current_el->pixel,imageprop)] += threshold;
+     image[trans_pixel(current_el->pixel)] += threshold;
      if (bitsig == 0) {
-     	image[trans_pixel(current_el->pixel,imageprop)] = -image[trans_pixel(current_el->pixel,imageprop)];
+     	image[trans_pixel(current_el->pixel)] = -image[trans_pixel(current_el->pixel)];
      };
-     (map_LIC[trans_pixel(current_el->pixel, imageprop)])--;
-     (map_LSC[trans_pixel(current_el->pixel, imageprop)])++;
+     (map_LIC[trans_pixel(current_el->pixel)])--;
+     (map_LSC[trans_pixel(current_el->pixel)])++;
      remove_current_el(LIC[res]);
      insert_el_inplace(LSC[res], current_el);
 	if (LSC[res]->current == NULL){
@@ -1211,12 +1211,12 @@ nLISloop++;
         } else break;
         if (bit == 1) { //SPIHT 2.2.1.2
 	   list_desc=list_init();//list_free(list_desc);//TODO faire juste un nettoyage de la liste sans la liberer pour eviter un malloc (voir list_free plus bas) done
-	   r=spat_spec_desc_spiht(current_el->pixel, list_desc, imageprop, 1, image, thres_ind, map_LSC);//verifier qu'on va jusqu'au bout avec le onlychild a 1
+	   r=spat_spec_desc_spiht(current_el->pixel, list_desc, 1, image, thres_ind, map_LSC);//verifier qu'on va jusqu'au bout avec le onlychild a 1
 	   current_child = first_el(list_desc);
  	   ngrandchild = 0;
 	   list_grand_desc=list_init();
 	   while ((current_child !=NULL)&& ((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) < *outputsize)){ //SPIHT 2.2.1.2.1
-	      if ((map_LSC[trans_pixel(current_child->pixel, imageprop)] == 0) && (map_LIC[trans_pixel(current_child->pixel, imageprop)] == 0)){ 
+	      if ((map_LSC[trans_pixel(current_child->pixel)] == 0) && (map_LIC[trans_pixel(current_child->pixel)] == 0)){ 
 // 		value_pix=image[trans_pixel(current_child->pixel,imageprop)]; 
 // 		bit = get_bit(value_pix, thres_ind);	
 // 		add_to_stream(stream, count, (int) bit, streamlast); //SPIHT 2.2.1.2.1.1
@@ -1224,27 +1224,27 @@ nLISloop++;
 		   bit = read_from_stream((datablock[blockind].stream), (datablock[blockind].count), (datablock[blockind].streamlast));
 		} else break;
 		if (bit == 0){ //SPIHT 2.2.1.2.1.3
- 			(map_LIC[trans_pixel(current_child->pixel, imageprop)])++;
+ 			(map_LIC[trans_pixel(current_child->pixel)])++;
 			el=el_init(current_child->pixel);
 			el->type=thres_ind;
 			insert_el(LIC[res+1],el);
 		} else { //SPIHT 2.2.1.2.1.2
-			image[trans_pixel(current_child->pixel,imageprop)] += threshold; //le signe est vu apres
+			image[trans_pixel(current_child->pixel)] += threshold; //le signe est vu apres
 // 			bitsig = (value_pix > 0);
 // 			add_to_stream(stream, count, (int) bitsig, streamlast);
 			if ((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) < *outputsize){
 			   bitsig = read_from_stream((datablock[blockind].stream), (datablock[blockind].count), (datablock[blockind].streamlast));
 			} else break;
 			if (bitsig == 0){
-				image[trans_pixel(current_child->pixel,imageprop)] = -image[trans_pixel(current_child->pixel,imageprop)];
+				image[trans_pixel(current_child->pixel)] = -image[trans_pixel(current_child->pixel)];
 			};
-			(map_LSC[trans_pixel(current_child->pixel, imageprop)])++;
+			(map_LSC[trans_pixel(current_child->pixel)])++;
 			el=el_init(current_child->pixel);
 			el->type=thres_ind;
 			insert_el(LSC[res+1],el);			
 		};
 #ifndef NOLISTB
-		r=spat_spec_desc_spiht(current_child->pixel, list_grand_desc, imageprop, 1, image, thres_ind, map_LSC);//pour L(x,y,l)
+		r=spat_spec_desc_spiht(current_child->pixel, list_grand_desc, 1, image, thres_ind, map_LSC);//pour L(x,y,l)
 		if (r != 0) ngrandchild++;
 #else
 	//Si l'enfant k,l a lui meme des enfants, il faut le rajouter à la LIS (seulement si il n'y est pas déjà...
@@ -1261,8 +1261,8 @@ nLISloop++;
 // 		(map_LIS[trans_pixel(el->pixel, imageprop)])++;
 // 	}
 // 	}
-	 if (map_LIS[trans_pixel(current_child->pixel, imageprop)] == 0){
-	  r=spat_spec_desc_spiht(current_child->pixel, list_grand_desc, imageprop, 1, image, thres_ind, map_LSC);//pour L(x,y,l)
+	 if (map_LIS[trans_pixel(current_child->pixel)] == 0){
+	  r=spat_spec_desc_spiht(current_child->pixel, list_grand_desc, 1, image, thres_ind, map_LSC);//pour L(x,y,l)
 	  if (r != 0) {	 
 #ifndef NEWTREE
 	 	if (bit == 1) { 
@@ -1274,21 +1274,21 @@ nLISloop++;
 		#else
 		insert_el_inplace(LIS[res+1],el);
 		#endif
-		(map_LIS[trans_pixel(el->pixel, imageprop)])++;
+		(map_LIS[trans_pixel(el->pixel)])++;
 #ifndef NEWTREE
 		} else {//si on met k,l dans la LIC on verifie si il est accessible
 			is_accessible=0;
-			parents=find_parents(current_child->pixel, imageprop);
+			parents=find_parents(current_child->pixel);
 			if ((parents.spat.x != current_el->pixel.x) ||
 				(parents.spat.y != current_el->pixel.y) ||
 				(parents.spat.l != current_el->pixel.l) ){//on s'arrure qu'on n'est pas arrive par le spatial
-			is_accessible=is_accessible_from(parents.spat,imageprop,map_LIS);
+			is_accessible=is_accessible_from(parents.spat,map_LIS);
 			}
 			if ((parents.spec.x != current_el->pixel.x) ||
 				(parents.spec.y != current_el->pixel.y) ||
 				(parents.spec.l != current_el->pixel.l) ){//on s'arrure qu'on n'est pas arrive par le spatial
 			if (is_accessible ==1) printf("********** UH OH*******\n");
-			is_accessible=is_accessible_from(parents.spec,imageprop,map_LIS);
+			is_accessible=is_accessible_from(parents.spec,map_LIS);
 			}
 			if (is_accessible ==0){
 				el=el_init(current_child->pixel);
@@ -1298,7 +1298,7 @@ nLISloop++;
 				#else
 				insert_el_inplace(LIS[res+1],el);
 				#endif
-				(map_LIS[trans_pixel(el->pixel, imageprop)])++;
+				(map_LIS[trans_pixel(el->pixel)])++;
 			}
 		}
 #endif
@@ -1332,7 +1332,7 @@ nLISloop++;
 	   } else {
 #endif
 		tmp_el=remove_current_el(LIS[res]);
-		(map_LIS[trans_pixel(tmp_el->pixel, imageprop)])--;
+		(map_LIS[trans_pixel(tmp_el->pixel)])--;
 		free(tmp_el); //la par contre, il disparait...
 		
 #ifndef NOLISTB
@@ -1365,22 +1365,22 @@ nLISloop++;
 	} else break;
 	  if (bit == 1){
 		list_desc=list_init();//list_free(list_desc);  //decode only done
-	  	r=spat_spec_desc_spiht(current_el->pixel, list_desc, imageprop, 1, image, thres_ind, map_LSC);//decode only
+	  	r=spat_spec_desc_spiht(current_el->pixel, list_desc, 1, image, thres_ind, map_LSC);//decode only
 		current_child = first_el(list_desc);
 		while (current_child !=NULL){
-			if (map_LIS[trans_pixel(current_child->pixel,imageprop)] == 0){
+			if (map_LIS[trans_pixel(current_child->pixel)] == 0){
 				el=el_init(current_child->pixel); //TODO possibilite de recuperer direct sans faire de malloc..
 #ifndef INPLACE
 				insert_el(LIS,el);
 #else
 				insert_el_inplace(LIS,el);
 #endif
-				(map_LIS[trans_pixel(el->pixel, imageprop)])++;
+				(map_LIS[trans_pixel(el->pixel)])++;
 			};
 			current_child=next_el(list_desc);
 		};
 	  	tmp_el=remove_current_el(LIS);
-		(map_LIS[trans_pixel(tmp_el->pixel, imageprop)])--;
+		(map_LIS[trans_pixel(tmp_el->pixel)])--;
 	  	free(tmp_el);
 // 		if (LIS->current == NULL) printf("Uh Oh 2.2.2 (if)\n");
 		list_free(list_desc);//decode only
@@ -1413,10 +1413,10 @@ while ((current_el != NULL) && (current_el->type > thres_ind) && ((*(datablock[b
 	   flagLSC=1;
 	} else break;
 	if (bit == 1){
-		if (image[trans_pixel(current_el->pixel,imageprop)] > 0){
-			image[trans_pixel(current_el->pixel,imageprop)] += threshold;
+		if (image[trans_pixel(current_el->pixel)] > 0){
+			image[trans_pixel(current_el->pixel)] += threshold;
 		} else {
-			image[trans_pixel(current_el->pixel,imageprop)] -= threshold;
+			image[trans_pixel(current_el->pixel)] -= threshold;
 		};
 	};
 	current_el=next_el(LSC[res]);
@@ -1547,29 +1547,29 @@ if (((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) >= *o
 		current_el=first_el(LSC[res]);
 // 		if (lastprocessed != NULL){
 		   while (current_el != lastprocessed){
-		      if (image[trans_pixel(current_el->pixel,imageprop)] >0){
-			image[trans_pixel(current_el->pixel,imageprop)] += threshold/2;
+		      if (image[trans_pixel(current_el->pixel)] >0){
+			image[trans_pixel(current_el->pixel)] += threshold/2;
 		      };
-		      if (image[trans_pixel(current_el->pixel,imageprop)] <0){
-			image[trans_pixel(current_el->pixel,imageprop)] -= threshold/2;
+		      if (image[trans_pixel(current_el->pixel)] <0){
+			image[trans_pixel(current_el->pixel)] -= threshold/2;
 		      };
 		      current_el=next_el(LSC[res]);
 		   };
 // 		}
 		   while (current_el != NULL){
 			if (current_el->type > thres_ind){//this was added before and not refined yet, 
-				if (image[trans_pixel(current_el->pixel,imageprop)] >0){
-					image[trans_pixel(current_el->pixel,imageprop)] += threshold;
+				if (image[trans_pixel(current_el->pixel)] >0){
+					image[trans_pixel(current_el->pixel)] += threshold;
 				};
-				if (image[trans_pixel(current_el->pixel,imageprop)] <0){
-					image[trans_pixel(current_el->pixel,imageprop)] -= threshold;
+				if (image[trans_pixel(current_el->pixel)] <0){
+					image[trans_pixel(current_el->pixel)] -= threshold;
 				};
 			} else{
-				if (image[trans_pixel(current_el->pixel,imageprop)] >0){
-					image[trans_pixel(current_el->pixel,imageprop)] += threshold/2;
+				if (image[trans_pixel(current_el->pixel)] >0){
+					image[trans_pixel(current_el->pixel)] += threshold/2;
 				};
-				if (image[trans_pixel(current_el->pixel,imageprop)] <0){
-					image[trans_pixel(current_el->pixel,imageprop)] -= threshold/2;
+				if (image[trans_pixel(current_el->pixel)] <0){
+					image[trans_pixel(current_el->pixel)] -= threshold/2;
 				};
 			}
 			current_el=next_el(LSC[res]);

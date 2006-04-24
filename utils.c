@@ -1,9 +1,19 @@
 
+/*
+ *
+ *  Hyperspectral compression program
+ *
+ * Name:		main.c	
+ * Author:		Emmanuel Christophe	
+ * Contact:		e.christophe at melaneum.com
+ * Description:		Utility functions for hyperspectral image compression
+ * Version:		v1.0 - 2006-02	
+ * 
+ */
+
 #include "main.h"
 
-/*
-// Attention, changement de l'emploi de count par rapport à IDL !!!
-//on considere que la stream est assez longue deja... */
+
 
 /* 
   WARNING this function only output the 1 and supposed that stream has been properly
@@ -11,21 +21,10 @@
 */
 void add_to_stream(unsigned char *stream, unsigned char *count, int input, long int *streamlast)
 {
-// 	long int pos;
-// 	unsigned char count_local;
-// 	pos = *streamlast;
-// 	count_local = *count;
-// 	stream[pos] += (input << count_local); //no effect if input is 0, be aware...
-// 	(count_local)++;
-// 	if ((count_local) == 8){
-// 		(count_local) = 0;
-// 		pos++;
-// 		*streamlast = pos;
-// 	}
-// 	*count = count_local;
-
+// #ifdef SIZE
 	nbitswritten++;
-	stream[(*streamlast)] += (input << (*count)); //no effect if input is 0, be aware...
+// #endif
+	stream[(*streamlast)] += (input << (*count)); //no effect if input is 0, be aware do not forget to initialize strem to 0!
 	(*count)++;
 	if ((*count) == 8){
 		(*count) = 0;
@@ -50,7 +49,9 @@ unsigned char read_from_stream(unsigned char * stream, unsigned char * count, lo
 // 		endelse
 // 		count++
 // 	endfor
+// #ifdef SIZE
 	nbitsread++;
+// #endif
 	output=get_bit((long int) stream[*streamlast],(int) *count);
 	(*count)++;
 	if ((*count) == 8){
@@ -280,7 +281,7 @@ int count_list(struct list_struct * list){
 	return count;	
 };
 
-int check_map(unsigned char * map, struct imageprop_struct imageprop){
+int check_map(unsigned char * map){
 	int i,j,k;
 	for (k=0;k<imageprop.nbmax;k++){
 	for (j=0;j<imageprop.nlmax;j++){
@@ -332,12 +333,10 @@ long int count_map(unsigned char * map, long int size){
 };
 
 
-long int trans_pixel(struct pixel_struct pixel, struct imageprop_struct imageprop)
-{
-//    return pixel.x + pixel.y*imageprop.nsmax + pixel.l*imageprop.nsmax*imageprop.nlmax;
-   return pixel.x + (pixel.y + pixel.l*imageprop.nlmax)*imageprop.nsmax;
-
-};
+// long int trans_pixel(struct pixel_struct pixel)
+// {
+//    return pixel.x + (pixel.y + pixel.l*imageprop.nlmax)*imageprop.nsmax;
+// };
 
 //WARNING (ne marchera pas pour thres_ind =32)
 unsigned char get_bit(long int value,int thres_ind){
@@ -364,11 +363,16 @@ int isLSC(long int value_pix, int thres_ind){
 	}
 };
 
+//value_abs_pix MUST be positive
+//declaree en inline
+// int isLSC2(long int value_abs_pix, int threshold){
+// 	return ((value_abs_pix >= threshold) && (value_abs_pix < 2*threshold));
+// };
 
 //WARNING 
 //Plus valable dans le cas où une ssbde de longueur impaire est decomposee...
 //Seulement la derniere ssbde peut etre de longueur impaire.(pour spect)
-struct parents_struct find_parents(struct pixel_struct pixel, struct imageprop_struct imageprop){
+struct parents_struct find_parents(struct pixel_struct pixel){
 	struct parents_struct parents;
 	parents.spat.x=-1;//spatial parent
 	parents.spat.y=-1;
@@ -429,25 +433,25 @@ struct parents_struct find_parents(struct pixel_struct pixel, struct imageprop_s
 	return parents;
 };
 
-int is_accessible_from(struct pixel_struct pixel, struct imageprop_struct imageprop, unsigned char * map){
+int is_accessible_from(struct pixel_struct pixel,unsigned char * map){
 	struct parents_struct parents;
 	int out=0;
-	parents = find_parents(pixel, imageprop);
+	parents = find_parents(pixel);
 // 	printf("parents.spat %d %d %d\n",parents.spat.x,parents.spat.y,parents.spat.l);
 // 	printf("parents.spec %d %d %d\n",parents.spec.x,parents.spec.y,parents.spec.l);
 	if (parents.spat.x != -1){
-		if (map[trans_pixel(parents.spat,imageprop)] == 1){
+		if (map[trans_pixel(parents.spat)] == 1){
 			return 1;
 		} else {
-			out=is_accessible_from(parents.spat,imageprop,map);
+			out=is_accessible_from(parents.spat,map);
 		}
 	}
 	if (out == 1) return 1;
 	if (parents.spec.x != -1){
-		if (map[trans_pixel(parents.spec,imageprop)] == 1){
+		if (map[trans_pixel(parents.spec)] == 1){
 			return 1;
 		} else {
-			out=is_accessible_from(parents.spec,imageprop,map);
+			out=is_accessible_from(parents.spec,map);
 		}
 	}
 
@@ -456,7 +460,7 @@ int is_accessible_from(struct pixel_struct pixel, struct imageprop_struct imagep
 }
 
 #ifdef DEBUG
-int check_accessibility_of_all(struct imageprop_struct imageprop, unsigned char * map_LSC, unsigned char * map_LIC, unsigned char * map_LIS){
+int check_accessibility_of_all(unsigned char * map_LSC, unsigned char * map_LIC, unsigned char * map_LIS){
 	int i,j,k, out;
 	struct pixel_struct pixel;
 	out=0;
@@ -469,9 +473,9 @@ int check_accessibility_of_all(struct imageprop_struct imageprop, unsigned char 
 			pixel.y=j;
 			pixel.l=k;
 			out=0;
-			if ((map_LSC[trans_pixel(pixel, imageprop)] == 0) &&
-				(map_LIC[trans_pixel(pixel, imageprop)] == 0)){
-				out=is_accessible_from(pixel,imageprop,map_LIS);
+			if ((map_LSC[trans_pixel(pixel)] == 0) &&
+				(map_LIC[trans_pixel(pixel)] == 0)){
+				out=is_accessible_from(pixel,map_LIS);
 			} else {
 				out=1;
 			}
@@ -492,63 +496,35 @@ int check_accessibility_of_all(struct imageprop_struct imageprop, unsigned char 
 //valide par rapport a IDL sur le groupe issu de 0,0,0
 // sur moffett3 sans correction moyenne
 //total: 1959089642955
-long long int eval_dist_grp(int iloc, int jloc,int kloc, long int *image, struct imageprop_struct imageprop, int thres_ind){
-	long long int dist=0;
-// 	long long int value=0;
-	int i,j,k;
-	int ii, ji, ki;
-	int ie, je, ke;
-	struct pixel_struct pixel;
-// 	struct list_struct * list_desc =NULL;
-// 	struct list_el * el =NULL;
-// 	int tmpcount=0;
-	ki=2*kloc;
-	ji=2*jloc;
-	ii=2*iloc;
-	ke= (2*kloc+2 < imageprop.nbmin ? 2*kloc+2 : imageprop.nbmin);
-	je= (2*jloc+2 < imageprop.nlmin ? 2*jloc+2 : imageprop.nlmin);
-	ie= (2*iloc+2 < imageprop.nsmin ? 2*iloc+2 : imageprop.nsmin);
-// 	printf("pt: %d %d %d -> %lld",i ,j, k, dist);
-// 	list_desc = list_init();
-	for (i=ii; i<ie; i++){
-	for (j=ji; j<je; j++){
-	for (k=ki; k<ke; k++){
-		pixel.x=i;
-		pixel.y=j;
-		pixel.l=k;
-// 		el=el_init(pixel);
-// 		insert_el(list_desc, el);
-		//recherche de TOUS les descendants
-// 		spat_spec_desc_spiht(pixel, list_desc, imageprop, 0, zero_map, 0, zero_map);
-// 		spat_spec_desc_spiht_cumul(pixel, list_desc, imageprop, image, thres_ind, &dist);
-		spat_spec_desc_spiht_cumul(pixel, imageprop, image, thres_ind, &dist);
-// 		spat_spec_desc_spiht_cumul(pixel, NULL, imageprop, image, thres_ind, &dist);
-
-// 		//parcours des descendant et ajout a dist
-// 		el = first_el(list_desc);
-// 		tmpcount=0;
-// 		while (el !=NULL){
-// 			value = (long long int) image[trans_pixel(el->pixel, imageprop)];
-// 			dist += value * value ;
-// 			el=next_el(list_desc);
-// 			tmpcount++;
-// 		}
-	
-		//nettoyage
-// 		list_flush(list_desc);
-// 		printf("pt: %d %d %d -> %lld (%d pt)\n",i ,j, k, dist, tmpcount);
-	}
-	}
-	}
-// 	free(el);
-// 	list_free(list_desc);
-	return dist;
-}
+// long long int eval_dist_grp(int iloc, int jloc,int kloc, long int *image, int thres_ind){
+// 	long long int dist=0;
+// 	int i,j,k;
+// 	int ii, ji, ki;
+// 	int ie, je, ke;
+// 	struct pixel_struct pixel;
+// 	ki=2*kloc;
+// 	ji=2*jloc;
+// 	ii=2*iloc;
+// 	ke= (2*kloc+2 < imageprop.nbmin ? 2*kloc+2 : imageprop.nbmin);
+// 	je= (2*jloc+2 < imageprop.nlmin ? 2*jloc+2 : imageprop.nlmin);
+// 	ie= (2*iloc+2 < imageprop.nsmin ? 2*iloc+2 : imageprop.nsmin);
+// 	for (i=ii; i<ie; i++){
+// 	for (j=ji; j<je; j++){
+// 	for (k=ki; k<ke; k++){
+// 		pixel.x=i;
+// 		pixel.y=j;
+// 		pixel.l=k;
+// 		spat_spec_desc_spiht_cumul(pixel, image, thres_ind, &dist);
+// 	}
+// 	}
+// 	}
+// 	return dist;
+// }
 
 //update distortion value
-int update_dist(struct pixel_struct pixel, int thres_ind, long long int * dist,  long int *image, struct imageprop_struct imageprop){
+int update_dist(struct pixel_struct pixel, int thres_ind, long long int * dist,  long int *image){
 	long long int value=0;
-	value = (long long int) abs(image[trans_pixel(pixel,imageprop)]);
+	value = (long long int) abs(image[trans_pixel(pixel)]);
 	*dist -= (1<<thres_ind)
 		*(2*(value - ((value>>(thres_ind+1))<<(thres_ind+1)))-(1<<thres_ind));
 	return 0;
@@ -611,7 +587,8 @@ float compute_lambda(struct datablock_struct *datablock, long int rate, int nblo
 	float lambda = 0.0;
 	long int current_rate=0;
 #ifdef RES_RATE
-	int posmin[NRES];
+// 	int posmin[NRES];
+	int * posmin = (int *) calloc(imageprop.nres, sizeof(int));
 #else
 	int posmin;
 #endif
@@ -619,7 +596,7 @@ float compute_lambda(struct datablock_struct *datablock, long int rate, int nblo
 #ifdef RES_RATE
 	int j;
 #endif	
-	while ((lambda_sup-lambda_inf) > 2.0) {//TODO verifier ce qu'il se passe quand on commence en dehors du domaine... ou quand le taux est trop grand...
+	while ((lambda_sup-lambda_inf) > 1.0) {//TODO verifier ce qu'il se passe quand on commence en dehors du domaine... ou quand le taux est trop grand...
 		current_rate=0;
 		lambda = (lambda_sup + lambda_inf) /2.;
 		for (i=0;i<nblock;i++){
@@ -630,10 +607,10 @@ float compute_lambda(struct datablock_struct *datablock, long int rate, int nblo
 //  			if (((j % NRESSPEC)!=0) && (posmin[j] > posmin[j-1])) posmin[j]=posmin[j-1];
 // 			current_rate += datablock[i].rddata[j].r[posmin[j]];//HUM, check priorities...
 // 			}
-			for (j=NRES-1;j>=0;j--){
+			for (j=imageprop.nres-1;j>=0;j--){
 			posmin[j]=compute_cost(&(datablock[i].rddata[j]),lambda);
-				if ((j<NRES-NRESSPEC) && (posmin[j] < posmin[j+NRESSPEC])) posmin[j]=posmin[j+NRESSPEC];
- 			if (((j % NRESSPEC)!=NRESSPEC-1) && (posmin[j] < posmin[j+1])) 
+				if ((j<imageprop.nres-imageprop.nresspec) && (posmin[j] < posmin[j+imageprop.nresspec])) posmin[j]=posmin[j+imageprop.nresspec];
+ 			if (((j % imageprop.nresspec)!=imageprop.nresspec-1) && (posmin[j] < posmin[j+1])) 
 				posmin[j]=posmin[j+1];
 			current_rate += datablock[i].rddata[j].r[posmin[j]];//HUM, check priorities...
 			}
@@ -654,18 +631,18 @@ float compute_lambda(struct datablock_struct *datablock, long int rate, int nblo
 
 //functions to take care of data_block
 int datablock_init(struct datablock_struct *datablock){
-	(*datablock).stream = (unsigned char *) calloc(SIZEBLOCKSTREAM,sizeof(unsigned char *));
-	if ((*datablock).stream == NULL) {fprintf(stderr, "******** Allocation problem in datablock_init\n");};
+	(*datablock).stream = (unsigned char *) calloc(sizeblockstream,sizeof(unsigned char *));
+	if ((*datablock).stream == NULL) {fprintf(stderr, "******** Allocation problem in datablock_init (strem)\n");};
 	(*datablock).streamlast = (long int *) malloc(sizeof(long int));
-	if ((*datablock).streamlast == NULL) {fprintf(stderr, "******** Allocation problem in datablock_init\n");};
+	if ((*datablock).streamlast == NULL) {fprintf(stderr, "******** Allocation problem in datablock_init (streamlast)\n");};
 	(*datablock).count = (unsigned char *) malloc(sizeof(unsigned char));
-	if ((*datablock).count == NULL) {fprintf(stderr, "******** Allocation problem in datablock_init\n");};
+	if ((*datablock).count == NULL) {fprintf(stderr, "******** Allocation problem in datablock_init (count)\n");};
 	#ifdef RES_SCAL
-	(*datablock).partsize = (long int *) calloc(NRES,sizeof(long int));
+	(*datablock).partsize = (long int *) calloc(imageprop.nres,sizeof(long int));
 	#else
-	(*datablock).partsize = (long int *) calloc(MAXQUANT_CONST+1,sizeof(long int));	
+	(*datablock).partsize = (long int *) calloc(imageprop.maxquant+1,sizeof(long int));	
 	#endif
-	if ((*datablock).partsize == NULL) {fprintf(stderr, "******** Allocation problem in datablock_init\n");};
+	if ((*datablock).partsize == NULL) {fprintf(stderr, "******** Allocation problem in datablock_init (partsize)\n");};
 	*((*datablock).streamlast) = 0;
 	*((*datablock).count)=0;
 	(*datablock).currentpos=0;
@@ -683,30 +660,40 @@ int datablock_free(struct datablock_struct *datablock){
 //outputs in stream functions
 
 //output the next part size (there is definitly more efficient way to do that...) TODO
-int add_to_stream_number(unsigned long int number, unsigned char * stream, unsigned char *count, long int *streamlast){
+int add_to_stream_number(unsigned long int number, unsigned char * stream, unsigned char *count, long int *streamlast, int numbits){
 	int i=0;
 // 	printf("Adding %lu at %ld : %d\n",number, *streamlast, *count);
-	if (number > (1<<(NUMBITSPARTSIZE-2))) { //taking a 2 bits marging again... 
+//	if (number > (1<<(numbits-2))) { //taking a 2 bits marging again... 
+	if (number > (1<<(32-2))) {
 		printf("********** WARNING Possible error in size encoding *************\n");
 		return 1;
 	}
-	for (i=0;i<NUMBITSPARTSIZE;i++){
+	if (number >= (1<<numbits)) {
+		fprintf(stderr,"********** WARNING Header size too short for encoding *************\n");
+	}
+	for (i=0;i<numbits;i++){
 		add_to_stream(stream, count, (int) get_bit(number,i), streamlast);
 	}
+#ifdef SIZE
+	nbitswrittenheader += numbits;
+#endif
 	return 0;
 }
 
-unsigned long int read_from_stream_number(unsigned char * stream, unsigned char *count, long int *streamlast){
+unsigned long int read_from_stream_number(unsigned char * stream, unsigned char *count, long int *streamlast, int numbits){
 	unsigned long int n=0;
 	unsigned char bit=0;
 	int i;
 // 	printf("Reading at %ld : %d\n", *streamlast, *count);
-	for (i=0; i<NUMBITSPARTSIZE;i++){
+	for (i=0; i<numbits;i++){
 		bit=read_from_stream(stream, count, streamlast);
 		if (bit ==1){
 			n += (1<<i);//ca devrait etre dans le meme ordre qu'a l'ecriture
 		}
 	}
+#ifdef SIZE
+	nbitsreadheader += numbits;
+#endif
 	return n;
 }
 
@@ -735,7 +722,7 @@ int copy_to_stream(long int currentpos, long long int rate, unsigned char * stre
 
 //interleaving block streams for lambda
 
-int interleavingblocks(struct datablock_struct *datablock, int nblock, unsigned char * stream, unsigned char * count, long int * streamlast, float lambda){
+int interleavingblocks(struct datablock_struct *datablock, int nblock, unsigned char * stream, unsigned char * count, long int * streamlast, float lambda, int *flagfirst){
 	int i=0;
 #ifdef RES_RATE
 // 	int posmin[NRES];
@@ -747,14 +734,15 @@ int interleavingblocks(struct datablock_struct *datablock, int nblock, unsigned 
 	long long int rate;
 	int j;
 	long int sum=0;
-	int flagfirst=0;
-	if ((*streamlast == 0) && (*count ==0)) flagfirst=1;
+// 	int flagfirst=0;
+// 	if ((*streamlast == 0) && (*count ==0)) flagfirst=1;
+// 	if ((*streamlast == 8) && (*count ==0)) flagfirst=1;//WARNING, depending on header size...
 	for (i=0;i<nblock;i++){
 		//ajout des headers de block
-		if (flagfirst){
+		if (*flagfirst){
 			sum = 0;
 			#ifdef RES_SCAL
-			for (j=0;j<NRES;j++){
+			for (j=0;j<imageprop.nres;j++){
 #ifdef RES_RATE
 //WARNING using RES_RATE option is probably valid only when ONE layer is used
 				if (lambda != 0.0) {
@@ -763,31 +751,31 @@ int interleavingblocks(struct datablock_struct *datablock, int nblock, unsigned 
 					posmin=compute_cost(&(datablock[i].rddata[j]),0.0);//would be faster just to take the last point
 				}
 				sum = datablock[i].rddata[j].r[posmin];//voltige
-				add_to_stream_number(sum, stream, count, streamlast);
+				add_to_stream_number(sum, stream, count, streamlast, NUMBITSPARTSIZE);
 #else
 				/*if (j>3)*/ sum=0;
 				sum += (datablock[i].partsize)[j];
-				/*if (j>=3) */add_to_stream_number(sum, stream, count, streamlast);
+				/*if (j>=3) */add_to_stream_number(sum, stream, count, streamlast, NUMBITSPARTSIZE);
 #endif
 			}
 			#else
-			for (j=MAXQUANT_CONST;j>=0;j--){
+			for (j=imageprop.maxquant;j>=0;j--){
 				if (j<10) sum=0;
 				sum += (datablock[i].partsize)[j];
-				if (j<=10) add_to_stream_number(sum, stream, count, streamlast);
+				if (j<=10) add_to_stream_number(sum, stream, count, streamlast, NUMBITSPARTSIZE);
 			}	
 			#endif
 		}
 		//fin ajout header de block
 #ifdef RES_RATE
-		for (j=0;j<NRES;j++){
+		for (j=0;j<imageprop.nres;j++){
 			posmin=datablock[i].rddata[j].ptcourant;
-			if (posmin > NRES) {
+			if (posmin > imageprop.nres) {
 				fprintf(stderr, "******** Pb with posmin: %d \n", posmin);
 			}
 			rate=datablock[i].rddata[j].r[posmin];//be careful, here the rate is for the resolution only (not the total from 0)
 			insize = (*(datablock[i].streamlast))*8+(*(datablock[i].count));
-			if (insize > SIZEBLOCKSTREAM*8) {fprintf(stderr, "******** Block size overflow: %ld \n", insize);}
+			if (insize > sizeblockstream*8) {fprintf(stderr, "******** Block size overflow: %ld \n", insize);}
 			//output the size of the next part in stream
 // 			#ifdef DEBUG
 // 			printf("Cutting point for %d (res %d): %lld (adding %lld to stream WRONG)\n", i,j, rate, rate - (datablock[i].currentpos));
@@ -811,56 +799,63 @@ int interleavingblocks(struct datablock_struct *datablock, int nblock, unsigned 
 // 		posmin=datablock[i].rddata.ptcourant; //however, this is not the case for 0 (lossless). TODO OPTI
 		rate=datablock[i].rddata.r[posmin];
 		insize = (*(datablock[i].streamlast))*8+(*(datablock[i].count));
-		if (insize > SIZEBLOCKSTREAM*8) {fprintf(stderr, "******** Block size overflow: %ld \n", insize);}
+		if (insize > sizeblockstream*8) {fprintf(stderr, "******** Block size overflow: %ld \n", insize);}
 		//output the size of the next part in stream
 		#ifdef DEBUG
 		printf("Cutting point for %d : %lld (adding %lld to stream)\n", i, rate, rate - (datablock[i].currentpos));
 		printf("Block %d begin at position %ld\n",i, (*streamlast)*8+ (*count));
 		#endif
-		add_to_stream_number(rate - (datablock[i].currentpos), stream,count,streamlast);
+		add_to_stream_number(rate - (datablock[i].currentpos), stream,count,streamlast, NUMBITSPARTSIZE);
 		//copy the corresponding number of bits in stream
 		copy_to_stream((datablock[i].currentpos), rate, datablock[i].stream,  stream, count, streamlast, insize);
 		(datablock[i].currentpos)=rate;
 #endif
 	}
+	*flagfirst = 0;
 	return 0;
 }
 
 //desinterleaving block and storing in datablock_struct
-int desinterleavingblocks(struct datablock_struct *datablock, int nblock, unsigned char * stream, long int  insize, int nlayer){
+int desinterleavingblocks(struct datablock_struct *datablock, int nblock, struct stream_struct streamstruct, long int  insize, int nlayer){
 	int i=0;
 	int j;
 	int err=0;
 	int layer=0;
 	long int pos;
 	unsigned long int nbits=0;
+	unsigned char * stream;
 	unsigned char count=0;
 	long int streamlast=0;
 	int flagfirst=1;
+
+	stream = streamstruct.stream;
+	count = *(streamstruct.count);
+	streamlast = *(streamstruct.streamlast);
+
 	while ( ((streamlast*8+ count) <= insize) && (layer<nlayer) ){
 		//ajout des headers de block
 		if (flagfirst){
 			#ifdef RES_SCAL
-			for (j=0;j<NRES;j++){
+			for (j=0;j<imageprop.nres;j++){
 // #ifdef RES_RATE
 // 				(datablock[i].partsize)[j]=read_from_stream_number(stream, &count, &streamlast);
 // #else
 
 // 				if (j< 3) (datablock[i].partsize)[j] = -1;
-				/*if (j>=3) */(datablock[i].partsize)[j]=read_from_stream_number(stream, &count, &streamlast);
+				/*if (j>=3) */(datablock[i].partsize)[j]=read_from_stream_number(stream, &count, &streamlast, NUMBITSPARTSIZE);
 
 // #endif
 			}
 			#else
-			for (j=MAXQUANT_CONST;j>=0;j--){
+			for (j=imageprop.maxquant;j>=0;j--){
 				if (j>10) (datablock[i].partsize)[j] = -1;
-				if (j<=10) (datablock[i].partsize)[j] = read_from_stream_number(stream, &count, &streamlast);
+				if (j<=10) (datablock[i].partsize)[j] = read_from_stream_number(stream, &count, &streamlast, NUMBITSPARTSIZE);
 			}	
 			#endif
 		}
 		//fin lecture header de block
 #ifdef RES_RATE
-		for (j=0;j<NRES;j++){
+		for (j=0;j<imageprop.nres;j++){
 			nbits = (datablock[i].partsize)[j];
 			pos = streamlast*8+count;
 			if (pos < 0) {fprintf(stderr, "******** pos neg in desinterleavingblocks\n");};
@@ -872,7 +867,7 @@ int desinterleavingblocks(struct datablock_struct *datablock, int nblock, unsign
 			i++;
 			if (i == nblock) {i=0;flagfirst=0;layer++;};
 #else
-		nbits = read_from_stream_number(stream,&count,&streamlast);
+		nbits = read_from_stream_number(stream,&count,&streamlast,NUMBITSPARTSIZE);
 		pos = streamlast*8+count;
 		if (pos < 0) {fprintf(stderr, "******** pos neg in desinterleavingblocks\n");};
 		#ifdef DEBUG
@@ -889,20 +884,21 @@ int desinterleavingblocks(struct datablock_struct *datablock, int nblock, unsign
 	return 0;
 }
 
-void print_lastm(struct list_el * lastm[NRES][MAXQUANT_CONST+1]){
-int i,j;
-for (j=MAXQUANT_CONST; j>=0; j--){
-for (i=0; i<NRES; i++){
-	if (lastm[i][j] == NULL){
-		printf(" NULL   ");
-	} else {
-		printf("(%d,%d,%d) ",lastm[i][j]->pixel.x,lastm[i][j]->pixel.y,lastm[i][j]->pixel.l);
-	}
-}
-printf("\n");
-}
 
-}
+// void print_lastm(struct list_el * lastm[NRES][MAXQUANT_CONST+1]){
+// int i,j;
+// for (j=MAXQUANT_CONST; j>=0; j--){
+// for (i=0; i<imageprop.nres; i++){
+// 	if (lastm[i][j] == NULL){
+// 		printf(" NULL   ");
+// 	} else {
+// 		printf("(%d,%d,%d) ",lastm[i][j]->pixel.x,lastm[i][j]->pixel.y,lastm[i][j]->pixel.l);
+// 	}
+// }
+// printf("\n");
+// }
+// 
+// }
 
 
 long int file_size(FILE *f){
@@ -951,3 +947,156 @@ long int find_max(long int * image, long int npix){
 	}
 	return max;
 }
+
+int compute_mean(long int * image, long int *mean){
+	long int i_l=0;
+	int i=0;
+	int npixband;
+	long long int meantmp=0;
+	npixband=imageprop.nsmax*imageprop.nlmax;
+	for (i=0;i<imageprop.nbmax;i++){
+	  meantmp=0;
+	  for (i_l=0;i_l<npixband;i_l++){
+		meantmp += image[i_l+i*npixband];
+	  }
+	  mean[i] = meantmp / npixband;//Doesnot need to be precise ok for the rounding
+	}
+	return 0;
+}
+
+//substract one mean per band
+int substract_mean(long int * image, long int *mean){
+	long int i_l=0;
+	int i=0;
+	int npixband;
+	npixband=imageprop.nsmax*imageprop.nlmax;
+	for (i=0;i<imageprop.nbmax;i++){
+	  for (i_l=0;i_l<npixband;i_l++){
+		image[i_l+i*npixband] -=  mean[i];
+	  }
+	}
+	return 0;
+}
+
+int add_mean(long int * image, long int *mean){
+	long int i_l=0;
+	int i=0;
+	int npixband;
+	npixband=imageprop.nsmax*imageprop.nlmax;
+	for (i=0;i<imageprop.nbmax;i++){
+	  for (i_l=0;i_l<npixband;i_l++){
+		image[i_l+i*npixband] +=  mean[i];
+	  }
+	}
+	return 0;
+}
+
+#ifdef CHECKEND
+int check_end(long int *image, struct list_struct ** list, struct coder_param_struct coder_param, int blockind){
+int res;
+struct list_el * current_el=NULL;
+struct list_el * current_sav=NULL;
+struct list_el * previous_sav=NULL;	
+long int err, maxerr;
+
+for (res=0; res<(coder_param.maxres[blockind]); res++){	
+	current_sav = list[res]->current;
+	previous_sav = list[res]->previous;
+	current_el=first_el(list[res]);
+	err=0; maxerr=0;
+	while (current_el != NULL){
+		err=abs(image[trans_pixel(current_el->pixel)]-imageoriglobal[trans_pixel(current_el->pixel)]);
+		if (err > maxerr) maxerr=err;
+		current_el=next_el(list[res]);
+	}
+	list[res]->current = current_sav;
+	list[res]->previous = previous_sav;
+	printf("Max err for res %d blk %d: %ld\n", res, blockind, maxerr);
+
+}
+return 0;
+}
+#endif
+
+int waveletscaling(long int * image, int spatdec, int specdec, int dir ){
+
+int i,j,k,l;
+int currentns,currentnl,currentnb;
+int iindex, jindex, kindex;
+double multfact,multfactfull;
+double * mask;
+
+mask = (double *) calloc(imageprop.nsmax * imageprop.nlmax,sizeof(double));
+//fabrication du mask
+	for (i=0;i<imageprop.nsmax;i++){
+	for (j=0;j<imageprop.nlmax;j++){
+		multfact=1.0;
+		currentns=imageprop.nsmin;
+		iindex=spatdec-1;
+		while (i >= currentns) {
+			currentns *= 2;
+			iindex--;
+		}
+		currentnl=imageprop.nlmin;
+		jindex=spatdec-1;
+		while (j >= currentnl) {
+			currentnl *= 2;
+			jindex--;
+		}
+		
+		if (iindex > jindex+1) 	iindex = jindex+1;
+		if (jindex > iindex+1)  jindex = iindex+1;	
+
+		if ((iindex == spatdec-1) && (jindex == spatdec-1)){
+			multfact = (1 << spatdec);
+		} else {
+			for (l=0; l<iindex+jindex;l++){
+				multfact *= M_SQRT2;
+			}
+			if (iindex <0 ) multfact /= M_SQRT2;
+			if (jindex <0 ) multfact /= M_SQRT2;
+			if ((iindex == jindex-1) || (iindex == jindex+1)){
+				multfact *= M_SQRT2;
+			}
+		}
+		mask[i+imageprop.nsmax*j]=multfact;
+
+	}
+	}
+
+	for (k=0;k<imageprop.nbmax;k++){
+		multfact=1.0;
+		currentnb=imageprop.nbmin;
+		kindex=specdec-1;
+		while (k >= currentnb) { //WARNING: won't be working for any size
+			currentnb *= 2;
+			kindex--;
+		}
+		for (l=0; l<kindex;l++){
+			multfact *= M_SQRT2;
+		}
+		if (kindex <0 ) multfact /= M_SQRT2;
+
+
+			for (i=0;i<imageprop.nsmax;i++){
+			for (j=0;j<imageprop.nlmax;j++){
+				multfactfull = multfact * mask[i+imageprop.nsmax*j];
+// 				if (multfactfull < 1.0) multfactfull = 1.0; //warning, this is not correct.. (perf drop but lossless
+// 				multfactfull *= 4;
+				if (dir ==0) {
+				image[i+imageprop.nsmax*(j+imageprop.nlmax*k)] =
+					 round(image[i+imageprop.nsmax*(j+imageprop.nlmax*k)]
+						*multfactfull);
+				} else {
+				image[i+imageprop.nsmax*(j+imageprop.nlmax*k)] =
+					 round(image[i+imageprop.nsmax*(j+imageprop.nlmax*k)] 
+						/ multfactfull);
+				}
+			}
+			}
+
+
+	}
+	return 0;
+}
+

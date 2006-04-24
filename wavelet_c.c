@@ -5,14 +5,18 @@
 
 long int lround(double x);
 
-int waveletDWT(long int * imagein, long int * imageout){
+int waveletDWT(long int * imagein, long int * imageout, int specdec, int spatdec){
 
 QccVolume input_volume;
 QccVolume output_volume;
 // QccVolume output2_volume;
 QccWAVWavelet Wavelet;
+
+#ifdef WAV53
+QccString WaveletFilename = "CohenDaubechiesFeauveau.5-3.lft";
+#else
 QccString WaveletFilename = QCCWAVWAVELET_DEFAULT_WAVELET;
-// QccString WaveletFilename = "CohenDaubechiesFeauveau.5-3.lft";
+#endif
 QccString Boundary = "symmetric";
 
 QccWAVPerceptualWeights PerceptualWeights;
@@ -29,25 +33,29 @@ long int i_l=0;
 long int npix=0;
 int err=0;
 
-struct imageprop_struct imageprop={NSMAX_CONST, NLMAX_CONST, NBMAX_CONST, NSMIN_CONST, NLMIN_CONST, NBMIN_CONST};
+// struct imageprop_struct imageprop={NSMAX_CONST, NLMAX_CONST, NBMAX_CONST, NSMIN_CONST, NLMIN_CONST, NBMIN_CONST};
 
 int nsmax=imageprop.nsmax;
 int nlmax=imageprop.nlmax;
 int nbmax=imageprop.nbmax;
-int nsmin=imageprop.nsmin;
-int nlmin=imageprop.nlmin;
-int nbmin=imageprop.nbmin;
+// int nsmin=imageprop.nsmin;
+// int nlmin=imageprop.nlmin;
+// int nbmin=imageprop.nbmin;
 
 npix= nsmax*nlmax*nbmax;
 
 //can be derived from nsmax / nsmin
-#ifdef S64
-int NumLevels_spat = 3;
-int NumLevels_spec = 3;
-#else
-int NumLevels_spat = 5;
-int NumLevels_spec = 5;
-#endif
+// #ifdef S64
+// int NumLevels_spat = 3;
+// int NumLevels_spec = 3;
+// #else
+// int NumLevels_spat = 5;
+// int NumLevels_spec = 5;
+// #endif
+// int NumLevels_spat = imageprop.nresspat-1;
+// int NumLevels_spec = imageprop.nresspec-1;
+int NumLevels_spat = spatdec;
+int NumLevels_spec = specdec;
 
 printf("Wavelet transform using QccPack...\n");
 // printf("5/3...\n");
@@ -97,6 +105,7 @@ for (k=0; k<nbmax; k++){
         i_l= i + j*nsmax + k*nsmax*nlmax;
 // 	imageout[i_l] = (long int) round( (*(*(output_volume+k) +j))[i] );
 	imageout[i_l] = (long int) lround( (*(*(output_volume+k) +j))[i] ); //WARNING check rint()
+// 	imageout[i_l] = (long int) (*(*(output_volume+k) +j))[i] ;
 }
 }
 }
@@ -114,14 +123,18 @@ return 0;
 
 
 
-int waveletIDWT(long int * imagein, long int * imageout){
+int waveletIDWT(long int * imagein, long int * imageout, int specdec, int spatdec){
 
 QccVolume input_volume;
 QccVolume output_volume;
 // QccVolume output2_volume;
 QccWAVWavelet Wavelet;
+
+#ifdef WAV53
+QccString WaveletFilename = "CohenDaubechiesFeauveau.5-3.lft";
+#else
 QccString WaveletFilename = QCCWAVWAVELET_DEFAULT_WAVELET;
-// QccString WaveletFilename = "CohenDaubechiesFeauveau.5-3.lft";
+#endif
 QccString Boundary = "symmetric";
 
 QccWAVPerceptualWeights PerceptualWeights;
@@ -137,26 +150,39 @@ long int i_l=0;
 long int npix=0;
 int err=0;
 
-struct imageprop_struct imageprop={NSMAX_CONST, NLMAX_CONST, NBMAX_CONST, NSMIN_CONST, NLMIN_CONST, NBMIN_CONST};
+// struct imageprop_struct imageprop={NSMAX_CONST, NLMAX_CONST, NBMAX_CONST, NSMIN_CONST, NLMIN_CONST, NBMIN_CONST};
 
 int nsmax=imageprop.nsmax;
 int nlmax=imageprop.nlmax;
 int nbmax=imageprop.nbmax;
-int nsmin=imageprop.nsmin;
-int nlmin=imageprop.nlmin;
-int nbmin=imageprop.nbmin;
+// int nsmin=imageprop.nsmin;
+// int nlmin=imageprop.nlmin;
+// int nbmin=imageprop.nbmin;
+
+
+
+// #ifdef S64
+// int NumLevels_spat = 3;
+// int NumLevels_spec = 3;
+// #else
+// int NumLevels_spat = 5;
+// int NumLevels_spec = 5;
+// #endif
+// int NumLevels_spat = imageprop.nresspat-1;
+// int NumLevels_spec = imageprop.nresspec-1;
+int NumLevels_spat = spatdec;
+int NumLevels_spec = specdec;
+double factor=1.0;
+
+nsmax=(nsmax >> (imageprop.nresspat-1 - spatdec));
+nlmax=(nlmax >> (imageprop.nresspat-1 - spatdec));
+nbmax=(nbmax >> (imageprop.nresspec-1 - specdec));
 
 npix= nsmax*nlmax*nbmax;
 
-
-#ifdef S64
-int NumLevels_spat = 3;
-int NumLevels_spec = 3;
-#else
-int NumLevels_spat = 5;
-int NumLevels_spec = 5;
-#endif
-
+for (i=0;i<(imageprop.nresspat-1 - spatdec);i++) factor *= sqrt(2.0); 
+for (i=0;i<(imageprop.nresspat-1 - spatdec);i++) factor *= sqrt(2.0); 
+for (i=0;i<(imageprop.nresspec-1 - specdec);i++) factor *= sqrt(2.0); 
 
 printf("Wavelet inverse transform using QccPack...\n");
 // printf("5/3...\n");
@@ -205,7 +231,8 @@ for (j=0; j<nlmax; j++){
 for (k=0; k<nbmax; k++){
         i_l= i + j*nsmax + k*nsmax*nlmax;
 // 	imageout[i_l] = (long int) round( (*(*(output_volume+k) +j))[i] );
-	imageout[i_l] = (long int) lround( (*(*(output_volume+k) +j))[i] ); //WARNING check rint()
+	imageout[i_l] = (long int) lround( (*(*(output_volume+k) +j))[i]/factor ); //WARNING check rint()
+// 	imageout[i_l] = (long int) (*(*(output_volume+k) +j))[i];
 }
 }
 }
@@ -220,3 +247,37 @@ return 0;
 
 }
 
+int wavelet_check(long int * imagein, long int npix){
+
+long int * image = (long int *) calloc(npix,sizeof(long int));
+long int * imageori = (long int *) calloc(npix,sizeof(long int));
+long int * imageidwt = (long int *) calloc(npix,sizeof(long int));
+long int i_l;
+long int maxerr, err;
+fprintf(stderr, "Wavelet Check......\n");
+
+for (i_l=0;i_l<npix;i_l++){
+	imageori[i_l]=imagein[i_l];
+}
+
+waveletDWT(imageori,image,imageprop.nresspec-1,imageprop.nresspat-1);
+waveletIDWT(image,imageidwt,imageprop.nresspec-1,imageprop.nresspat-1);
+
+maxerr=0;
+err=0;
+for (i_l=0;i_l<npix;i_l++){
+	if (abs(imagein[i_l]-imageidwt[i_l]) > maxerr){
+		maxerr=abs(imagein[i_l]-imageidwt[i_l]);
+		err=1;
+	};
+};
+
+if (err) {
+fprintf(stderr, "ERREUR MAX %ld\n",maxerr);
+} else {
+fprintf(stderr, "Decoding OK (maxerr= %ld)\n",maxerr);
+}
+
+fprintf(stderr, "End check......\n",maxerr);
+return 0;
+}

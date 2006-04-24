@@ -1,3 +1,16 @@
+/*
+ *
+ *  Hyperspectral compression program
+ *
+ * Name:		main.c	
+ * Author:		Emmanuel Christophe	
+ * Contact:		e.christophe at melaneum.com
+ * Description:		Utility functions for hyperspectral image compression
+ * Version:		v1.0 - 2006-02	
+ * 
+ */
+
+
 // #include "spiht_code_c.h"
 // #include "desc.h"
 #include "main.h"
@@ -16,14 +29,6 @@ avec option:
 recherche tous les descendant, mais pas de sortie anticipée
 */
 
-// int isLSC(long int value_pix, int thres_ind){
-// 	long int threshold= 1 << (long int)thres_ind;
-// 	if ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold)) {
-// 		return 1;
-// 	} else {
-// 		return 0;
-// 	}
-// };
 
 /****************************************************
 SPECTRAL - SPATIAL
@@ -31,7 +36,9 @@ SPECTRAL - SPATIAL
 
 /*function spat_spec_desc_spiht_fast, current_pix_x, current_pix_y, current_pix_l, desc_array_x, desc_array_y, desc_array_l, thres_cube, imageprop, directchildonly=directchildonly*/
 
-int spat_spec_desc_spiht(struct pixel_struct pixel, struct list_struct * list_desc, struct imageprop_struct imageprop, int directchildonly, long int *image, int thres_ind, unsigned char *map_LSC)
+//int spat_spec_desc_spiht(struct pixel_struct pixel, struct list_struct * list_desc, struct imageprop_struct imageprop, int directchildonly, long int *image, int thres_ind, unsigned char *map_LSC)
+//{
+int spat_spec_desc_spiht(struct pixel_struct pixel, struct list_struct * list_desc, int directchildonly, long int *image, int thres_ind, unsigned char *map_LSC)
 {
 
 int r1=0;
@@ -55,6 +62,7 @@ struct list_struct *tmp_list=NULL;
 // #ifdef EZW
 // struct list_el *tmp_el=NULL;
 // #endif
+long int threshold= 1 << (long int)thres_ind;
 
 
 if (directchildonly == 0){
@@ -83,13 +91,13 @@ desc_array_spec_l=current_pix_l*/
 if ((pixel.x < nsmin) && (pixel.y < nlmin)){//modif 02-01-2006 chgmt structure arbre
 #endif
 if (directchildonly == 0){
-r1=spec_desc_spiht(pixel, tmp_list, imageprop, directchildonly, image, thres_ind, map_LSC);
+r1=spec_desc_spiht(pixel, tmp_list, directchildonly, image, threshold, map_LSC);
 	if (r1 == -1) {
 		if (directchildonly == 0){list_free(tmp_list);};
 		return -1;
 	};
 } else {
-r1=spec_desc_spiht(pixel, list_desc, imageprop, directchildonly, image, thres_ind, map_LSC);
+r1=spec_desc_spiht(pixel, list_desc, directchildonly, image, threshold, map_LSC);
 };
 #ifdef NEWTREE
 };
@@ -116,7 +124,7 @@ endif*/
 
 
 /* dans tous les cas, on regarde les descendant spatiaux du pixel courant */
-r2=spat_desc_spiht(pixel, list_desc, imageprop, directchildonly, image, thres_ind, map_LSC);
+r2=spat_desc_spiht(pixel, list_desc, directchildonly, image, threshold, map_LSC);
 
 if ((directchildonly == 0) && ((r1 == -1) || (r2 == -1))) {
 	if (directchildonly == 0){list_free(tmp_list);};
@@ -141,7 +149,7 @@ if (directchildonly == 0) {
 //   current_el=list_desc->first;
   current_el=tmp_list->first;
   while (current_el != NULL){
-  	r=spat_desc_spiht(current_el->pixel, list_desc, imageprop, directchildonly, image, thres_ind, map_LSC);
+  	r=spat_desc_spiht(current_el->pixel, list_desc, directchildonly, image, threshold, map_LSC);
   	current_el= current_el->next;
 	if ((directchildonly == 0) && (r == -1)) {return -1; list_free(tmp_list);};
 // 	if ((directchildonly == 1) && (r == -1)) out= -1;
@@ -174,8 +182,9 @@ return out;
 /****************************************************
 SPECTRAL
 ******************************************************/
+//int spec_desc_spiht(struct pixel_struct pixel, struct list_struct * list_desc, struct imageprop_struct imageprop, int directchildonly, long int *image, int thres_ind, unsigned char *map_LSC){
+int spec_desc_spiht(struct pixel_struct pixel, struct list_struct * list_desc, int directchildonly, long int *image, long int threshold, unsigned char *map_LSC){
 
-int spec_desc_spiht(struct pixel_struct pixel, struct list_struct * list_desc, struct imageprop_struct imageprop, int directchildonly, long int *image, int thres_ind, unsigned char *map_LSC){
 
 struct pixel_struct new_pixel;
 long int value_pix;
@@ -221,15 +230,15 @@ if (pixel.l < nbmin){/*lower frequency*/
 // 	}
 	
 	/*if (thres_cube[current_pix_x,current_pix_y,current_pix_l+nbmin] EQ 1) then return, -1*/
-	value_pix=image[trans_pixel(new_pixel,imageprop)];
+	value_pix=image[trans_pixel(new_pixel)];
 // 	if ((directchildonly == 0) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) return -1;
 // 	if ((directchildonly == 1) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) out= -1;
 // 	if ((directchildonly == 0) && get_bit(value_pix, thres_ind)) {return -1; };
 // 	if ((directchildonly == 1) && get_bit(value_pix, thres_ind)) {out= -1;	};
 #ifndef NEWTREE
-        if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(new_pixel,imageprop)]==0)) {
+        if (isLSC2(abs(value_pix), threshold) && (map_LSC[trans_pixel(new_pixel)]==0)) {
 #else
-        if (isLSC(value_pix, thres_ind)) {
+        if (isLSC2(abs(value_pix), threshold)) {
 #endif
 		if (directchildonly == 0) {return -1; };
 		if (directchildonly == 1) {out= -1;	};
@@ -238,7 +247,7 @@ if (pixel.l < nbmin){/*lower frequency*/
 // 	#ifndef EZW
 	if (directchildonly == 0){
 // 	#endif
-		r = spec_desc_spiht(new_pixel, list_desc, imageprop, directchildonly, image, thres_ind, map_LSC);
+		r = spec_desc_spiht(new_pixel, list_desc, directchildonly, image, threshold, map_LSC);
 		if ((directchildonly == 0) && (r == -1)) return -1;
 		if ((directchildonly == 1) && (r == -1)) out= -1;
 // 	#ifndef EZW
@@ -267,29 +276,29 @@ if (pixel.l < nbmin){/*lower frequency*/
 		insert_el(list_desc, current_el2);
 // 	}
 	
-	value_pix=image[trans_pixel(current_el1->pixel,imageprop)];
+	value_pix=image[trans_pixel(current_el1->pixel)];
 // 	if ((directchildonly == 0) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) return -1;
 // 	if ((directchildonly == 1) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) out=-1;
 // 	if ((directchildonly == 0) && get_bit(value_pix, thres_ind)) {return -1; };
 // 	if ((directchildonly == 1) && get_bit(value_pix, thres_ind)) {out= -1;	};
 #ifndef NEWTREE
-	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(current_el1->pixel,imageprop)]==0)) {
+	if (isLSC2(abs(value_pix), threshold) && (map_LSC[trans_pixel(current_el1->pixel)]==0)) {
 #else
-	if (isLSC(value_pix, thres_ind) ) {
+	if (isLSC2(abs(value_pix), threshold) ) {
 #endif		
 		if (directchildonly == 0) {return -1; };
 		if (directchildonly == 1) {out= -1;	};
 	};
 
-	value_pix=image[trans_pixel(current_el2->pixel,imageprop)];
+	value_pix=image[trans_pixel(current_el2->pixel)];
 // 	if ((directchildonly == 0) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) return -1;
 // 	if ((directchildonly == 1) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) out=-1;
 // 	if ((directchildonly == 0) && get_bit(value_pix, thres_ind)) {return -1; };
 // 	if ((directchildonly == 1) && get_bit(value_pix, thres_ind)) {out= -1;	};
 #ifndef NEWTREE
-	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(current_el2->pixel,imageprop)]==0)) {	
+	if (isLSC2(abs(value_pix), threshold) && (map_LSC[trans_pixel(current_el2->pixel)]==0)) {	
 #else
-	if (isLSC(value_pix, thres_ind) ) {
+	if (isLSC2(abs(value_pix), threshold) ) {
 #endif		
 		if (directchildonly == 0) {return -1; };
 		if (directchildonly == 1) {out= -1;	};
@@ -299,10 +308,10 @@ if (pixel.l < nbmin){/*lower frequency*/
 // 	#ifndef EZW
 	if (directchildonly != 1){
 // 	#endif
-		r = spec_desc_spiht(current_el1->pixel, list_desc, imageprop, directchildonly, image, thres_ind, map_LSC);
+		r = spec_desc_spiht(current_el1->pixel, list_desc, directchildonly, image, threshold, map_LSC);
 		if ((directchildonly == 0) && (r == -1)) return -1;
 		if ((directchildonly == 1) && (r == -1)) out=-1;
-		r = spec_desc_spiht(current_el2->pixel, list_desc, imageprop, directchildonly, image, thres_ind, map_LSC);
+		r = spec_desc_spiht(current_el2->pixel, list_desc, directchildonly, image, threshold, map_LSC);
 		if ((directchildonly == 0) && (r == -1)) return -1;
 		if ((directchildonly == 1) && (r == -1)) out=-1;
 // 	#ifndef EZW
@@ -366,28 +375,28 @@ if (pixel.l < nbmin){/*lower frequency*/
 		insert_el(list_desc, current_el2);
 // 	};
 
-	value_pix=image[trans_pixel(current_el1->pixel,imageprop)];
+	value_pix=image[trans_pixel(current_el1->pixel)];
 /*	if ((directchildonly == 0) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) return -1;
 	if ((directchildonly == 1) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) out=-1;*/	
 // 	if ((directchildonly == 0) && get_bit(value_pix, thres_ind)) {return -1; };
 // 	if ((directchildonly == 1) && get_bit(value_pix, thres_ind)) {out= -1;	};
 #ifndef NEWTREE
-	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(current_el1->pixel,imageprop)]==0)) {
+	if (isLSC2(abs(value_pix), threshold) && (map_LSC[trans_pixel(current_el1->pixel)]==0)) {
 #else
-	if (isLSC(value_pix, thres_ind)) {
+	if (isLSC2(abs(value_pix), threshold)) {
 #endif		
 		if (directchildonly == 0) {return -1; };
 		if (directchildonly == 1) {out= -1;	};
 	};
-	value_pix=image[trans_pixel(current_el2->pixel,imageprop)];
+	value_pix=image[trans_pixel(current_el2->pixel)];
 // 	if ((directchildonly == 0) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) return -1;
 // 	if ((directchildonly == 1) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) out=-1;
 // 	if ((directchildonly == 0) && get_bit(value_pix, thres_ind)) {return -1; };
 // 	if ((directchildonly == 1) && get_bit(value_pix, thres_ind)) {out= -1;	};
 #ifndef NEWTREE
-	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(current_el2->pixel,imageprop)]==0)) {
+	if (isLSC2(abs(value_pix), threshold) && (map_LSC[trans_pixel(current_el2->pixel)]==0)) {
 #else
-	if (isLSC(value_pix, thres_ind)) {
+	if (isLSC2(abs(value_pix), threshold)) {
 #endif		
 		if (directchildonly == 0) {return -1; };
 		if (directchildonly == 1) {out= -1;	};
@@ -397,10 +406,10 @@ if (pixel.l < nbmin){/*lower frequency*/
 // #ifndef EZW
 	if (directchildonly != 1){
 // #endif
-		r = spec_desc_spiht(current_el1->pixel, list_desc, imageprop, directchildonly, image, thres_ind, map_LSC);
+		r = spec_desc_spiht(current_el1->pixel, list_desc, directchildonly, image, threshold, map_LSC);
 		if ((directchildonly == 0) && (r == -1)) return -1;
 		if ((directchildonly == 1) && (r == -1)) out=-1;
-		r = spec_desc_spiht(current_el2->pixel, list_desc, imageprop, directchildonly, image, thres_ind, map_LSC);
+		r = spec_desc_spiht(current_el2->pixel, list_desc, directchildonly, image, threshold, map_LSC);
 		if ((directchildonly == 0) && (r == -1)) return -1;
 		if ((directchildonly == 1) && (r == -1)) out=-1;
 // #ifndef EZW
@@ -416,7 +425,8 @@ return out;
 SPATIAL
 ******************************************************/
 
-int spat_desc_spiht(struct pixel_struct pixel, struct list_struct * list_desc, struct imageprop_struct imageprop, int directchildonly, long int *image, int thres_ind, unsigned char *map_LSC){
+//int spat_desc_spiht(struct pixel_struct pixel, struct list_struct * list_desc, struct imageprop_struct imageprop, int directchildonly, long int *image, int thres_ind, unsigned char *map_LSC){
+int spat_desc_spiht(struct pixel_struct pixel, struct list_struct * list_desc, int directchildonly, long int *image, long int threshold, unsigned char *map_LSC){
 
 int nsmax=imageprop.nsmax;
 int nlmax=imageprop.nlmax;
@@ -567,41 +577,41 @@ if (directchildonly == 1){/*Si on ne veut que les descendant, il faut les ajoute
 // #endif
 }; 
 
-value_pix=image[trans_pixel(new_pixel1,imageprop)];
+value_pix=image[trans_pixel(new_pixel1)];
 // 	if ((directchildonly == 0) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) return -1;
 // 	if ((directchildonly == 1) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) out=-1;
 // 	if ((directchildonly == 0) && get_bit(value_pix, thres_ind)) {return -1; };
 // 	if ((directchildonly == 1) && get_bit(value_pix, thres_ind)) {out= -1;	};
 #ifndef NEWTREE
-	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(new_pixel1,imageprop)]==0)) {		
+	if (isLSC2(abs(value_pix), threshold) && (map_LSC[trans_pixel(new_pixel1)]==0)) {		
 #else
-	if (isLSC(value_pix, thres_ind)) {
+	if (isLSC2(abs(value_pix), threshold)) {
 #endif
 		if (directchildonly == 0) {return -1; };
 		if (directchildonly == 1) {out= -1;	};
 	};
-value_pix=image[trans_pixel(new_pixel2,imageprop)];
+value_pix=image[trans_pixel(new_pixel2)];
 // 	if ((directchildonly == 0) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) return -1;
 // 	if ((directchildonly == 1) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) out=-1;
 // 	if ((directchildonly == 0) && get_bit(value_pix, thres_ind)) {return -1; };
 // 	if ((directchildonly == 1) && get_bit(value_pix, thres_ind)) {out= -1;	};
 #ifndef NEWTREE
-	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(new_pixel2,imageprop)]==0)) {	
+	if (isLSC2(abs(value_pix), threshold) && (map_LSC[trans_pixel(new_pixel2)]==0)) {	
 #else
-	if (isLSC(value_pix, thres_ind)) {
+	if (isLSC2(abs(value_pix), threshold)) {
 #endif	
 		if (directchildonly == 0) {return -1; };
 		if (directchildonly == 1) {out= -1;	};
 	};
-value_pix=image[trans_pixel(new_pixel3,imageprop)];
+value_pix=image[trans_pixel(new_pixel3)];
 // 	if ((directchildonly == 0) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) return -1;
 // 	if ((directchildonly == 1) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) out=-1;
 // 	if ((directchildonly == 0) && get_bit(value_pix, thres_ind)) {return -1; };
 // 	if ((directchildonly == 1) && get_bit(value_pix, thres_ind)) {out= -1;	};
 #ifndef NEWTREE
-	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(new_pixel3,imageprop)]==0)) {	
+	if (isLSC2(abs(value_pix), threshold) && (map_LSC[trans_pixel(new_pixel3)]==0)) {	
 #else
-	if (isLSC(value_pix, thres_ind)) {
+	if (isLSC2(abs(value_pix), threshold)) {
 #endif		
 		if (directchildonly == 0) {return -1; };
 		if (directchildonly == 1) {out= -1;	};
@@ -609,15 +619,15 @@ value_pix=image[trans_pixel(new_pixel3,imageprop)];
 // #ifdef EZWTREE
 // if (!((pixel.x < nsmin) && (pixel.y < nlmin))){
 // #endif
-value_pix=image[trans_pixel(new_pixel4,imageprop)];
+value_pix=image[trans_pixel(new_pixel4)];
 // 	if ((directchildonly == 0) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) return -1;
 // 	if ((directchildonly == 1) && ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold))) out=-1;
 // 	if ((directchildonly == 0) && get_bit(value_pix, thres_ind)) {return -1; };
 // 	if ((directchildonly == 1) && get_bit(value_pix, thres_ind)) {out= -1;	};
 #ifndef NEWTREE
-	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(new_pixel4,imageprop)]==0)) {
+	if (isLSC2(abs(value_pix), threshold) && (map_LSC[trans_pixel(new_pixel4)]==0)) {
 #else
-	if (isLSC(value_pix, thres_ind)) {
+	if (isLSC2(abs(value_pix), threshold)) {
 #endif		
 		if (directchildonly == 0) {return -1; };
 		if (directchildonly == 1) {out= -1;	};
@@ -630,16 +640,16 @@ value_pix=image[trans_pixel(new_pixel4,imageprop)];
 // #ifndef EZW	
 if (directchildonly != 1) {/*Sinon, on fait un appel recursif pour visiter les points*/ 
 // #endif
-	r = spat_desc_spiht(new_pixel1, list_desc, imageprop, directchildonly, image, thres_ind, map_LSC);
+	r = spat_desc_spiht(new_pixel1, list_desc, directchildonly, image, threshold, map_LSC);
 	if ((directchildonly == 0) && (r == -1)) return -1;
-	r = spat_desc_spiht(new_pixel2, list_desc, imageprop, directchildonly, image, thres_ind, map_LSC);
+	r = spat_desc_spiht(new_pixel2, list_desc, directchildonly, image, threshold, map_LSC);
 	if ((directchildonly == 0) && (r == -1)) return -1;
-	r = spat_desc_spiht(new_pixel3, list_desc, imageprop, directchildonly, image, thres_ind, map_LSC);
+	r = spat_desc_spiht(new_pixel3, list_desc, directchildonly, image, threshold, map_LSC);
 	if ((directchildonly == 0) && (r == -1)) return -1;
 // #ifdef EZWTREE
 // if (!((pixel.x < nsmin) && (pixel.y < nlmin))){
 // #endif
-	r = spat_desc_spiht(new_pixel4, list_desc, imageprop, directchildonly, image, thres_ind, map_LSC);
+	r = spat_desc_spiht(new_pixel4, list_desc, directchildonly, image, threshold, map_LSC);
 	if ((directchildonly == 0) && (r == -1)) return -1;//qq test en trop... ==0 supprimables
 // #ifdef EZWTREE
 // };

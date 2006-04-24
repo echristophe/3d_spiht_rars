@@ -8,7 +8,7 @@
 SPECTRAL - SPATIAL
 ******************************************************/
 
-int spat_spec_desc_spiht_cumul(struct pixel_struct pixel, struct imageprop_struct imageprop, long int *image, int thres_ind, long long int * dist)
+int spat_spec_desc_spiht_cumul(struct pixel_struct pixel, long int *image, int thres_ind, long long int * dist)
 {
 
 int r1=0;
@@ -42,7 +42,7 @@ tmp_list2=list_init();
 */
 if (((pixel.x >= nsmax / 2) || (pixel.y >= nlmax / 2)) &&  (pixel.l >= nbmax / 2)) {
 	if (directchildonly == 0){list_free(tmp_list);};
-	value_err = abs(image[trans_pixel(pixel,imageprop)]);
+	value_err = abs(image[trans_pixel(pixel)]);
 	value_err = value_err - ((value_err >> thres_ind)<<thres_ind);
 	*dist += value_err * value_err;
 	return 0;
@@ -57,7 +57,7 @@ if (((pixel.x >= nsmax / 2) || (pixel.y >= nlmax / 2)) &&  (pixel.l >= nbmax / 2
 if ((pixel.x < nsmin) && (pixel.y < nlmin)){//modif 02-01-2006 chgmt structure arbre
 #endif
 
-r1=spec_desc_spiht_cumul(pixel, tmp_list, imageprop, directchildonly, image, thres_ind, dist);
+r1=spec_desc_spiht_cumul(pixel, tmp_list, directchildonly, image, thres_ind, dist);
 
 #ifdef NEWTREE
 };
@@ -65,11 +65,11 @@ r1=spec_desc_spiht_cumul(pixel, tmp_list, imageprop, directchildonly, image, thr
 
 
 /* dans tous les cas, on regarde les descendant spatiaux du pixel courant */
-r2=spat_desc_spiht_cumul(pixel, tmp_list2, imageprop, directchildonly, image, thres_ind, dist);
+r2=spat_desc_spiht_cumul(pixel, tmp_list2, directchildonly, image, thres_ind, dist);
 
 if ((r1 == 0) && (r2 == 0)) {
 	if (directchildonly == 0){list_free(tmp_list);};
-	value_err = abs(image[trans_pixel(pixel,imageprop)]);
+	value_err = abs(image[trans_pixel(pixel)]);
 	value_err = value_err - ((value_err >> thres_ind)<<thres_ind);
 	*dist += value_err * value_err;
 	return 0;//pas de descendant (LF paires)
@@ -78,13 +78,13 @@ if ((r1 == 0) && (r2 == 0)) {
 
   current_el=tmp_list->first;
   while (current_el != NULL){
-  	r=spat_desc_spiht_cumul(current_el->pixel, tmp_list2, imageprop, directchildonly, image, thres_ind, dist);
+  	r=spat_desc_spiht_cumul(current_el->pixel, tmp_list2, directchildonly, image, thres_ind, dist);
   	current_el= current_el->next;
   };
   list_free(tmp_list);
   list_free(tmp_list2);
 
-value_err = abs(image[trans_pixel(pixel,imageprop)]);
+value_err = abs(image[trans_pixel(pixel)]);
 value_err = value_err - ((value_err >> thres_ind)<<thres_ind);
 *dist += value_err * value_err;
 
@@ -95,7 +95,7 @@ return out;
 SPECTRAL
 ******************************************************/
 
-int spec_desc_spiht_cumul(struct pixel_struct pixel, struct list_struct * list_desc, struct imageprop_struct imageprop, int directchildonly, long int *image, int thres_ind, long long int * dist){
+int spec_desc_spiht_cumul(struct pixel_struct pixel, struct list_struct * list_desc, int directchildonly, long int *image, int thres_ind, long long int * dist){
 
 struct pixel_struct new_pixel;
 long int value_pix;
@@ -137,12 +137,12 @@ if (pixel.l < nbmin){/*lower frequency*/
 // 		if (directchildonly == 0) {return -1; };
 // 		if (directchildonly == 1) {out= -1;	};
 // 	};
-	value_err = abs(image[trans_pixel(new_pixel,imageprop)]);
+	value_err = abs(image[trans_pixel(new_pixel)]);
 	value_err = value_err - ((value_err >> thres_ind)<<thres_ind);
 	*dist += value_err * value_err;
 
 	/*;Recursive call on offspring*/
-	r = spec_desc_spiht_cumul(new_pixel, list_desc, imageprop, directchildonly, image, thres_ind, dist);
+	r = spec_desc_spiht_cumul(new_pixel, list_desc, directchildonly, image, thres_ind, dist);
 
 
      };
@@ -159,29 +159,29 @@ if (pixel.l < nbmin){/*lower frequency*/
 	insert_el(list_desc, current_el1);
 	insert_el(list_desc, current_el2);
 	
-// 	value_pix=image[trans_pixel(current_el1->pixel,imageprop)];
+// 	value_pix=image[trans_pixel(current_el1->pixel)];
 // 
-// 	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(current_el1->pixel,imageprop)]==0)) {		
+// 	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(current_el1->pixel)]==0)) {		
 // 		if (directchildonly == 0) {return -1; };
 // 		if (directchildonly == 1) {out= -1;	};
 // 	};
-	value_err = abs(image[trans_pixel(current_el1->pixel,imageprop)]);
+	value_err = abs(image[trans_pixel(current_el1->pixel)]);
 	value_err = value_err - ((value_err >> thres_ind)<<thres_ind);
 	*dist += value_err * value_err;
 
-/*	value_pix=image[trans_pixel(current_el2->pixel,imageprop)];
+/*	value_pix=image[trans_pixel(current_el2->pixel)];
 
-	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(current_el2->pixel,imageprop)]==0)) {		
+	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(current_el2->pixel)]==0)) {		
 		if (directchildonly == 0) {return -1; };
 		if (directchildonly == 1) {out= -1;	};
 	};*/	
-	value_err = abs(image[trans_pixel(current_el2->pixel,imageprop)]);
+	value_err = abs(image[trans_pixel(current_el2->pixel)]);
 	value_err = value_err - ((value_err >> thres_ind)<<thres_ind);
 	*dist += value_err * value_err;	
 
 
-		r = spec_desc_spiht_cumul(current_el1->pixel, list_desc, imageprop, directchildonly, image, thres_ind, dist);
-		r = spec_desc_spiht_cumul(current_el2->pixel, list_desc, imageprop, directchildonly, image, thres_ind, dist);
+		r = spec_desc_spiht_cumul(current_el1->pixel, list_desc, directchildonly, image, thres_ind, dist);
+		r = spec_desc_spiht_cumul(current_el2->pixel, list_desc, directchildonly, image, thres_ind, dist);
    };
 
 } else { /*;general case*/
@@ -200,29 +200,29 @@ if (pixel.l < nbmin){/*lower frequency*/
 	insert_el(list_desc, current_el2);
 
 
-// 	value_pix=image[trans_pixel(current_el1->pixel,imageprop)];
+// 	value_pix=image[trans_pixel(current_el1->pixel)];
 // 
-// 	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(current_el1->pixel,imageprop)]==0)) {		
+// 	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(current_el1->pixel)]==0)) {		
 // 		if (directchildonly == 0) {return -1; };
 // 		if (directchildonly == 1) {out= -1;	};
 // 	};
-	value_err = abs(image[trans_pixel(current_el1->pixel,imageprop)]);
+	value_err = abs(image[trans_pixel(current_el1->pixel)]);
 	value_err = value_err - ((value_err >> thres_ind)<<thres_ind);
 	*dist += value_err * value_err;
 
-// 	value_pix=image[trans_pixel(current_el2->pixel,imageprop)];
+// 	value_pix=image[trans_pixel(current_el2->pixel)];
 // 
-// 	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(current_el2->pixel,imageprop)]==0)) {		
+// 	if (isLSC(value_pix, thres_ind) && (map_LSC[trans_pixel(current_el2->pixel)]==0)) {		
 // 		if (directchildonly == 0) {return -1; };
 // 		if (directchildonly == 1) {out= -1;	};
 // 	};
-	value_err = abs(image[trans_pixel(current_el2->pixel,imageprop)]);
+	value_err = abs(image[trans_pixel(current_el2->pixel)]);
 	value_err = value_err - ((value_err >> thres_ind)<<thres_ind);
 	*dist += value_err * value_err;
 		
 	/*;Recursive call on offspring*/
-		r = spec_desc_spiht_cumul(current_el1->pixel, list_desc, imageprop, directchildonly, image, thres_ind, dist);
-		r = spec_desc_spiht_cumul(current_el2->pixel, list_desc, imageprop, directchildonly, image, thres_ind, dist);
+		r = spec_desc_spiht_cumul(current_el1->pixel, list_desc, directchildonly, image, thres_ind, dist);
+		r = spec_desc_spiht_cumul(current_el2->pixel, list_desc, directchildonly, image, thres_ind, dist);
 
 };
 
@@ -233,7 +233,7 @@ return out;
 SPATIAL
 ******************************************************/
 
-int spat_desc_spiht_cumul(struct pixel_struct pixel, struct list_struct * list_desc, struct imageprop_struct imageprop, int directchildonly, long int *image, int thres_ind, long long int * dist){
+int spat_desc_spiht_cumul(struct pixel_struct pixel, struct list_struct * list_desc, int directchildonly, long int *image, int thres_ind, long long int * dist){
 
 int nsmax=imageprop.nsmax;
 int nlmax=imageprop.nlmax;
@@ -365,24 +365,24 @@ if (directchildonly == 1){/*Si on ne veut que les descendant, il faut les ajoute
 
 
 
-	value_err = abs(image[trans_pixel(new_pixel1,imageprop)]);
+	value_err = abs(image[trans_pixel(new_pixel1)]);
 	value_err = value_err - ((value_err >> thres_ind)<<thres_ind);
 	*dist += value_err * value_err;
-	value_err = abs(image[trans_pixel(new_pixel2,imageprop)]);
+	value_err = abs(image[trans_pixel(new_pixel2)]);
 	value_err = value_err - ((value_err >> thres_ind)<<thres_ind);
 	*dist += value_err * value_err;
-	value_err = abs(image[trans_pixel(new_pixel3,imageprop)]);
+	value_err = abs(image[trans_pixel(new_pixel3)]);
 	value_err = value_err - ((value_err >> thres_ind)<<thres_ind);
 	*dist += value_err * value_err;
-	value_err = abs(image[trans_pixel(new_pixel4,imageprop)]);
+	value_err = abs(image[trans_pixel(new_pixel4)]);
 	value_err = value_err - ((value_err >> thres_ind)<<thres_ind);
 	*dist += value_err * value_err;
 
 
-	r = spat_desc_spiht_cumul(new_pixel1, list_desc, imageprop, directchildonly, image, thres_ind, dist);
-	r = spat_desc_spiht_cumul(new_pixel2, list_desc, imageprop, directchildonly, image, thres_ind, dist);
-	r = spat_desc_spiht_cumul(new_pixel3, list_desc, imageprop, directchildonly, image, thres_ind, dist);
-	r = spat_desc_spiht_cumul(new_pixel4, list_desc, imageprop, directchildonly, image, thres_ind, dist);
+	r = spat_desc_spiht_cumul(new_pixel1, list_desc, directchildonly, image, thres_ind, dist);
+	r = spat_desc_spiht_cumul(new_pixel2, list_desc, directchildonly, image, thres_ind, dist);
+	r = spat_desc_spiht_cumul(new_pixel3, list_desc, directchildonly, image, thres_ind, dist);
+	r = spat_desc_spiht_cumul(new_pixel4, list_desc, directchildonly, image, thres_ind, dist);
 
 
 

@@ -1,1 +1,19 @@
-En train ou avant de faire le changement de imageprop en global.
+/*
+ *
+ *  3D image compression program
+ *
+ * Name:		main.c	
+ * Author:		Emmanuel Christophe	
+ * Contact:		e.christophe at melaneum.com
+ * Description:		Utility functions for hyperspectral image compression
+ * Version:		v1.0 - 2006-02	
+ * 
+ */
+
+ Demonstration compression program for 3D images:
+ 	- hyperspectral images
+	- 3D medical images
+	- video
+
+ The method is based on 3D SPIHT
+

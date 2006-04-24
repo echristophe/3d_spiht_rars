@@ -79,8 +79,8 @@ printf("%ld\n",value);
 // return 1 otherwise
 int check_zero(char * a, int t){
 	int i=t;
-	if (t >= NBITS) return 0;
-	for (i=t;i<NBITS;i++){
+	if (t >= NBITS-1) return 0;
+	for (i=t;i<NBITS-1;i++){
 		if (a[i] != 0) return 1;
 	}
 	return 0;
@@ -93,15 +93,15 @@ int add_bin(char * a, char * b, char * c){
 	for (t=0;t<NBITS;t++){
 		c[t] =0;
 	}
-	for (t=0;t<NBITS;t++){
+	for (t=0;t<NBITS-1;t++){
 		c[t] += a[t]+b[t];
 		if (c[t] > 1) {
-			if (t+1 == NBITS) return 1;
+			if (t+1 == NBITS-1) return 1;
 			c[t+1] +=1;
 			c[t] -= 2;
 		}
 		if (c[t] < -1){
-			if (t+1 == NBITS) return 1;
+			if (t+1 == NBITS-1) return 1;
 			c[t+1] -=1;
 			c[t] += 2;
 		}
@@ -117,7 +117,7 @@ int min_representation(char * a){
 	char * c=(char *) malloc(NBITS*sizeof(char));	
 	while (check_zero(a,t)) {
 	    if (a[t] != 0){
-		for (i=0;i<NBITS;i++){
+		for (i=0;i<NBITS-1;i++){
 			b[i] =0;
 			c[i] =0;
 		}
@@ -127,13 +127,19 @@ int min_representation(char * a){
 
 		if (err) printf("***** WARNING Depassement de dynamique *****\n");
 		if (c[t+1] == 0){
-			for (i=0;i<NBITS;i++){
+			for (i=0;i<NBITS-1;i++){
 				a[i] =c[i];
 			}	
 		}
 	   }
 	   t++;
 	}
+	if (a[NBITS-1] == -1){
+		for (i=0;i<NBITS-1;i++){
+			a[i] *= -1 ;
+		}
+	}
+
 	free(b);
 	free(c);
 	return 0;
@@ -158,16 +164,76 @@ int bin_value(long int value, char * a){
 	} else {
 		sign= -1;
 	}
-	for (i=0; i<NBITS; i++){
+// 	for (i=0; i<NBITS; i++){
+// 		if (i+1 == NBITS){
+// 			a[i]=sign*(abs(value)>>i);
+// 		} else {
+// 			a[i]=sign*((((abs(value)>>i)<<i) - ((abs(value)>>(i+1))<<(i+1))) >>i);
+// 		}
+// 	}
+	for (i=0; i<NBITS-1; i++){
 		if (i+1 == NBITS){
-			a[i]=sign*(abs(value)>>i);
+			a[i]=(abs(value)>>i);
 		} else {
-			a[i]=sign*(((abs(value)>>i)<<i) - ((abs(value)>>(i+1))<<(i+1))) >>i;
+			a[i]=((((abs(value)>>i)<<i) - ((abs(value)>>(i+1))<<(i+1))) >>i);
+		}
+	}
+	a[NBITS-1] = sign;
+
+	return 0;
+}
+
+//we don't want to count the 0s above the first sig value
+long int count_zero(char * image){
+	long int nzero = 0;
+	int flagsig=0;
+	double moysign =0.0;
+	int i;
+	long int pix = 0;
+	long int npix = imageprop.nsmax*imageprop.nlmax*imageprop.nbmax;
+	for (pix = 0; pix< npix; pix++){
+		flagsig = 0;
+		for (i=NBITS-2; i>=0; i--){
+			if ((flagsig ==0) && (image[i+pix*NBITS] != 0)) {
+				flagsig = 1;
+				if (pix !=0) {
+					moysign = moysign + 1.0/pix *(i-moysign);
+				} else {
+					moysign=i;
+				}
+			}
+			if ((flagsig ==1) && (image[i+pix*NBITS] == 0)) nzero++;
+	
+		}
+	}
+	printf("Moyenne du premier bit significatif: %f\n", moysign);
+	return nzero;
+}
+
+//change 1,0,-1 to 0,1,1 and -1,0,1 to 0,-1,-1
+int change_rep(char * a){ 
+	int t=0;
+	for (t=NBITS-2;t>=2;t--){
+		if ((a[t] == 1) && (a[t-1] == 0) && (a[t-2] == -1)){
+			a[t] = 0; a[t-1] = 1; a[t-2] = 1;
+		}
+		if ((a[t] == -1) && (a[t-1] == 0) && (a[t-2] == 1)){
+			a[t] = 0; a[t-1] = -1; a[t-2] = -1;
 		}
 	}
 	return 0;
 }
 
-
-
-
+//change 0,1,1 to 1,0,-1 and 0,-1,-1 to -1,0,1
+int change_rep2(char * a){
+	int t=0;
+	for (t=2;t<NBITS-1;t++){
+		if ((a[t] == 0) && (a[t-1] == -1) && (a[t-2] == -1)){
+			a[t] = -1; a[t-1] = 0; a[t-2] = 1;
+		}
+		if ((a[t] == 0) && (a[t-1] == 1) && (a[t-2] == 1)){
+			a[t] = 1; a[t-1] = 0; a[t-2] = -1;
+		}
+	}
+	return 0;
+}
