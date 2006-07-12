@@ -23,6 +23,7 @@ int main(int argc, char *argv[]){
 
 int i;
 int filename_supplied = 0;
+int output_filename_supplied = 0;
 int size_supplied = 0;
 int ndecomp_supplied = 0;
 int type_supplied = 0;
@@ -31,6 +32,7 @@ int type = 2;
 int selected = -1;
 float rate=0.0;
 char * filename = (char *) calloc(256,sizeof(char));
+char * output_filename = (char *) calloc(256,sizeof(char));
 
 	for (i = 1; i < argc;) {
 	if (argv[i][0] == '-') 	{
@@ -82,6 +84,12 @@ char * filename = (char *) calloc(256,sizeof(char));
 			if (sscanf(argv[i],"%d",&(type)) == 0) usage(argv[0]);
 			i++;
 			break;
+		case 'o':  /*output filename*/
+			output_filename_supplied = 1;
+			i++;
+			output_filename = argv[i];
+			i++;
+			break;
 		default:
 			usage(argv[0]);
 		}
@@ -112,6 +120,14 @@ char * filename = (char *) calloc(256,sizeof(char));
 		filename = "output.dat";
 		#endif
 		}
+	}
+
+	if ( !output_filename_supplied){
+	    if(selected == ENCODE){
+		output_filename = "output.dat";
+	    } else {
+		output_filename = "output.img";
+	    }
 	}
 
 	if (!type_supplied){
@@ -152,10 +168,10 @@ char * filename = (char *) calloc(256,sizeof(char));
 	//do the encoding or decoding
 	switch(selected) {
 		case ENCODE:
-			encode(filename,type,rate);
+			encode(filename,output_filename,type,rate);
 			break;
 		case DECODE:
-			decode(filename,type);
+			decode(filename,output_filename,type);
 			break;
 		default:
 			usage(argv[0]);
@@ -171,7 +187,7 @@ char * filename = (char *) calloc(256,sizeof(char));
 void usage(char *str1){
 	fprintf(stderr,
 		"\nUsage:"
-		"%s [-e | -d] [-r rate] [-s ns nl nb] [-n d1 d2] [-t datatype][filename]\n"
+		"%s [-e | -d] [-r rate] [-s ns nl nb] [-n d1 d2] [-t datatype] [-o outputfile] [filename]\n"
 		"ns: # samples                 [256]\n"
 		"nl: # lines                   [256]\n"
 		"nb: # bands                   [224]\n"
@@ -189,20 +205,20 @@ void usage(char *str1){
 //****************************************************
 
 //add the option here later...
-int encode(char * filename, int type, float rate){
+int encode(char * filename, char * output_filename, int type, float rate){
 
-short *imageoritmp;
-unsigned char *imageoritmpbyte;
-long int *imageori;
+short *imageoritmp=NULL;
+unsigned char *imageoritmpbyte=NULL;
+long int *imageori=NULL;
 // long int *imagedwt;
 // long long int err=0;
-long int * mean;
-long int *image;
-unsigned char * stream;
+long int * mean=NULL;
+long int *image=NULL;
+unsigned char * stream=NULL;
 long int * streamlast=(long int *) calloc(1,sizeof(long int));
 unsigned char * count=(unsigned char *) calloc(1,sizeof(unsigned char *));
 int *maxquantvalue=(int*) malloc(sizeof(int));
-long int * outputsize;
+long int * outputsize=NULL;
 long int npix;
 long int i_l;
 int niloc, njloc,nkloc, nblock;
@@ -214,6 +230,13 @@ FILE *data_file;
 FILE *output_file;
 
 struct coder_param_struct coder_param;
+
+//tmp
+// double valpi=0.141592653589793238462643383279502884197169399375;
+// data_file = fopen("pibin", "w");
+// status = fwrite(&valpi, sizeof(double), 1, data_file);
+// fclose(data_file);
+//fin temp
 
 #ifdef TIME
 clock_t start, end;
@@ -240,7 +263,7 @@ for (i_l=0;i_l<imageprop.nresspec-1;i_l++){
 npix=imageprop.nsmax*imageprop.nlmax*imageprop.nbmax;
 image = (long int *) malloc(npix*sizeof(long int));
 stream = (unsigned char *) calloc(type*npix,sizeof(unsigned char));//on prend une marge... a faire en finesse plus tard...
-outputsize = (long int *) calloc((*maxquantvalue+1), sizeof(long int));
+// outputsize = (long int *) calloc((*maxquantvalue+1), sizeof(long int));
 
 nbitswritten=0;
 nbitswrittenheader=0;
@@ -253,13 +276,18 @@ printf("Sizeblock stream: %ld\n",sizeblockstream);
 
 
 
-
-
-
+//possibility to skip the wavelet processing (to allow external transform)
+#ifdef SKIPWAV
+image = (long int *) calloc(npix,sizeof(long int));
+data_file = fopen(filename, "r");
+if (data_file == NULL) fprintf(stderr, "Error opening file...\n");
+status = fread(image, 4, npix, data_file);
+status = fclose(data_file);
+#else
 imageori = (long int *) calloc(npix,sizeof(long int));
 image = (long int *) calloc(npix,sizeof(long int));
 data_file = fopen(filename, "r");
-
+if (data_file == NULL) fprintf(stderr, "Error opening file...\n");
 if (type == 2){
 imageoritmp = (short *) calloc(npix,sizeof(short));
 status = fread(imageoritmp, type, npix, data_file);
@@ -292,11 +320,13 @@ substract_mean(imageori, mean);
 
 
 waveletDWT(imageori,image,imageprop.nresspec-1,imageprop.nresspat-1);
-
+#endif
+//end of wavelet skipping
 
 #ifdef OUTPUT
 output_file = fopen("/home/christop/Boulot/images/output_stream/output-dwt-ori.img","w");
-status = fwrite(image, 4, npix,output_file);
+if (output_file == NULL) fprintf(stderr, "Error opening file...\n");
+status = fwrite(image, 4, npix, output_file);
 status = fclose(output_file);
 #endif
 
@@ -306,7 +336,7 @@ status = fclose(output_file);
 
 imageprop.maxquant=(int) floor(log((double) find_max(image, npix))/log(2.0));
 printf("Max quant: %d\n",imageprop.maxquant);
-
+outputsize = (long int *) calloc((imageprop.maxquant+1), sizeof(long int));
 //coder parameter initialization
 
 //Image header coding
@@ -338,7 +368,7 @@ for (i_l=0; i_l<nblock; i_l++){
 // 	coder_param.maxresspec[i_l]=4;
 #endif
 	coder_param.maxquant[i_l]=imageprop.maxquant;
-	coder_param.minquant[i_l]=0;
+	coder_param.minquant[i_l]=0; //warning, not used yet for EZW signed
 }
 //Example of ROI for encoding
 // for (kloc=0;kloc<nkloc;kloc++){
@@ -352,6 +382,8 @@ for (i_l=0; i_l<nblock; i_l++){
 // }
 
 coder_param.rate = rate;
+
+print_imageprop();
 
 #ifdef TIME
 start = clock();
@@ -369,7 +401,7 @@ ezw_code_c(image, streamstruct, outputsize, imageprop.maxquant);
 #endif
 #else
 #ifdef NORA
-spiht_code_c(image, streamstruct, outputsize, imageprop.maxquant);
+spiht_code_c(image, streamstruct, outputsize, coder_param);
 #else
 spiht_code_ra5(image, streamstruct, outputsize, coder_param);
 #endif
@@ -390,8 +422,9 @@ printf("Outputsize: %ld bits\n", *outputsize);
 #ifdef OUTPUT
 output_file = fopen("/home/christop/Boulot/images/output_stream/output.dat","w");
 #else
-output_file = fopen("output.dat","w");
+output_file = fopen(output_filename,"w");
 #endif
+if (output_file == NULL) fprintf(stderr, "Error opening file...\n");
 status = fwrite(stream, 1, (*outputsize+7)/8, output_file);
 status = fclose(output_file);
 
@@ -414,7 +447,7 @@ return 0;
 //****************************************************
 
 
-int decode(char * filename, int type){
+int decode(char * filename, char * output_filename, int type){
 
 long int * imageidwt=NULL;
 short * imageitmp=NULL;
@@ -472,6 +505,7 @@ double factor=1.0;
 
 
 stream_file = fopen(filename,"r");
+if (stream_file == NULL) fprintf(stderr, "Error opening file...\n");
 stream_size = file_size(stream_file);
 // stream_size =64566;
 printf("Reading %ld bytes\n",stream_size);
@@ -531,18 +565,19 @@ for (i_l=0; i_l<nblock; i_l++){
 	coder_param.maxres[i_l]=imageprop.nres;
 // 	coder_param.maxres[i_l]=4;
 #ifdef RES_SCAL
-	coder_param.maxresspat[i_l]=6;
-	coder_param.maxresspec[i_l]=6;
-// 	coder_param.maxresspat[i_l]=imageprop.nresspat;
-// 	coder_param.maxresspec[i_l]=imageprop.nresspec;
+	coder_param.maxresspat[i_l]=imageprop.nresspat;
+	coder_param.maxresspec[i_l]=imageprop.nresspec;
+// 	coder_param.maxresspat[i_l]=5;
+// 	coder_param.maxresspec[i_l]=1;
 #endif
 	coder_param.maxquant[i_l]=imageprop.maxquant;
 	coder_param.minquant[i_l]=0;
 }
 //warning ! resolutions = decomp +1
-spatdec=5;
-specdec=5;
-coder_param.nlayer=100;
+spatdec=imageprop.nresspat-1;
+// spatdec=4;
+specdec=imageprop.nresspec-1;
+coder_param.nlayer=100;// decoder tous les layers pare defaut
 
 // Example of ROI decoding (article example on moffett3)
 // resspat/resspec above should be 3
@@ -581,6 +616,7 @@ image = (long int *) calloc(npix,sizeof(long int));
 #ifdef CHECKEND
 imageoriglobal = (long int *) calloc(npix,sizeof(long int));
 data_file = fopen("/home/christop/Boulot/images/output_stream/output-dwt-ori.img","r");
+if (data_file == NULL) fprintf(stderr, "Error opening file...\n");
 status = fread(imageoriglobal, 4, npix, data_file);
 status = fclose(data_file);
 #endif
@@ -597,7 +633,7 @@ ezw_decode_c(image, streamstruct, outputsize, imageprop.maxquant);
 #endif
 #else
 #ifdef NORA
-spiht_decode_c(image, streamstruct, outputsize, imageprop.maxquant);
+spiht_decode_c(image, streamstruct, outputsize, coder_param);
 #else
 spiht_decode_ra5(image, streamstruct, outputsize, coder_param);
 #endif
@@ -614,9 +650,16 @@ printf("Decompression time: %f \n", elapseddecomp);
 // waveletscaling(image, imageprop.nresspat-1, imageprop.nresspec-1,1);
 #endif
 
+#ifdef SKIPWAV
+output_file = fopen(output_filename,"w");
+if (output_file == NULL) fprintf(stderr, "Error opening file...\n");
+status = fwrite(image, 4, npix,output_file);
+status = fclose(output_file);
+#else
 //output decoded dwt
 #ifdef OUTPUT
 output_file = fopen("/home/christop/Boulot/images/output_stream/output-dwt.img","w");
+if (output_file == NULL) fprintf(stderr, "Error opening file...\n");
 status = fwrite(image, 4, npix,output_file);
 status = fclose(output_file);
 #endif
@@ -624,6 +667,7 @@ status = fclose(output_file);
 #ifdef OUTPUT
 imagedwtori = (long int *) calloc(npix,sizeof(long int));
 data_file = fopen("/home/christop/Boulot/images/output_stream/output-dwt-ori.img","r");
+if (data_file == NULL) fprintf(stderr, "Error opening file...\n");
 status = fread(imagedwtori, 4, npix, data_file);
 status = fclose(data_file);
 err=0;
@@ -690,17 +734,21 @@ for (i_l=0;i_l<npix;i_l++){
 }
 free(imageidwt);imageidwt=NULL;
 data_file = fopen("/home/christop/Boulot/images/output_stream/output.img", "w");
+if (data_file == NULL) fprintf(stderr, "Error opening file...\n");
 status = fwrite(imageitmp, type, npix, data_file);
 status = fclose(data_file);
 
 }else{
 imageitmpbyte = (unsigned char *) calloc(npix,sizeof(unsigned char));
+if (imageitmpbyte == NULL) fprintf(stderr, "Allocation error...\n");
 for (i_l=0;i_l<npix;i_l++){
 	imageitmpbyte[i_l] = (unsigned char) imageidwt[i_l];
 }
 free(imageidwt);imageidwt=NULL;
 data_file = fopen("/home/christop/Boulot/images/output_stream/output.img", "w");
+if (data_file == NULL) fprintf(stderr, "Error opening file...\n");
 status = fwrite(imageitmpbyte, type, npix, data_file);
+if (status != npix) fprintf(stderr, "Error writing output file...\n");
 status = fclose(data_file);
 }
 #else
@@ -710,7 +758,8 @@ for (i_l=0;i_l<npix;i_l++){
 	imageitmp[i_l] = (short) imageidwt[i_l];
 }
 free(imageidwt);imageidwt=NULL;
-data_file = fopen("output.img", "w");
+data_file = fopen(output_filename, "w");
+if (data_file == NULL) fprintf(stderr, "Error opening file...\n");
 status = fwrite(imageitmp, type, npix, data_file);
 status = fclose(data_file);
 
@@ -720,8 +769,10 @@ for (i_l=0;i_l<npix;i_l++){
 	imageitmpbyte[i_l] = (unsigned char) imageidwt[i_l];
 }
 free(imageidwt);imageidwt=NULL;
-data_file = fopen("output.img", "w");
+data_file = fopen(output_filename, "w");
+if (data_file == NULL) fprintf(stderr, "Error opening file...\n");
 status = fwrite(imageitmpbyte, type, npix, data_file);
+if (status != npix) fprintf(stderr, "Error writing output file...\n");
 status = fclose(data_file);
 }
 
@@ -769,13 +820,16 @@ imageori = (short int *) calloc(imageprop.nsmax*imageprop.nlmax*imageprop.nbmax,
 imageoritmp = (long *) calloc(imageprop.nsmax*imageprop.nlmax*imageprop.nbmax,sizeof(long));
 if (imageprop.nsmax == 64){
 data_file = fopen("/home/christop/Boulot/images/hyper_test/moffett3-64-lsb.img","r");
+if (data_file == NULL) fprintf(stderr, "Error opening file...\n");
 }
 if (imageprop.nsmax == 512){
 data_file = fopen("/home/christop/Boulot/images/hyper_test/moffett512.rawl","r");
 // data_file = fopen("/home/christop/Boulot/images/hyper_test/jasper1-rfl.img","r");
+if (data_file == NULL) fprintf(stderr, "Error opening file...\n");
 }
 if (imageprop.nsmax == 256){
 data_file = fopen("/home/christop/Boulot/images/hyper_test/moffett3-lsb.img","r");
+if (data_file == NULL) fprintf(stderr, "Error opening file...\n");
 }
 status = fread(imageori, 2, imageprop.nsmax*imageprop.nlmax*imageprop.nbmax, data_file);
 status = fclose(data_file);
@@ -804,6 +858,7 @@ for (i_l=0;i_l<npix;i_l++){
 }
 
 data_file = fopen("/home/christop/Boulot/images/output_stream/output-ori.img", "w");
+if (data_file == NULL) fprintf(stderr, "Error opening file...\n");
 status = fwrite(imagepartori, type, npix, data_file);
 status = fclose(data_file);
 //fin image originale
@@ -815,17 +870,21 @@ status = fclose(data_file);
 imageori = (short *) calloc(npix,sizeof(short));
 if (imageprop.nsmax == 64){
 data_file = fopen("/home/christop/Boulot/images/hyper_test/moffett3-64-lsb.img","r");
+if (data_file == NULL) fprintf(stderr, "Error opening file...\n");
 }
 if (imageprop.nsmax == 512){
 data_file = fopen("/home/christop/Boulot/images/hyper_test/moffett512.rawl","r");
 // data_file = fopen("/home/christop/Boulot/images/hyper_test/jasper1-rfl.img","r");
+if (data_file == NULL) fprintf(stderr, "Error opening file...\n");
 }
 if (imageprop.nsmax == 256){
 data_file = fopen("/home/christop/Boulot/images/hyper_test/moffett3-lsb.img","r");
+if (data_file == NULL) fprintf(stderr, "Error opening file...\n");
 }
 
 
 status = fread(imageori, type, npix, data_file);
+if (status != npix) fprintf(stderr, "Error reading file...\n");
 status = fclose(data_file);
 
 
@@ -860,6 +919,8 @@ fprintf(stderr, "Decoding OK (maxerr= %ld)\n",maxerr);
 }
 #endif
 
+#endif
+//fin du skipwav
 
 #ifdef SIZE
 fprintf(stderr, "Read %ld bits\n",nbitsread);

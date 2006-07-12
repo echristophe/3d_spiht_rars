@@ -1,3 +1,16 @@
+/*
+ *
+ *  Hyperspectral compression program
+ *
+ * Name:		main.c	
+ * Author:		Emmanuel Christophe	
+ * Contact:		e.christophe at melaneum.com
+ * Description:		Utility functions for hyperspectral image compression
+ * Version:		v1.0 - 2006-04	
+ * 
+ */
+
+
 // #include "spiht_code_c.h"
 // #include "ezw_code_c.h"
 // #include "desc_ezw.h"
@@ -46,6 +59,10 @@ long int npos=0;
 long int nneg=0;
 long int nzeroisol=0;
 long int nzerotree=0;
+long int nz=0;
+
+FILE *data_file;//TODO useless after...
+int status=0;
 
 map_zt=(unsigned char *) malloc(imageprop.nsmax*imageprop.nbmax*imageprop.nlmax*sizeof(unsigned char));
 map_sig= (unsigned char *) malloc(imageprop.nsmax*imageprop.nbmax*imageprop.nlmax*sizeof(unsigned char));
@@ -76,6 +93,7 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 // 	nneg=0;
 	nzeroisol=0;
 	nzerotree=0;	
+	nz = 0;
 	
 	//refinement pass
 	for (i=0;i< npix;i++){
@@ -101,7 +119,7 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 		//This point is NOT part of a zerotree already and is NOT processed during refinement
 			if (image[i] >= threshold){//POS
 				map_sig[i] = 1;
-				bit = 0;
+				bit = 1;
 				add_to_stream(stream, count, (int) bit, streamlast);
 				bit = 1;
 				add_to_stream(stream, count, (int) bit, streamlast);
@@ -116,6 +134,23 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 				nneg++;
 			};
 			if ((image[i] < threshold) &&  (image[i] > -threshold)){ // IZ ou ZT
+#ifdef EZWUSEZ
+	#ifdef NEWTREE 
+	//spat-tree
+				if ((x >= imageprop.nsmax / 2) || (y >= imageprop.nlmax / 2)) {
+	#else
+	//3D-tree
+				if (((x >= imageprop.nsmax / 2) || (y >= imageprop.nlmax / 2)) 
+					&& (l >= imageprop.nbmax / 2) ){
+	#endif
+					bit = 0;
+					add_to_stream(stream, count, (int) bit, streamlast);
+					nz++;	
+
+				} else {
+#else
+				{
+#endif
 				list_desc=NULL;//should be the case if freed properly before
 				r=spat_spec_desc_ezw((struct pixel_struct) {x,y,l}, list_desc, 0, image,thres_ind, map_sig);
 // 				r=spec_desc_ezw((struct pixel_struct) {x,y,l}, list_desc, 0, image,thres_ind, map_sig);
@@ -131,7 +166,7 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 // 					if ( (x == 1) && (y == 0) && (l == 7) ){
 // 						printf("time for a break !\n");
 // 					};
-					bit = 1;
+					bit = 0;
 					add_to_stream(stream, count, (int) bit, streamlast);
 					bit = 1;
 					add_to_stream(stream, count, (int) bit, streamlast);
@@ -149,9 +184,12 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 				};
 				list_free(list_desc);
 				//ne pas oublier de liberer la liste
+				}
 			};
 // 		}else {
 // 			if (map_zt[i] = 1) printf("Skip for map %ld\n",i); 
+// #endif
+
 		};
 	};
 // 	}
@@ -173,6 +211,7 @@ printf("npos: %ld \n",npos);
 printf("nneg: %ld \n",nneg);
 printf("nzeroisol: %ld \n",nzeroisol);
 printf("nzerotree: %ld \n",nzerotree);
+printf("nz: %ld \n",nz);
 printf("-------------------------\n");
 #endif
 
@@ -182,6 +221,20 @@ printf("%d & %ld & %ld & %ld & %f \\\\ \n",thres_ind, npos+nneg, nzeroisol, nzer
 #endif
 
 };
+
+outputsize[0]=(*streamlast)*8 + (*count);//added june 2006 for partial EZW coding
+
+//Just for global IDL serialing
+data_file = fopen("/tmp/maxquant.dat","w");
+if (data_file == NULL) fprintf(stderr, "Error opening file...\n");
+status = fwrite(&(imageprop.maxquant), 2, 1, data_file);
+status = fclose(data_file);
+
+data_file = fopen("/tmp/outputsize.dat","w");
+if (data_file == NULL) fprintf(stderr, "Error opening file...\n");
+status = fwrite(outputsize, 4, imageprop.maxquant, data_file);
+status = fclose(data_file);
+//fin du global IDL
 
 return 0;
 };
@@ -229,6 +282,7 @@ long int npos=0;
 long int nneg=0;
 long int nzeroisol=0;
 long int nzerotree=0;
+long int nz=0;
 
 map_zt=(unsigned char *) malloc(imageprop.nsmax*imageprop.nbmax*imageprop.nlmax*sizeof(unsigned char));
 map_sig= (unsigned char *) malloc(imageprop.nsmax*imageprop.nbmax*imageprop.nlmax*sizeof(unsigned char));
@@ -252,7 +306,8 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 // 	npos=0;
 // 	nneg=0;
 	nzeroisol=0;
-	nzerotree=0;		
+	nzerotree=0;	
+	nz = 0;	
 	
 	//refinement pass
 	flagsig=1;
@@ -286,24 +341,42 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 			if ((*streamlast)*8+ (*count) <= *outputsize){
 				bit= read_from_stream(stream, count, streamlast);
 			} else break;
+
+			if (bit == 1) {
+				if ((*streamlast)*8+ (*count) <= *outputsize){
+					bit2= read_from_stream(stream, count, streamlast);
+				} else break;
+				if (bit2 == 1){//POS
+					map_sig[i] = 1;
+					image[i] += threshold;
+					npos++;
+				} else {	//NEG
+					map_sig[i] = 1;
+					image[i] -= threshold;
+					nneg++;
+				}
+			} else { 
+#ifdef EZWUSEZ
+	#ifdef NEWTREE 
+	//spat-tree
+				if ((x >= imageprop.nsmax / 2) || (y >= imageprop.nlmax / 2)) {
+	#else
+	//3D-tree
+				if (((x >= imageprop.nsmax / 2) || (y >= imageprop.nlmax / 2)) 
+					&& (l >= imageprop.nbmax / 2) ){
+	#endif
+				nz++;//nothing else to do
+			} else {
+#else
+			{
+#endif
 			if ((*streamlast)*8+ (*count) <= *outputsize){
 				bit2= read_from_stream(stream, count, streamlast);
 			} else break;
-			if ((bit == 0) && (bit2 == 1)){//POS
-				map_sig[i] = 1;
-				image[i] += threshold;
-				npos++;
-			};
-			if ((bit == 1) && (bit2 == 0)){//NEG
-				map_sig[i] = 1;
-				image[i] -= threshold;
-				nneg++;
-			};
-			if ((bit == 0) && (bit2 == 0)){//IZ
+			if (bit2 == 0){//IZ
 				//nothing to do
 				nzeroisol++;
-			};
-			if ((bit == 1) && (bit2 == 1)){//ZT
+			} else {//ZT
 				list_desc=list_init();
 				r=spat_spec_desc_ezw((struct pixel_struct) {x,y,l}, list_desc, 1, image, thres_ind, map_sig);//sans early ending...
 // 				r=spec_desc_ezw((struct pixel_struct) {x,y,l}, list_desc, 1, image, thres_ind, map_sig);//sans early ending...
@@ -317,6 +390,9 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 				nzerotree++;
 			};
 				//ne pas oublier de liberer la liste
+
+			}
+			}
 		};
 	};
 
@@ -335,6 +411,7 @@ printf("npos: %ld \n",npos);
 printf("nneg: %ld \n",nneg);
 printf("nzeroisol: %ld \n",nzeroisol);
 printf("nzerotree: %ld \n",nzerotree);
+printf("nz: %ld \n",nz);
 printf("-------------------------\n");
 #endif
 };

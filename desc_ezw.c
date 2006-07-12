@@ -1,3 +1,16 @@
+/*
+ *
+ *  Hyperspectral compression program
+ *
+ * Name:		main.c	
+ * Author:		Emmanuel Christophe	
+ * Contact:		e.christophe at melaneum.com
+ * Description:		Utility functions for hyperspectral image compression
+ * Version:		v1.0 - 2006-04	
+ * 
+ */
+
+
 // #include "spiht_code_c.h"
 // #include "desc_ezw.h"
 #include "main.h"

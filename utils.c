@@ -7,13 +7,30 @@
  * Author:		Emmanuel Christophe	
  * Contact:		e.christophe at melaneum.com
  * Description:		Utility functions for hyperspectral image compression
- * Version:		v1.0 - 2006-02	
+ * Version:		v1.0 - 2006-04	
  * 
  */
 
 #include "main.h"
 
-
+void print_imageprop(){
+//    int nsmax;
+//    int nlmax;
+//    int nbmax;
+//    int nsmin;
+//    int nlmin;
+//    int nbmin;
+//    int nres;
+//    int nresspec;
+//    int nresspat;
+//    int maxquant;
+   printf("------------------------------------------------------------------\n");
+   printf("Image size: %d x %d x %d\n",imageprop.nsmax, imageprop.nlmax, imageprop.nbmax);
+   printf("Decomposition depth: %d subbands spectral, %d subbands spatial\n", imageprop.nresspec, imageprop.nresspat);
+   printf("LLL subband size: %d x %d x %d\n",imageprop.nsmin, imageprop.nlmin, imageprop.nbmin);
+   printf("Max bitplane: %d (all values are below %lld)\n",imageprop.maxquant,2^imageprop.maxquant);
+   printf("------------------------------------------------------------------\n");
+}
 
 /* 
   WARNING this function only output the 1 and supposed that stream has been properly
@@ -1098,5 +1115,21 @@ mask = (double *) calloc(imageprop.nsmax * imageprop.nlmax,sizeof(double));
 
 	}
 	return 0;
+}
+
+int output_rd(struct datablock_struct *datablock, int nblock){
+int i,j;
+int status;
+FILE *r_file;
+FILE *d_file;
+
+r_file = fopen("output_r.dat", "w");
+d_file = fopen("output_d.dat", "w");
+for (i=0;i<nblock;i++){
+	status = fwrite(datablock[i].rddata.r, 8, NUMRD, r_file);
+	status = fwrite(datablock[i].rddata.d, 8, NUMRD, d_file);
+}
+status = fclose(r_file);
+status = fclose(d_file);
 }
 

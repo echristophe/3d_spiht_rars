@@ -6,7 +6,7 @@
  * Author:		Emmanuel Christophe	
  * Contact:		e.christophe at melaneum.com
  * Description:		Utility functions for hyperspectral image compression
- * Version:		v1.0 - 2006-02	
+ * Version:		v1.0 - 2006-04	
  * 
  */
 
@@ -15,5 +15,31 @@
 	- 3D medical images
 	- video
 
- The method is based on 3D SPIHT
+ The method is based on 3D SPIHT or 3D EZW with random access and resolution scalability properties.
+
+
+
+Installation:
+
+* QccPack
+- need the libQccPack installed available at http://qccpack.sourceforge.net/
+- QccPack is used only for the wavelet transform and is interfaced by the functions in wavelet_c.c, any other library performing wavelet transform could be implemented.
+- if you want to use the compression program without any change, just make sure that libQccPack.so is available.
+
+* 3D SPIHT RARS
+- 'make' create and executable and a shared library
+
+
+Syntax:
+
+Usage:spihtcode [-e | -d] [-r rate] [-s ns nl nb] [-n d1 d2] [-t datatype][filename]
+ns: # samples                 [256]
+nl: # lines                   [256]
+nb: # bands                   [224]
+d1: # spectral decompositions [5]
+d2: # spatial decompositions  [5]
+datatype: 2 short int (default), 1 unsigned char
+
+
+
 

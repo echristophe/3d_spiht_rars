@@ -6,7 +6,7 @@
  * Author:		Emmanuel Christophe	
  * Contact:		e.christophe at melaneum.com
  * Description:		Utility functions for hyperspectral image compression
- * Version:		v1.0 - 2006-02	
+ * Version:		v1.0 - 2006-04	
  * 
  */
 

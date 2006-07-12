@@ -1,3 +1,15 @@
+/*
+ *
+ *  Hyperspectral compression program
+ *
+ * Name:		main.c	
+ * Author:		Emmanuel Christophe	
+ * Contact:		e.christophe at melaneum.com
+ * Description:		Utility functions for hyperspectral image compression
+ * Version:		v1.0 - 2006-04	
+ * 
+ */
+
 #include "libQccPack.h"
 // #include "spiht_code_c.h"
 #include "main.h"
@@ -91,7 +103,7 @@ for (k=0; k<nbmax; k++){
 }
 }
 
-free(imagein);
+free(imagein);imagein=NULL;
 output_volume=QccVolumeAlloc(nbmax, nlmax, nsmax);
 
 err = QccWAVWaveletPacketDWT3D(input_volume,output_volume, nbmax, nlmax, nsmax, 0, 0, 0, 0, 0, 0, NumLevels_spec, NumLevels_spat, &Wavelet);
@@ -218,7 +230,7 @@ for (k=0; k<nbmax; k++){
 }
 }
 
-free(imagein);
+free(imagein);imagein=NULL;
 output_volume=QccVolumeAlloc(nbmax, nlmax, nsmax);
 
 err = QccWAVWaveletInversePacketDWT3D(input_volume,output_volume, nbmax, nlmax, nsmax, 0, 0, 0, 0, 0, 0, NumLevels_spec, NumLevels_spat, &Wavelet);

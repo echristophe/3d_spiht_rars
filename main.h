@@ -6,7 +6,7 @@
  * Author:		Emmanuel Christophe	
  * Contact:		e.christophe at melaneum.com
  * Description:		Utility functions header for hyperspectral image compression
- * Version:		v1.0 - 2006-02	
+ * Version:		v1.0 - 2006-04	
  * 
  */
 
@@ -152,9 +152,27 @@ struct stream_struct{
 	unsigned char * count;
 };
 
+struct coder_param_struct{
+	int nblock;
+	char * maxres;
+#ifdef RES_SCAL
+	char * maxresspat;
+	char * maxresspec;
+#endif
+	char * maxquant;
+	char * minquant;
+	int nlayer;
+	float rate;
+};
+
 //declaration as global
 struct imageprop_struct imageprop;
 
+void print_imageprop();
+
+static inline min(long int a, long int b){
+	return (a<b)?a:b;
+}
 
 struct list_el * el_init(struct pixel_struct pixel);
 struct list_struct * list_init(void);
@@ -218,8 +236,8 @@ int spat_desc_ezw(struct pixel_struct pixel, struct list_struct * list_desc, int
 // int spiht_code_c(long int *image, unsigned char *stream,long int * outputsize, int *maxquantvalue);
 // int spiht_decode_c(long int *image, unsigned char *stream, long int *outputsize, int *maxquantvalue);
 
-int spiht_code_c(long int *image, struct stream_struct streamstruct, long int *outputsize, int maxquantvalue);
-int spiht_decode_c(long int *image, struct stream_struct streamstruct, long int *outputsize, int maxquantvalue);
+int spiht_code_c(long int *image, struct stream_struct streamstruct, long int *outputsize, struct coder_param_struct coder_param);
+int spiht_decode_c(long int *image, struct stream_struct streamstruct, long int *outputsize, struct coder_param_struct coder_param);
 
 int ezw_code_c(long int *image, struct stream_struct streamstruct,long int * outputsize, int maxquantvalue);
 
@@ -251,18 +269,7 @@ int spiht_decode_ra(long int *image, unsigned char *stream, long int *outputsize
 // 
 // int spiht_decode_ra2(long int *image, unsigned char *stream, long int *outputsize, int *maxquantvalue);
 
-struct coder_param_struct{
-	int nblock;
-	char * maxres;
-#ifdef RES_SCAL
-	char * maxresspat;
-	char * maxresspec;
-#endif
-	char * maxquant;
-	char * minquant;
-	int nlayer;
-	float rate;
-};
+
 
 int spiht_code_ra2(long int *image, unsigned char *stream,long int * outputsize, struct coder_param_struct coder_param);
 int spiht_decode_ra2(long int *image, unsigned char *stream, long int *outputsize, struct coder_param_struct coder_param);
@@ -338,8 +345,8 @@ void usage(char *str1);
 int init_coder_param(struct coder_param_struct * coder_param, int nblock);
 int free_coder_param(struct coder_param_struct * coder_param);
 
-int encode(char * filename, int type, float rate);
-int decode(char * filename, int type);
+int encode(char * filename, char * output_filename, int type, float rate);
+int decode(char * filename, char * output_filename, int type);
 
 long int file_size(FILE *f);
 
@@ -354,6 +361,7 @@ int waveletIDWT(long int * imagein, long int * imageout, int specdec, int spatde
 
 
 long int count_zero(char * image);
+int output_rd(struct datablock_struct *datablock, int nblock);
 
 #endif
 

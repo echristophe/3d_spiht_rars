@@ -6,7 +6,7 @@
  * Author:		Emmanuel Christophe	
  * Contact:		e.christophe at melaneum.com
  * Description:		Random access based coding and decoding for hyperspectral image
- * Version:		v1.0 - 2006-02	
+ * Version:		v1.0 - 2006-04	
  * 
  */
 
@@ -763,6 +763,9 @@ compute_cost(&(datablock[blockind].rddata),lambda)*/;
 // printf("Rate: %f \n", (float) (*streamlast*8+*count)/((long int) nsmax*nlmax*nbmax));
 // #endif
 
+//TODO just a check
+ output_rd(datablock, nblock);
+
 nbitswritten=0;// to count the total (all are rewritten)
 if (coder_param.rate != 0.0){
 
@@ -1233,13 +1236,13 @@ LIS
 #ifdef RES_SCAL
 if( (thres_ind == coder_param.minquant[blockind]) && 
      ((resspat == coder_param.maxresspat[blockind]-1) && (coder_param.maxresspat[blockind] !=1 )) ){//TODO check that give a gain
-#ifdef DEBUG
-	printf("Skipping LIS for res %d thres %d (spec: %d, spat: %d)\n", res, thres_ind, resspec, resspat);	
+		#ifdef DEBUG
+			printf("Skipping LIS for res %d thres %d (spec: %d, spat: %d)\n", res, thres_ind, resspec, resspat);	
+		#endif
+ }else {
+#endif 
 #endif
-}else 
-#endif  
-#endif
-{	
+// {	
 
 // if( (resspat != coder_param.maxresspat[blockind]-1) 
 //       ||  (resspec != coder_param.maxresspec[blockind]-1)){//We want to process the LIS for this resolution only if this is not the last one
@@ -1498,11 +1501,13 @@ nLISloop++;
 #endif
 current_el=LIS[res]->current;   
 }; //endwhile
+#ifdef LSCBEFORE
 #ifdef RES_SCAL
 }//; //endif on jump LIS if last resolution
 // else{
 // 	printf("Skipping LIS for res %d thres %d (spec: %d, spat: %d)\n", res, thres_ind, resspec, resspat);
 // }
+#endif
 #endif
 
 /*******************************
@@ -1621,16 +1626,17 @@ err=0; maxerr=0;
 printf("res: %d\n", res);
 #endif
 
+//ligne critique... faut-il l'egalite ???
 if (((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) >= *outputsize) || (thres_ind >0)){ //on est sorti car le train de bit etait trop court
 
 	if (LSCprocessed){
 		lastprocessed=LSC[res]->current;
 		current_el=first_el(LSC[res]);
 		   while (current_el != lastprocessed){
-		      if (image[trans_pixel(current_el->pixel)] >0){
+		      if (image[trans_pixel(current_el->pixel)] > threshold/2){
 			image[trans_pixel(current_el->pixel)] += threshold/2;
 		      };
-		      if (image[trans_pixel(current_el->pixel)] <0){
+		      if (image[trans_pixel(current_el->pixel)] < -threshold/2){
 			image[trans_pixel(current_el->pixel)] -= threshold/2;
 		      };
 #ifdef CHECKEND
@@ -1644,17 +1650,17 @@ if (((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) >= *o
 #endif		   
 		   while (current_el != NULL){
 			if (current_el->thres > thres_ind){//this was added before and not refined yet, 
-				if (image[trans_pixel(current_el->pixel)] >0){
+				if (image[trans_pixel(current_el->pixel)] > threshold){
 					image[trans_pixel(current_el->pixel)] += threshold;
 				};
-				if (image[trans_pixel(current_el->pixel)] <0){
+				if (image[trans_pixel(current_el->pixel)] < -threshold){
 					image[trans_pixel(current_el->pixel)] -= threshold;
 				};
 			} else{
-				if (image[trans_pixel(current_el->pixel)] >0){
+				if (image[trans_pixel(current_el->pixel)] > threshold/2){
 					image[trans_pixel(current_el->pixel)] += threshold/2;
 				};
-				if (image[trans_pixel(current_el->pixel)] <0){
+				if (image[trans_pixel(current_el->pixel)] < -threshold/2){
 					image[trans_pixel(current_el->pixel)] -= threshold/2;
 				};
 			}
@@ -1671,17 +1677,17 @@ if (((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) >= *o
 		current_el=first_el(LSC[res]);
 		while (current_el != NULL){
 			if (current_el->thres == thres_ind){
-				if (image[trans_pixel(current_el->pixel)] >0){
+				if (image[trans_pixel(current_el->pixel)] > threshold/2){
 					image[trans_pixel(current_el->pixel)] += threshold/2;
 				};
-				if (image[trans_pixel(current_el->pixel)] <0){
+				if (image[trans_pixel(current_el->pixel)] < -threshold/2){
 					image[trans_pixel(current_el->pixel)] -= threshold/2;
 				};
 			} else {
-				if (image[trans_pixel(current_el->pixel)] >0){
+				if (image[trans_pixel(current_el->pixel)] > threshold){
 					image[trans_pixel(current_el->pixel)] += threshold;
 				};
-				if (image[trans_pixel(current_el->pixel)] <0){
+				if (image[trans_pixel(current_el->pixel)] < -threshold){
 					image[trans_pixel(current_el->pixel)] -= threshold;
 				};	
 			}
@@ -1738,5 +1744,6 @@ free(count);
 free(streamlast);
  
 return 0;
-};
+}
+
 

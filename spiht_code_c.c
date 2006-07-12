@@ -1,8 +1,22 @@
+/*
+ *
+ *  Hyperspectral compression program
+ *
+ * Name:		main.c	
+ * Author:		Emmanuel Christophe	
+ * Contact:		e.christophe at melaneum.com
+ * Description:		Utility functions for hyperspectral image compression
+ * Version:		v1.0 - 2006-04	
+ * 
+ */
+
+
 #include "main.h"
 
 
 // int spiht_code_c(long int *image, unsigned char *stream, long int *outputsize, int *maxquantvalue)
-int spiht_code_c(long int *image, struct stream_struct streamstruct, long int *outputsize, int maxquantvalue)
+// int spiht_code_c(long int *image, struct stream_struct streamstruct, long int *outputsize, int maxquantvalue)
+int spiht_code_c(long int *image, struct stream_struct streamstruct, long int *outputsize, struct coder_param_struct coder_param)
 {
 
 // struct imageprop_struct imageprop={NSMAX_CONST, NLMAX_CONST, NBMAX_CONST, 8, 8, 7};
@@ -24,7 +38,8 @@ int is_accessible=0;
 // int maxquant=imageprop.maxquant;
 // int maxquant=MAXQUANT_CONST;
 // int maxquant= (int) (*maxquantvalue);
-int maxquant= maxquantvalue;
+// int maxquant= maxquantvalue;
+int maxquant = (int) *coder_param.maxquant;
 
 int minquant=0;
 struct list_el * el=NULL;
@@ -423,13 +438,21 @@ list_free(LIC);
 list_free(LIS);
 // free(LIS);
 
+// for (i=0; i<imageprop.maxquant; i++){
+//   printf("%ld, ",outputsize[i]);
+// }
+
+if (coder_param.rate != 0){
+outputsize[0] = (long int) (coder_param.rate * nsmax*nbmax*nlmax); //Il faudrait faire ca bien et le mettre dans la compression
+}
 
 return 0;
 };
 
 
 // int spiht_decode_c(long int *image, unsigned char *stream, long int *outputsize, int *maxquantvalue)
-int spiht_decode_c(long int *image, struct stream_struct streamstruct, long int *outputsize, int maxquantvalue)
+// int spiht_decode_c(long int *image, struct stream_struct streamstruct, long int *outputsize, int maxquantvalue)
+int spiht_decode_c(long int *image, struct stream_struct streamstruct, long int *outputsize, struct coder_param_struct coder_param)
 {
 
 // struct imageprop_struct imageprop={NSMAX_CONST, NLMAX_CONST, NBMAX_CONST, 8, 8, 7};
@@ -451,7 +474,8 @@ int is_accessible=0;
 // int maxquant=imageprop.maxquant;
 // int maxquant=MAXQUANT_CONST;
 // int maxquant=(int) *maxquantvalue;
-int maxquant=maxquantvalue;
+// int maxquant=maxquantvalue;
+int maxquant=(int) *coder_param.maxquant;
 
 int minquant=0;
 struct list_el * el=NULL;
@@ -888,7 +912,7 @@ if ((*streamlast)*8+ (*count) > *outputsize){
 #ifdef DEBUG
 printf("Correction finale (flagLSC= %d)\n", flagLSC);
 #endif
-if ((*streamlast)*8+ (*count) > *outputsize){//on est sorti car le train de bit etait trop court
+if (((*streamlast)*8+ (*count) > *outputsize) || (thres_ind < minquant)){//on est sorti car le train de bit etait trop court
 	if (flagLSC == 0){
 		current_el=first_el(LSC);
 		if (lastLSC != NULL){

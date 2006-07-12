@@ -1,3 +1,13 @@
+
+#  Hyperspectral compression program
+# 
+#  Name:		main.c	
+#  Author:		Emmanuel Christophe	
+#  Contact:		e.christophe at melaneum.com
+#  Description:		Utility functions for hyperspectral image compression
+#  Version:		v1.0 - 2006-04	
+ 
+
 # options possibles
 # Taille images
 # S64 pour des images de 64x64x56, 
@@ -9,8 +19,18 @@
 # par defaut structure redondante et LLL type spiht
 # INPLACE insert element in LIS in place instead of at the end (avoid zerotrees ?)
 
+# SKIPWAV: skip wavelet transform (assuming that the file provided is already a transform)
+# WAV53 : use the 5/3 wavelet transform (with the modified QccPack, corresponds to lossless transform)
+# NORA: disable random access (to correspond to the traditionnal SPIHT)
+# RES_SCAL: resolution scalability ordering (all bitplanes are processed for one resolution before going to the next one)
+# LSC_BEFORE: put the LSC processing before the LIS to be able to jump the last LIS for partial decoding (save few hundrends bits)
+
+# Information printing
 # TIME : compute and print time information
 # SIZE : compute and print size information
+# DEBUG : many details
+# DEBUG2: more synthetic information
+# OUTPUT: output intermediates wavelet hypercubes
 
 CC = LC_ALL=C gcc
 
@@ -24,13 +44,36 @@ LIBS = -lQccPack -lm
 # C_OPT = -O3 -DNEWTREE -DS64 -DEZW
 # C_OPT = -O3 -DEZWTREE -DEZW -DLATEX
 # C_OPT = -O3 -DEZWTREE -DEZW -DDEBUG
-# C_OPT = -O3 -DEZWTREE -DEZW -DDEBUG -DSIGNED
-#  C_OPT = -O3 -DEZWTREE -DNEWTREE -DEZW  -DDEBUG 
+# C_OPT = -O3 -DEZWTREE -DEZW -DDEBUG -DOUTPUT -DMEANSUB
+# C_OPT = -g -DEZWTREE -DEZW -DDEBUG -DSIGNED
+# C_OPT = -O3 -DEZWTREE -DEZW -DDEBUG -DSIGNED -DEZW_ARITH -DOUTPUT -DMEANSUB -DOUTPUTSIGNED
+# C_OPT = -O3 -DEZWTREE -DNEWTREE -DEZW  -DDEBUG 
 # C_OPT = -g -DEZW
+
+#EZW AT (spat tree)
+C_OPT = -O3 -DNEWTREE -DEZW -DDEBUG
+# C_OPT = -O3 -DNEWTREE -DEZW -DDEBUG -DEZWUSEZ
+#EZW OT (3D tree)
+# C_OPT = -O3 -DEZW -DDEBUG 
+# C_OPT = -O3 -DEZW -DDEBUG -DEZWUSEZ
+
+#EZW SIGNED AT (spat tree) -101
+# C_OPT = -O3 -DNEWTREE -DEZW -DSIGNED -DDEBUG 
+# C_OPT = -O3 -DNEWTREE -DEZW -DSIGNED -DDEBUG -DEZWUSEZ
+#EZW SIGNED OT (3D tree)
+# C_OPT = -O3 -DEZW -DSIGNED -DDEBUG 
+# C_OPT = -O3 -DEZW -DSIGNED -DDEBUG -DEZWUSEZ
+
+#EZW SIGNED AT (spat tree) 011
+# C_OPT = -O3 -DNEWTREE -DEZW -DSIGNED -DSIGNED011 -DDEBUG 
+# C_OPT = -O3 -DNEWTREE -DEZW -DSIGNED -DSIGNED011 -DDEBUG -DEZWUSEZ
+#EZW SIGNED OT (3D tree)
+# C_OPT = -O3 -DEZW -DSIGNED -DSIGNED011 -DDEBUG 
+# C_OPT = -O3 -DEZW -DSIGNED -DSIGNED011 -DDEBUG -DEZWUSEZ
 
 # spiht
 # C_OPT = -O3  -DDEBUG
-# spiht2 -> correspond �l'implementation QccPack
+# spiht2 -> correspond l'implementation QccPack
 # C_OPT = -O3 -DNEWTREE  -DDEBUG
 # spiht3
 # C_OPT = -g -DINPLACE -DDEBUG
@@ -45,21 +88,26 @@ LIBS = -lQccPack -lm
 # C_OPT = -Wall -O3  -DNEWTREE -DDEBUG2 -DTIME -DRES_SCAL -DRES_RATE
 # C_OPT = -Wall -O3  -DNEWTREE -DTIME -DDEBUG2 -DRES_SCAL -DLSCBEFORE -DSIZE
 # C_OPT = -Wall -g  -DNEWTREE -DTIME -DDEBUG2  -DSIZE -DCHECKEND
-# C_OPT = -Wall -O3  -DNEWTREE -DTIME -DDEBUG2 -DSIZE
+# C_OPT = -Wall -g  -DNEWTREE -DTIME -DDEBUG2 -DSIZE
 # C_OPT = -Wall -O3  -DNEWTREE -DTIME -DDEBUG2  -DSIZE -DWAV53
 
 #SPIHT original (AT tree)
-# C_OPT = -O3  -DDEBUG -DNEWTREE -DNORA
+# C_OPT = -g  -DDEBUG -DNEWTREE -DNORA
 #SPIHT original (3D tree)
 # C_OPT = -O3  -DDEBUG -DNORA -DINPLACE
 #SPIHT RA (resolution scalable, but no separation between spatial and spectral)
 # C_OPT = -Wall -O3  -DNEWTREE -DTIME -DDEBUG2 -DSIZE
+
 #SPIHT RARS
 # C_OPT = -Wall -O3  -DNEWTREE -DDEBUG2 -DTIME -DRES_SCAL -DSIZE -DLSCBEFORE
 # C_OPT = -Wall -O3  -DNEWTREE -DDEBUG2 -DTIME -DRES_SCAL -DSIZE
 
 #lossless
-C_OPT = -Wall -O3  -DNEWTREE -DDEBUG2 -DTIME -DRES_SCAL -DSIZE -DLSCBEFORE  -DWAV53
+# C_OPT = -Wall -O3  -DNEWTREE -DDEBUG2 -DTIME -DRES_SCAL -DSIZE -DLSCBEFORE  -DWAV53 -DOUTPUT
+# C_OPT = -Wall -O3  -DNEWTREE -DDEBUG2 -DTIME -DSIZE  -DWAV53 -DOUTPUT
+# C_OPT = -Wall -O3  -DNEWTREE -DTIME -DDEBUG2 -DSIZE -DSKIPWAV
+# C_OPT = -O3 -DEZW -DDEBUG -DSKIPWAV
+# C_OPT = -O3 -DEZW -DDEBUG  -DWAV53
 
 PROF = 
 # PROF = -pg
