@@ -72,10 +72,24 @@ if (directchildonly == 0){
 /*
 ;Is there any offspring ?
 if (((current_pix_x GE nsmax / 2) || (current_pix_y GE nlmax / 2)) &&  (current_pix_l GE nbmax / 2)) then return, 0*/
+#ifdef NEWTREE
+if ((pixel.x >= nsmax / 2) || (pixel.y >= nlmax / 2)) {
+	if (directchildonly == 0){list_free(tmp_list);};
+	return 0;
+}
+#else
+   #ifdef NEWTREE2
+if ((pixel.x >= nsmax / 2) || (pixel.y >= nlmax / 2)) {
+	if (directchildonly == 0){list_free(tmp_list);};
+	return 0;
+}
+   #else
 if (((pixel.x >= nsmax / 2) || (pixel.y >= nlmax / 2)) &&  (pixel.l >= nbmax / 2)) {
 	if (directchildonly == 0){list_free(tmp_list);};
 	return 0;
 }
+   #endif
+#endif
 
 /*
 ;otherwise, general case with 6 offspring
@@ -89,6 +103,9 @@ desc_array_spec_l=current_pix_l*/
 #ifdef NEWTREE
 if ((pixel.x < nsmin) && (pixel.y < nlmin)){//modif 02-01-2006 chgmt structure arbre
 #endif
+#ifdef NEWTREE2
+if ((pixel.x < nsmax/2) && (pixel.y < nlmax/2)){//modif 19-07-2006 mix 3D-spat
+#endif 
 if (directchildonly == 0){
 // r1=spec_desc_ezw(pixel, tmp_list, directchildonly, image, thres_ind, map_LSC);
 r1=spec_desc_ezw(pixel, tmp_list, 1, image, thres_ind, map_LSC);
@@ -99,6 +116,9 @@ r1=spec_desc_ezw(pixel, tmp_list, 1, image, thres_ind, map_LSC);
 } else {
 r1=spec_desc_ezw(pixel, list_desc, directchildonly, image, thres_ind, map_LSC);
 };
+#ifdef NEWTREE2
+};
+#endif
 #ifdef NEWTREE
 };
 #endif

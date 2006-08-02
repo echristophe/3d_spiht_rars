@@ -28,7 +28,7 @@ void print_imageprop(){
    printf("Image size: %d x %d x %d\n",imageprop.nsmax, imageprop.nlmax, imageprop.nbmax);
    printf("Decomposition depth: %d subbands spectral, %d subbands spatial\n", imageprop.nresspec, imageprop.nresspat);
    printf("LLL subband size: %d x %d x %d\n",imageprop.nsmin, imageprop.nlmin, imageprop.nbmin);
-   printf("Max bitplane: %d (all values are below %lld)\n",imageprop.maxquant,2^imageprop.maxquant);
+   printf("Max bitplane: %d (all values are below %ld)\n",imageprop.maxquant,((long int) 1)<<(imageprop.maxquant));
    printf("------------------------------------------------------------------\n");
 }
 
@@ -1118,7 +1118,7 @@ mask = (double *) calloc(imageprop.nsmax * imageprop.nlmax,sizeof(double));
 }
 
 int output_rd(struct datablock_struct *datablock, int nblock){
-int i,j;
+int i;
 int status;
 FILE *r_file;
 FILE *d_file;
@@ -1133,3 +1133,209 @@ status = fclose(r_file);
 status = fclose(d_file);
 }
 
+
+
+long int * read_hyper(char * filename, long int npix, int type){
+	FILE *data_file;
+	long int * image;
+	short int * image_short;
+	unsigned char * image_byte;
+	long int i_l;
+	int status=0;
+
+        image = (long int *) calloc(npix,sizeof(long int));
+	data_file = fopen(filename, "r");
+	if (data_file == NULL) {
+		fprintf(stderr, "Error opening file...\n");
+		return NULL;
+	}
+
+	if (type ==1){
+		image_byte = (unsigned char *) calloc(npix,sizeof(short int));
+		status = fread(image_byte, 1, npix, data_file);
+		for (i_l=0;i_l<npix;i_l++){
+			image[i_l] = (long int) image_byte[i_l];
+		}
+		free(image_byte);
+	}
+	if (type ==2){
+		image_short = (short int *) calloc(npix,sizeof(short int));
+		status = fread(image_short, 2, npix, data_file);
+		for (i_l=0;i_l<npix;i_l++){
+			image[i_l] = (long int) image_short[i_l];
+		}
+		free(image_short);
+	}
+	if (type ==4){
+		status = fread(image, 4, npix, data_file);
+	}
+	status = fclose(data_file);
+	return image;
+}
+
+
+int write_hyper(char * filename, long int * image, long int npix, int type){
+	FILE *data_file;
+	int status=0;
+	short int * image_short;
+	unsigned char * image_byte;
+	long int i_l=0;
+	
+
+	data_file = fopen(filename, "w");
+	if (data_file == NULL) {
+		fprintf(stderr, "Error opening file...\n");
+		return 1;
+	}
+
+	if (type == 1){
+		image_byte = (unsigned char *) calloc(npix,sizeof(unsigned char));
+		for (i_l=0;i_l<npix;i_l++){
+			image_byte[i_l] = (unsigned char) image[i_l];
+		}
+		status = fwrite(image_byte, type, npix, data_file);
+		free(image_byte);
+	}
+	if (type == 2){
+		image_short = (short int *) calloc(npix,sizeof(short int));
+		for (i_l=0;i_l<npix;i_l++){
+			image_short[i_l] = (short int) image[i_l];
+		}
+		status = fwrite(image_short, type, npix, data_file);
+		free(image_short);		
+	}
+	if (type == 4){
+		status = fwrite(image, type, npix, data_file);
+	}
+	if (status != npix) {
+		fprintf(stderr, "Error writing output file...\n");
+		return 1;
+	}
+	status = fclose(data_file);
+	return status;
+
+}
+
+int compare_hyper_long(long int * imagedeg, long int * imageref){
+	long int maxerr=0;
+	long int maxerrnz=0;
+	int err=0;
+	long int i_l=0;
+	long int npix=imageprop.nsmax*imageprop.nlmax*imageprop.nbmax;
+
+	for (i_l=0;i_l<npix;i_l++){
+		if (abs(imagedeg[i_l]-imageref[i_l]) > maxerr){
+			maxerr=abs(imagedeg[i_l]-imageref[i_l]);
+			err=1;
+		};
+		if (imagedeg[i_l] != 0){
+			if (abs(imagedeg[i_l]-imageref[i_l]) > maxerrnz){
+				maxerrnz=abs(imagedeg[i_l]-imageref[i_l]);
+				err=1;
+			};
+		};
+	};
+	
+	if (err) {
+	fprintf(stderr, "ERREUR MAX %ld\n",maxerr);
+	fprintf(stderr, "ERREUR MAX (NZ) %ld\n",maxerrnz);
+	} else {
+	fprintf(stderr, "Decoding OK (maxerr= %ld)\n",maxerr);
+	}
+	return err;
+}
+
+int compare_hyper_short(short int * imagedeg, short int * imageref){
+	long int maxerr=0;
+	long int maxerrnz=0;
+	int err=0;
+	long int i_l=0;
+	long int npix=imageprop.nsmax*imageprop.nlmax*imageprop.nbmax;
+
+	for (i_l=0;i_l<npix;i_l++){
+		if (abs(imagedeg[i_l]-imageref[i_l]) > maxerr){
+			maxerr=abs(imagedeg[i_l]-imageref[i_l]);
+			err=1;
+		};
+		if (imagedeg[i_l] != 0){
+			if (abs(imagedeg[i_l]-imageref[i_l]) > maxerrnz){
+				maxerrnz=abs(imagedeg[i_l]-imageref[i_l]);
+				err=1;
+			};
+		};
+	};
+	
+	if (err) {
+	fprintf(stderr, "ERREUR MAX %ld\n",maxerr);
+	fprintf(stderr, "ERREUR MAX (NZ) %ld\n",maxerrnz);
+	} else {
+	fprintf(stderr, "Decoding OK (maxerr= %ld)\n",maxerr);
+	}
+	return err;
+}
+
+int write_header(struct stream_struct streamstruct){
+
+	unsigned char * stream = streamstruct.stream;
+	long int * streamlast = streamstruct.streamlast;
+	unsigned char * count = streamstruct.count;
+
+	add_to_stream_number(imageprop.nsmax, stream, count, streamlast, 16);
+	add_to_stream_number(imageprop.nlmax, stream, count, streamlast, 16);
+	add_to_stream_number(imageprop.nbmax, stream, count, streamlast, 16);
+	add_to_stream_number(imageprop.maxquant, stream, count, streamlast, 8);
+	add_to_stream_number(imageprop.nresspec, stream, count, streamlast, 4);
+	add_to_stream_number(imageprop.nresspat, stream, count, streamlast, 4);
+
+	streamstruct.headerlength=8* (* streamlast)+(*count);
+	return 0;
+}
+
+int read_header(struct stream_struct streamstruct){
+
+	unsigned char * stream = streamstruct.stream;
+	long int * streamlast = streamstruct.streamlast;
+	unsigned char * count = streamstruct.count;
+	
+	imageprop.nsmax = read_from_stream_number(stream, count, streamlast, 16);
+	imageprop.nlmax = read_from_stream_number(stream, count, streamlast, 16);
+	imageprop.nbmax = read_from_stream_number(stream, count, streamlast, 16);
+	imageprop.maxquant = read_from_stream_number(stream, count, streamlast, 8);
+	imageprop.nresspec = read_from_stream_number(stream, count, streamlast, 4);
+	imageprop.nresspat = read_from_stream_number(stream, count, streamlast, 4);
+
+	return 0;
+	
+}
+
+int write_header_mean(struct stream_struct streamstruct,long int * mean){
+
+	unsigned char * stream = streamstruct.stream;
+	long int * streamlast = streamstruct.streamlast;
+	unsigned char * count = streamstruct.count;
+	long int i_l=0;
+
+	printf("Be aware: using mean substraction\n");
+	for (i_l=0;i_l<imageprop.nbmax;i_l++){
+	add_to_stream_number(mean[i_l], stream, count, streamlast, 16);
+	}
+
+	streamstruct.headerlength=8* (*streamlast)+(*count);
+	return 0;
+}
+
+
+int read_header_mean(struct stream_struct streamstruct,long int * mean){
+
+	unsigned char * stream = streamstruct.stream;
+	long int * streamlast = streamstruct.streamlast;
+	unsigned char * count = streamstruct.count;
+	long int i_l=0;
+	printf("Be aware: using mean substraction\n");
+	mean = (long int *) calloc(imageprop.nbmax,sizeof(long int));
+	for (i_l=0;i_l<imageprop.nbmax;i_l++){
+		mean[i_l] = read_from_stream_number(stream, count, streamlast, 16);
+	}
+
+	return 0;
+}

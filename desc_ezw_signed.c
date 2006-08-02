@@ -81,10 +81,24 @@ if (directchildonly == 0){
 /*
 ;Is there any offspring ?
 if (((current_pix_x GE nsmax / 2) || (current_pix_y GE nlmax / 2)) &&  (current_pix_l GE nbmax / 2)) then return, 0*/
+#ifdef NEWTREE
+if ((pixel.x >= nsmax / 2) || (pixel.y >= nlmax / 2)) {
+	if (directchildonly == 0){list_free(tmp_list);};
+	return 0;
+}
+#else
+   #ifdef NEWTREE2
+if ((pixel.x >= nsmax / 2) || (pixel.y >= nlmax / 2)) {
+	if (directchildonly == 0){list_free(tmp_list);};
+	return 0;
+}
+   #else
 if (((pixel.x >= nsmax / 2) || (pixel.y >= nlmax / 2)) &&  (pixel.l >= nbmax / 2)) {
 	if (directchildonly == 0){list_free(tmp_list);};
 	return 0;
 }
+   #endif
+#endif
 
 /*
 ;otherwise, general case with 6 offspring
@@ -98,6 +112,9 @@ desc_array_spec_l=current_pix_l*/
 #ifdef NEWTREE
 if ((pixel.x < nsmin) && (pixel.y < nlmin)){//modif 02-01-2006 chgmt structure arbre
 #endif
+#ifdef NEWTREE2
+if ((pixel.x < nsmax/2) && (pixel.y < nlmax/2)){//modif 19-07-2006 mix 3D-spat
+#endif 
 if (directchildonly == 0){
 // r1=spec_desc_ezw_signed(pixel, tmp_list, directchildonly, image_signed, thres_ind, map_LSC);
 r1=spec_desc_ezw_signed(pixel, tmp_list, 1, image_signed, thres_ind, map_LSC);//modif 09-04-06 non verifiee
@@ -109,6 +126,9 @@ r1=spec_desc_ezw_signed(pixel, tmp_list, 1, image_signed, thres_ind, map_LSC);//
 r1=spec_desc_ezw_signed(pixel, list_desc, directchildonly, image_signed, thres_ind, map_LSC);
 };
 #ifdef NEWTREE
+};
+#endif
+#ifdef NEWTREE2
 };
 #endif
 
@@ -225,7 +245,11 @@ if (pixel.l < nbmin){/*lower frequency*/
 	new_pixel.l=pixel.l+nbmin;
 
 	current_el=el_init(new_pixel);	
+#ifdef EZWREF
+	if((image_signed[NBITS*trans_pixel(new_pixel)+thres_ind] !=0) && (map_LSC[trans_pixel(new_pixel)]==0)) {
+#else
 	if (image_signed[NBITS*trans_pixel(new_pixel)+thres_ind] !=0){
+#endif
 		if (directchildonly == 0) {return -1; };
 		if (directchildonly == 1) {out= -1;	};
 	} 
@@ -249,12 +273,20 @@ if (pixel.l < nbmin){/*lower frequency*/
 	new_pixel.l=2*pixel.l+1;
 	current_el2=el_init(new_pixel);	
 
+#ifdef EZWREF
+	if((image_signed[NBITS*trans_pixel(current_el1->pixel)+thres_ind] !=0) && (map_LSC[trans_pixel(current_el1->pixel)]==0)) {
+#else
 	if (image_signed[NBITS*trans_pixel(current_el1->pixel)+thres_ind] !=0){
+#endif
 		if (directchildonly == 0) {return -1; };
 		if (directchildonly == 1) {out= -1;	};
 	} 
 		insert_el(list_desc, current_el1);
+#ifdef EZWREF
+	if((image_signed[NBITS*trans_pixel(current_el2->pixel)+thres_ind] !=0) && (map_LSC[trans_pixel(current_el2->pixel)]==0)) {
+#else
 	if (image_signed[NBITS*trans_pixel(current_el2->pixel)+thres_ind] !=0){	
+#endif
 		if (directchildonly == 0) {return -1; };
 		if (directchildonly == 1) {out= -1;	};
 	}
@@ -355,25 +387,38 @@ if (directchildonly == 1){/*Si on ne veut que les descendant, il faut les ajoute
 	};
 }; 
 
-
+#ifdef EZWREF
+	if((image_signed[NBITS*trans_pixel(new_pixel1)+thres_ind] !=0) && (map_LSC[trans_pixel(new_pixel1)]==0)) {
+#else
 	if (image_signed[NBITS*trans_pixel(new_pixel1)+thres_ind] !=0){
+#endif
 		if (directchildonly == 0) {return -1;};
 		if (directchildonly == 1) {out= -1;};
 	};
-
+#ifdef EZWREF
+	if((image_signed[NBITS*trans_pixel(new_pixel2)+thres_ind] !=0) && (map_LSC[trans_pixel(new_pixel2)]==0)) {
+#else
 	if (image_signed[NBITS*trans_pixel(new_pixel2)+thres_ind] !=0){	
+#endif
 		if (directchildonly == 0) {return -1;};
 		if (directchildonly == 1) {out= -1;};
 	};
-
+#ifdef EZWREF
+	if((image_signed[NBITS*trans_pixel(new_pixel3)+thres_ind] !=0) && (map_LSC[trans_pixel(new_pixel3)]==0)) {
+#else
 	if (image_signed[NBITS*trans_pixel(new_pixel3)+thres_ind] !=0){	
+#endif
 		if (directchildonly == 0) {return -1;};
 		if (directchildonly == 1) {out= -1;};
 	};
 
 
 if (!((pixel.x < nsmin) && (pixel.y < nlmin))){
-	if (image_signed[NBITS*trans_pixel(new_pixel4)+thres_ind] !=0){		
+#ifdef EZWREF
+	if((image_signed[NBITS*trans_pixel(new_pixel4)+thres_ind] !=0) && (map_LSC[trans_pixel(new_pixel4)]==0)) {
+#else
+	if (image_signed[NBITS*trans_pixel(new_pixel4)+thres_ind] !=0){	
+#endif	
 		if (directchildonly == 0) {return -1;};
 		if (directchildonly == 1) {out= -1;};
 	};

@@ -133,7 +133,7 @@ struct list_struct{
 };
 
 
-struct imageprop_struct{
+typedef struct{
    int nsmax;
    int nlmax;
    int nbmax;
@@ -144,12 +144,13 @@ struct imageprop_struct{
    int nresspec;
    int nresspat;
    int maxquant;
-};
+} imageprop_struct;
 
 struct stream_struct{
 	unsigned char * stream;
 	long int * streamlast;
 	unsigned char * count;
+	int headerlength;
 };
 
 struct coder_param_struct{
@@ -166,7 +167,8 @@ struct coder_param_struct{
 };
 
 //declaration as global
-struct imageprop_struct imageprop;
+// struct imageprop_struct imageprop;
+imageprop_struct imageprop;
 
 void print_imageprop();
 
@@ -362,6 +364,18 @@ int waveletIDWT(long int * imagein, long int * imageout, int specdec, int spatde
 
 long int count_zero(char * image);
 int output_rd(struct datablock_struct *datablock, int nblock);
+
+long int * read_hyper(char * filename, long int npix, int type);
+int write_hyper(char * filename, long int * image, long int npix, int type);
+
+
+int compare_hyper_long(long int * imagedeg, long int * imageref);
+int compare_hyper_short(short int * imagedeg, short int * imageref);
+
+int write_header(struct stream_struct streamstruct);
+int read_header(struct stream_struct streamstruct);
+int write_header_mean(struct stream_struct streamstruct,long int * mean);
+int read_header_mean(struct stream_struct streamstruct,long int * mean);
 
 #endif
 

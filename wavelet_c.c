@@ -104,11 +104,14 @@ for (k=0; k<nbmax; k++){
 }
 
 free(imagein);imagein=NULL;
-output_volume=QccVolumeAlloc(nbmax, nlmax, nsmax);
+// output_volume=QccVolumeAlloc(nbmax, nlmax, nsmax);
+// 
+// err = QccWAVWaveletPacketDWT3D(input_volume,output_volume, nbmax, nlmax, nsmax, 0, 0, 0, 0, 0, 0, NumLevels_spec, NumLevels_spat, &Wavelet);
+// 
+// QccVolumeFree(input_volume, nbmax, nlmax);
+err = QccWAVWaveletPacketDWT3D(input_volume, nbmax, nlmax, nsmax, 0, 0, 0, 0, 0, 0, NumLevels_spec, NumLevels_spat, &Wavelet);
+output_volume = input_volume;
 
-err = QccWAVWaveletPacketDWT3D(input_volume,output_volume, nbmax, nlmax, nsmax, 0, 0, 0, 0, 0, 0, NumLevels_spec, NumLevels_spat, &Wavelet);
-
-QccVolumeFree(input_volume, nbmax, nlmax);
 // imageout = (long int *) malloc(npix*sizeof(long int));
 
 for (i=0; i<nsmax; i++){
@@ -231,11 +234,14 @@ for (k=0; k<nbmax; k++){
 }
 
 free(imagein);imagein=NULL;
-output_volume=QccVolumeAlloc(nbmax, nlmax, nsmax);
+// output_volume=QccVolumeAlloc(nbmax, nlmax, nsmax);
+// 
+// err = QccWAVWaveletInversePacketDWT3D(input_volume,output_volume, nbmax, nlmax, nsmax, 0, 0, 0, 0, 0, 0, NumLevels_spec, NumLevels_spat, &Wavelet);
+// 
+// QccVolumeFree(input_volume, nbmax, nlmax);
+err = QccWAVWaveletInversePacketDWT3D(input_volume, nbmax, nlmax, nsmax, 0, 0, 0, 0, 0, 0, NumLevels_spec, NumLevels_spat, &Wavelet);
+output_volume = input_volume;
 
-err = QccWAVWaveletInversePacketDWT3D(input_volume,output_volume, nbmax, nlmax, nsmax, 0, 0, 0, 0, 0, 0, NumLevels_spec, NumLevels_spat, &Wavelet);
-
-QccVolumeFree(input_volume, nbmax, nlmax);
 // imageout = (long int *) malloc(npix*sizeof(long int));
 
 for (i=0; i<nsmax; i++){
