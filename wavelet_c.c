@@ -19,13 +19,17 @@ long int lround(double x);
 
 int waveletDWT(long int * imagein, long int * imageout, int specdec, int spatdec){
 
+#ifdef WAV53
+QccVolumeInt input_volume;
+#else
 QccVolume input_volume;
-QccVolume output_volume;
+#endif
+// QccVolume output_volume;
 // QccVolume output2_volume;
 QccWAVWavelet Wavelet;
 
 #ifdef WAV53
-QccString WaveletFilename = "CohenDaubechiesFeauveau.5-3.lft";
+QccString WaveletFilename = "CohenDaubechiesFeauveau.5-3.int.lft";
 #else
 QccString WaveletFilename = QCCWAVWAVELET_DEFAULT_WAVELET;
 #endif
@@ -87,11 +91,16 @@ QccWAVWaveletCreate(&Wavelet, WaveletFilename, Boundary);
 
 //int QccWAVWaveletPacketDWT3D(const QccVolume input_volume, QccVolume output_volume, int num_frames, int num_rows, int num_cols, int origin_frame, int origin_row, int origin_col, int subsample_pattern_frame, int subsample_pattern_row, int subsample_pattern_col, int temporal_num_scales, int spatial_num_scales, const QccWAVWavelet *wavelet); 
 
-input_volume=QccVolumeAlloc(nbmax, nlmax, nsmax);
+// input_volume=QccVolumeAlloc(nbmax, nlmax, nsmax);
 
 // output2_volume=QccVolumeAlloc(nbmax, nlmax, nsmax);
-
+#ifdef WAV53
+input_volume=QccVolumeIntAlloc(nbmax, nlmax, nsmax);
+QccVolumeIntZero(input_volume, nbmax, nlmax, nsmax);
+#else
+input_volume=QccVolumeAlloc(nbmax, nlmax, nsmax);
 QccVolumeZero(input_volume, nbmax, nlmax, nsmax);
+#endif
 // printf("Sample: %f \n", (**input_volume)[0]);
 
 for (i=0; i<nsmax; i++){
@@ -109,8 +118,12 @@ free(imagein);imagein=NULL;
 // err = QccWAVWaveletPacketDWT3D(input_volume,output_volume, nbmax, nlmax, nsmax, 0, 0, 0, 0, 0, 0, NumLevels_spec, NumLevels_spat, &Wavelet);
 // 
 // QccVolumeFree(input_volume, nbmax, nlmax);
+#ifdef WAV53
+err = QccWAVWaveletPacketDWT3DInt(input_volume, nbmax, nlmax, nsmax, 0, 0, 0, 0, 0, 0, NumLevels_spec, NumLevels_spat, &Wavelet);
+#else
 err = QccWAVWaveletPacketDWT3D(input_volume, nbmax, nlmax, nsmax, 0, 0, 0, 0, 0, 0, NumLevels_spec, NumLevels_spat, &Wavelet);
-output_volume = input_volume;
+#endif
+// output_volume = input_volume;
 
 // imageout = (long int *) malloc(npix*sizeof(long int));
 
@@ -119,7 +132,8 @@ for (j=0; j<nlmax; j++){
 for (k=0; k<nbmax; k++){
         i_l= i + j*nsmax + k*nsmax*nlmax;
 // 	imageout[i_l] = (long int) round( (*(*(output_volume+k) +j))[i] );
-	imageout[i_l] = (long int) lround( (*(*(output_volume+k) +j))[i] ); //WARNING check rint()
+// 	imageout[i_l] = (long int) lround( (*(*(output_volume+k) +j))[i] ); //WARNING check rint()
+	imageout[i_l] = (long int) lround( (*(*(input_volume+k) +j))[i] ); //WARNING check rint()
 // 	imageout[i_l] = (long int) (*(*(output_volume+k) +j))[i] ;
 }
 }
@@ -128,7 +142,12 @@ for (k=0; k<nbmax; k++){
 // err = QccWAVWaveletInversePacketDWT3D(output_volume,output2_volume, nbmax, nlmax, nsmax, 0, 0, 0, 0, 0, 0, NumLevels_spec, NumLevels_spat, &Wavelet);
 
 
-QccVolumeFree(output_volume, nbmax, nlmax);
+// QccVolumeFree(output_volume, nbmax, nlmax);
+#ifdef WAV53
+QccVolumeIntFree(input_volume, nbmax, nlmax);
+#else
+QccVolumeFree(input_volume, nbmax, nlmax);
+#endif
 // QccVolumeFree(output2_volume, nbmax, nlmax);
 
 
@@ -140,13 +159,19 @@ return 0;
 
 int waveletIDWT(long int * imagein, long int * imageout, int specdec, int spatdec){
 
+
+#ifdef WAV53
+QccVolumeInt input_volume;
+#else
 QccVolume input_volume;
-QccVolume output_volume;
+#endif
+
+// QccVolume output_volume;
 // QccVolume output2_volume;
 QccWAVWavelet Wavelet;
 
 #ifdef WAV53
-QccString WaveletFilename = "CohenDaubechiesFeauveau.5-3.lft";
+QccString WaveletFilename = "CohenDaubechiesFeauveau.5-3.int.lft";
 #else
 QccString WaveletFilename = QCCWAVWAVELET_DEFAULT_WAVELET;
 #endif
@@ -216,13 +241,17 @@ printf("Wavelet inverse transform using QccPack...\n");
 QccWAVWaveletCreate(&Wavelet, WaveletFilename, Boundary);
 
 //int QccWAVWaveletPacketDWT3D(const QccVolume input_volume, QccVolume output_volume, int num_frames, int num_rows, int num_cols, int origin_frame, int origin_row, int origin_col, int subsample_pattern_frame, int subsample_pattern_row, int subsample_pattern_col, int temporal_num_scales, int spatial_num_scales, const QccWAVWavelet *wavelet); 
-
+#ifdef WAV53
+input_volume=QccVolumeIntAlloc(nbmax, nlmax, nsmax);
+QccVolumeIntZero(input_volume, nbmax, nlmax, nsmax);
+#else
 input_volume=QccVolumeAlloc(nbmax, nlmax, nsmax);
 
 // output2_volume=QccVolumeAlloc(nbmax, nlmax, nsmax);
 
 QccVolumeZero(input_volume, nbmax, nlmax, nsmax);
 // printf("Sample: %f \n", (**input_volume)[0]);
+#endif
 
 for (i=0; i<nsmax; i++){
 for (j=0; j<nlmax; j++){
@@ -239,8 +268,12 @@ free(imagein);imagein=NULL;
 // err = QccWAVWaveletInversePacketDWT3D(input_volume,output_volume, nbmax, nlmax, nsmax, 0, 0, 0, 0, 0, 0, NumLevels_spec, NumLevels_spat, &Wavelet);
 // 
 // QccVolumeFree(input_volume, nbmax, nlmax);
+#ifdef WAV53
+err = QccWAVWaveletInversePacketDWT3DInt(input_volume, nbmax, nlmax, nsmax, 0, 0, 0, 0, 0, 0, NumLevels_spec, NumLevels_spat, &Wavelet);
+#else
 err = QccWAVWaveletInversePacketDWT3D(input_volume, nbmax, nlmax, nsmax, 0, 0, 0, 0, 0, 0, NumLevels_spec, NumLevels_spat, &Wavelet);
-output_volume = input_volume;
+#endif
+// output_volume = input_volume;
 
 // imageout = (long int *) malloc(npix*sizeof(long int));
 
@@ -249,7 +282,8 @@ for (j=0; j<nlmax; j++){
 for (k=0; k<nbmax; k++){
         i_l= i + j*nsmax + k*nsmax*nlmax;
 // 	imageout[i_l] = (long int) round( (*(*(output_volume+k) +j))[i] );
-	imageout[i_l] = (long int) lround( (*(*(output_volume+k) +j))[i]/factor ); //WARNING check rint()
+// 	imageout[i_l] = (long int) lround( (*(*(output_volume+k) +j))[i]/factor ); //WARNING check rint()
+	imageout[i_l] = (long int) lround( (*(*(input_volume+k) +j))[i]/factor ); //WARNING check rint()
 // 	imageout[i_l] = (long int) (*(*(output_volume+k) +j))[i];
 }
 }
@@ -258,8 +292,13 @@ for (k=0; k<nbmax; k++){
 // err = QccWAVWaveletInversePacketDWT3D(output_volume,output2_volume, nbmax, nlmax, nsmax, 0, 0, 0, 0, 0, 0, NumLevels_spec, NumLevels_spat, &Wavelet);
 
 
-QccVolumeFree(output_volume, nbmax, nlmax);
+// QccVolumeFree(output_volume, nbmax, nlmax);
+#ifdef WAV53
+QccVolumeIntFree(input_volume, nbmax, nlmax);
+#else
+QccVolumeFree(input_volume, nbmax, nlmax);
 // QccVolumeFree(output2_volume, nbmax, nlmax);
+#endif
 
 return 0;
 
@@ -296,6 +335,6 @@ fprintf(stderr, "ERREUR MAX %ld\n",maxerr);
 fprintf(stderr, "Decoding OK (maxerr= %ld)\n",maxerr);
 }
 
-fprintf(stderr, "End check......\n",maxerr);
+fprintf(stderr, "End check......\n");
 return 0;
 }

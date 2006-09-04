@@ -11,12 +11,6 @@
  */
 
 
-// #include "spiht_code_c.h"
-// #include "ezw_code_c.h"
-// #include "desc_ezw.h"
-// #include <stdlib.h>
-// #include <stdio.h>
-// #include <unistd.h> 
 #include "main.h"
 
 #ifdef EZW_ARITH
@@ -24,26 +18,26 @@
 #endif
 
 #ifdef EZW_ARITH
-#define CONT_NUM 1
-#define CONT_REFINE 0
+
+#define CONT_NUM 3
 #define CONT_SIGN_GEN 0
-#define CONT_SIGN_HF 0
+#define CONT_SIGN_HF 1
+#define CONT_REFINE 2
 
-
+//4 symbols in total for results in paper
+#define NUM_SYMBOLS 4
 #define SYMB_POS 0
 #define SYMB_NEG 1
 #define SYMB_IZ 2
 #define SYMB_ZTR 3
-#define SYMB_Z 4
+#define SYMB_Z 2
+
 #define SYMB_REF_1 1
 #define SYMB_REF_0 0
 #endif
 
-// int ezw_code_c(long int *image, unsigned char *stream, long int *outputsize, int *maxquantvalue){
-int ezw_code_c(long int *image, struct stream_struct streamstruct, long int *outputsize, int maxquantvalue){
+int ezw_code_c(long int *image, stream_struct streamstruct, long int *outputsize, int maxquantvalue){
 
-// struct imageprop_struct imageprop={NSMAX_CONST, NLMAX_CONST, NBMAX_CONST, NSMIN_CONST, NLMIN_CONST, NBMIN_CONST};
-// int maxquant=MAXQUANT_CONST;
 int maxquant=(int) maxquantvalue;
 int minquant=0;
 long int npix=0;
@@ -69,15 +63,15 @@ int * symbol_stream = (int *) malloc(symb_stream_length*sizeof(int));
 #ifdef EZW_ARITH
 int symbol = -1;
 // long int symb_stream_length = 100000000;
-#ifdef EZWUSEZ
-int NUM_SYMBOLS = 5;
+/*#ifdef EZWUSEZ
+int NUM_SYMBOLS = 5*/;//avec arith, on peut numeroter pareil le Z
 int num_context=CONT_NUM;
 int num_symbols[CONT_NUM]; 
-#else
-int NUM_SYMBOLS = 4;
-int num_context=CONT_NUM;
-int num_symbols[CONT_NUM]; 
-#endif
+// #else
+// int NUM_SYMBOLS = 4;
+// int num_context=CONT_NUM;
+// int num_symbols[CONT_NUM]; 
+// #endif
 long int symb_counter = 0;
 // int symbol_stream[symb_stream_length];
 
@@ -90,13 +84,19 @@ char * argv1[1];
 argv1[0] = (char *) malloc(256*sizeof(char)); 
 strcpy(argv1[0],"tmp");
 struct stat filestat;
-#ifdef EZW_ARITH_RESET_MODEL
-double proba[5];
-#endif
+// #ifdef EZW_ARITH_RESET_MODEL
+// #ifdef EZWUSEZ
+// double * probaref = (double *) calloc(5, sizeof(double));
+// double * probasig = (double *) calloc(5, sizeof(double));
+// #else
+// double * probaref = (double *) calloc(4, sizeof(double));
+// double * probasig = (double *) calloc(4, sizeof(double));
+// #endif
+// #endif
 #endif
 
-struct list_struct * list_desc=NULL;
-struct list_el * current_el=NULL;
+list_struct * list_desc=NULL;
+list_el * current_el=NULL;
 
 unsigned char *stream = streamstruct.stream;
 unsigned char * count = streamstruct.count;
@@ -132,8 +132,11 @@ for (i=0;i<npix;i++){
     QccInit(argc1, argv1);
     QccBitBufferInitialize(&output_buffer);
 
-	for (i = 0; i < num_context; i++)
-	num_symbols[i] = NUM_SYMBOLS; 
+// 	for (i = 0; i < num_context; i++)
+// 	num_symbols[i] = NUM_SYMBOLS; 
+    num_symbols[CONT_REFINE]=2;
+    num_symbols[CONT_SIGN_HF]=3;
+    num_symbols[CONT_SIGN_GEN]=4;
 
     output_buffer.type = QCCBITBUFFER_OUTPUT;
     strcpy(output_buffer.filename,"tmp");
@@ -162,11 +165,18 @@ printf("Bit plane & Significant & IZ & ZTR & Average\\\\ \n");
 printf("\\hline \n");
 #endif
 
-#ifdef EZW_ARITH_RESET_MODEL
-for (i=0;i<5;i++){
-proba[i]=1/5.0;
-}
-#endif
+// #ifdef EZW_ARITH_RESET_MODEL
+// for (i=0;i<NUM_SYMBOLS;i++){//to correspond to the original EZW with model reset for significant and ref pass
+// 	probasig[i]=1.0/NUM_SYMBOLS;
+// // 	probaref[i]=1.0/NUM_SYMBOLS;
+// }
+// probaref[0]=1/2.0;
+// probaref[1]=1/2.0;
+// for (i=2;i<NUM_SYMBOLS;i++){
+// 	probaref[i]=0.0;
+// }
+// 
+// #endif
 
 //codage EZW
 for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
@@ -182,15 +192,27 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 // 	nzerotree=0;	
 // 	nz = 0;
 	
-#ifdef EZW_ARITH_RESET_MODEL
-for (i=0;i<CONT_NUM;i++){
-QccENTArithmeticSetModelProbabilities(model, proba, i);
-}
-#endif
+
 
 #ifndef EZWNOREF
 #ifndef EZWREFAFTER
 #ifdef EZW_ARITH
+
+	#ifdef EZW_ARITH_RESET_MODEL
+
+// 	QccENTArithmeticSetModelAdaption(model, QCCENT_NONADAPTIVE);
+	for (i=0;i<CONT_NUM;i++){
+		QccENTArithmeticResetModel(model, i);
+// 		if (QccENTArithmeticSetModelProbabilities(model, probaref, i))
+// 		{
+// 		QccErrorAddMessage("%s: Error calling QccENTArithmeticSetModelProbabilities()",
+// 		argv1[0]);
+// 		QccErrorExit();
+// 		}
+	}
+// 	QccENTArithmeticSetModelAdaption(model, QCCENT_ADAPTIVE);
+	#endif
+
 	if (QccENTArithmeticSetModelContext(model, CONT_REFINE)) //contexte 0 pour refinement
 	{
 	QccErrorAddMessage("%s: Error calling QccENTArithmeticSetModelContext()",
@@ -227,12 +249,33 @@ QccENTArithmeticSetModelProbabilities(model, proba, i);
 	
 	//significance pass
 	
+	#ifdef EZW_ARITH_RESET_MODEL
+// 	QccENTArithmeticSetModelAdaption(model, QCCENT_NONADAPTIVE);
+	for (i=0;i<CONT_NUM;i++){
+		QccENTArithmeticResetModel(model, i);
+// 		if (QccENTArithmeticSetModelProbabilities(model, probasig, i))
+// 		{
+// 		QccErrorAddMessage("%s: Error calling QccENTArithmeticSetModelProbabilities()",
+// 		argv1[0]);
+// 		QccErrorExit();
+// 		}
+	}
+// 	QccENTArithmeticSetModelAdaption(model, QCCENT_ADAPTIVE);
+	#endif
 	for (i=0;i< npix;i++){
 // 	for (x=0;x<imageprop.nsmax;x++){
 // 	for (y=0;y<imageprop.nlmax;y++){
 // 	for (l=0;l<imageprop.nbmax;l++){
 
 // 		i = x + (y + l*imageprop.nlmax)*imageprop.nsmax;
+
+// 	for (m=0; m<imageprop.nsmax+imageprop.nlmax+imageprop.nbmax; m++){//parcours zigzag
+// 	  for (x=0; x <= min(m,imageprop.nsmax-1); x++){
+// 	    for (y=0; y<= min(m-x,imageprop.nlmax-1); y++){
+// 	      l=m-x-y;
+//               if (l<= imageprop.nbmax-1){
+// 			i =  x + (y+l*imageprop.nlmax)*imageprop.nsmax;
+
 		if ( (map_zt[i] == 0) && (map_sig[i] ==0) ){
 		//This point is NOT part of a zerotree already and is NOT processed during refinement
 		x=i % (imageprop.nsmax);
@@ -327,7 +370,8 @@ QccENTArithmeticSetModelProbabilities(model, proba, i);
 #endif
 				nneg++;
 			};
-			if ((image[i] < threshold) &&  (image[i] > -threshold)){ // IZ ou ZT
+			if (map_sig[i] == 0){
+// 			if ((image[i] < threshold) &&  (image[i] > -threshold)){ // IZ ou ZT
 #ifdef EZWUSEZ
 	#ifdef NEWTREE 
 	//spat-tree
@@ -363,8 +407,8 @@ QccENTArithmeticSetModelProbabilities(model, proba, i);
 				{
 #endif
 				list_desc=NULL;//should be the case if freed properly before
-				r=spat_spec_desc_ezw((struct pixel_struct) {x,y,l}, list_desc, 0, image,thres_ind, map_sig);
-// 				r=spec_desc_ezw((struct pixel_struct) {x,y,l}, list_desc, 0, image,thres_ind, map_sig);
+				r=spat_spec_desc_ezw((pixel_struct) {x,y,l}, list_desc, 0, image,thres_ind, map_sig);
+// 				r=spec_desc_ezw((pixel_struct) {x,y,l}, list_desc, 0, image,thres_ind, map_sig);
 				//une modification est-elle necessaire pour tenir compte des elements appartenat deja aux ZT ?
 				if ((r ==-1)||(r == 0)){// zero isole (early ending ou pas de desc
 #ifdef EZW_ARITH
@@ -407,8 +451,8 @@ QccENTArithmeticSetModelProbabilities(model, proba, i);
 #endif
 					//do not forget to update map_zt
 					list_desc=list_init();
-					r=spat_spec_desc_ezw((struct pixel_struct) {x,y,l}, list_desc, 1, image, thres_ind, map_sig);//sans early ending...
-// 					r=spec_desc_ezw((struct pixel_struct) {x,y,l}, list_desc, 1, image, thres_ind, map_sig);//sans early ending...
+					r=spat_spec_desc_ezw((pixel_struct) {x,y,l}, list_desc, 1, image, thres_ind, map_sig);//sans early ending...
+// 					r=spec_desc_ezw((pixel_struct) {x,y,l}, list_desc, 1, image, thres_ind, map_sig);//sans early ending...
 					map_zt[i]=1;
 					current_el=first_el(list_desc);
 					while (current_el != NULL){
@@ -427,6 +471,7 @@ QccENTArithmeticSetModelProbabilities(model, proba, i);
 
 		};
 	};
+// 	}}}
 // 	}
 // 	}
 // 	}
@@ -443,6 +488,19 @@ QccENTArithmeticSetModelProbabilities(model, proba, i);
 #ifdef EZWREFAFTER
 	//refinement pass
 #ifdef EZW_ARITH
+	#ifdef EZW_ARITH_RESET_MODEL
+// 	QccENTArithmeticSetModelAdaption(model, QCCENT_NONADAPTIVE);
+	for (i=0;i<CONT_NUM;i++){
+		QccENTArithmeticResetModel(model, i);
+// 		if (QccENTArithmeticSetModelProbabilities(model, probaref, i))
+// 		{
+// 		QccErrorAddMessage("%s: Error calling QccENTArithmeticSetModelProbabilities()",
+// 		argv1[0]);
+// 		QccErrorExit();
+// 		}
+	}
+// 	QccENTArithmeticSetModelAdaption(model, QCCENT_ADAPTIVE);
+	#endif
 	if (QccENTArithmeticSetModelContext(model, CONT_REFINE)) //contexte 0 pour refinement
 	{
 	QccErrorAddMessage("%s: Error calling QccENTArithmeticSetModelContext()",
@@ -566,7 +624,7 @@ return 0;
 
 
 // int ezw_decode_c(long int *image, unsigned char *stream, long int *outputsize, int *maxquantvalue)
-int ezw_decode_c(long int *image, struct stream_struct streamstruct, long int *outputsize, int maxquantvalue)
+int ezw_decode_c(long int *image, stream_struct streamstruct, long int *outputsize, int maxquantvalue)
 {
 
 
@@ -593,15 +651,15 @@ unsigned char *map_sig = NULL;
 #ifdef EZW_ARITH
 int symbol = -1;
 // long int symb_stream_length = 100000000;// ???
-#ifdef EZWUSEZ
-int NUM_SYMBOLS = 5;
+// #ifdef EZWUSEZ
+// int NUM_SYMBOLS = 5;
+// int num_context=CONT_NUM;
+// int num_symbols[CONT_NUM]; 
+// #else
+// int NUM_SYMBOLS = 4;
 int num_context=CONT_NUM;
 int num_symbols[CONT_NUM]; 
-#else
-int NUM_SYMBOLS = 4;
-int num_context=CONT_NUM;
-int num_symbols[CONT_NUM]; 
-#endif
+// #endif
 long int symb_counter = 0;
 // int symbol_stream[symb_stream_length];
 // int * symbol_stream = (int *) malloc(symb_stream_length*sizeof(int));
@@ -612,12 +670,21 @@ QccENTArithmeticModel *model = NULL;
 int * argc1=1;
 char * argv1[1];
 argv1[0] = (char *) malloc(256*sizeof(char)); 
-strcpy(argv1[0],"tmp");
+strcpy(argv1[0],"spihtcode");
 struct stat filestat;
+// #ifdef EZW_ARITH_RESET_MODEL
+// #ifdef EZWUSEZ
+// double probaref[5];
+// double probasig[5];
+// #else
+// double probaref[4];
+// double probasig[4];
+// #endif
+// #endif
 #endif
 
-struct list_struct * list_desc=NULL;
-struct list_el * current_el=NULL;
+list_struct * list_desc=NULL;
+list_el * current_el=NULL;
 
 unsigned char *stream = streamstruct.stream;
 unsigned char * count = streamstruct.count;
@@ -650,15 +717,18 @@ for (i=0;i<npix;i++){
 #ifdef EZW_ARITH
    //copy pour compatibilité
    data_file = fopen("tmp", "w");
-   status = fwrite(&streamstruct.stream[8], 1, *outputsize/8 - 8, data_file);//WARNING depends on header size, not valid if mean sub (TODO add header size property)
+   status = fwrite(&streamstruct.stream[(*streamstruct.headerlength)/8], 1, *outputsize/8 - (*streamstruct.headerlength)/8, data_file);//WARNING depends on header size, not valid if mean sub (TODO add header size property)
 //    *streamstruct.streamlast += filestat.st_size;
    status=fclose(data_file);
 
     QccInit(argc1, argv1);
     QccBitBufferInitialize(&input_buffer);
 
-    for (i = 0; i < num_context; i++)
-	num_symbols[i] = NUM_SYMBOLS; 
+//     for (i = 0; i < num_context; i++)
+// 	num_symbols[i] = NUM_SYMBOLS; 
+    num_symbols[CONT_REFINE]=2;
+    num_symbols[CONT_SIGN_HF]=3;
+    num_symbols[CONT_SIGN_GEN]=4;
 
     input_buffer.type = QCCBITBUFFER_INPUT;
     strcpy(input_buffer.filename,"tmp");
@@ -684,6 +754,18 @@ for (i=0;i<npix;i++){
 
 npix=imageprop.nsmax * imageprop.nlmax * imageprop.nbmax;
 
+// #ifdef EZW_ARITH_RESET_MODEL
+// for (i=0;i<NUM_SYMBOLS;i++){//to correspond to the original EZW with model reset for significant and ref pass
+// 	probasig[i]=1.0/NUM_SYMBOLS;
+// // 	probaref[i]=1.0/NUM_SYMBOLS;//tmp
+// }
+// probaref[0]=1/2.0;
+// probaref[1]=1/2.0;
+// for (i=2;i<NUM_SYMBOLS;i++){
+// 	probaref[i]=0.0;
+// }
+// #endif
+
 //decodage EZW
 for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 	
@@ -702,6 +784,19 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 #ifndef EZWREFAFTER
 	//refinement pass
 #ifdef EZW_ARITH
+	#ifdef EZW_ARITH_RESET_MODEL
+// 	QccENTArithmeticSetModelAdaption(model, QCCENT_NONADAPTIVE);
+	for (i=0;i<CONT_NUM;i++){
+		QccENTArithmeticResetModel(model, i);
+// 		if (QccENTArithmeticSetModelProbabilities(model, probaref, i))
+// 		{
+// 		QccErrorAddMessage("%s: Error calling QccENTArithmeticSetModelProbabilities()",
+// 		argv1[0]);
+// 		QccErrorExit();
+// 		}
+	}
+// 	QccENTArithmeticSetModelAdaption(model, QCCENT_ADAPTIVE);
+	#endif
 	if (QccENTArithmeticSetModelContext(model, CONT_REFINE)) //contexte 0 pour refinement
 	{
 	QccErrorAddMessage("%s: Error calling QccENTArithmeticSetModelContext()",
@@ -713,7 +808,7 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 	for (i=0;i< npix;i++){
 		if (map_sig[i] == 1){
 #ifdef EZW_ARITH
-			if (input_buffer.bit_cnt < *outputsize-64){
+			if (input_buffer.bit_cnt < *outputsize-(*streamstruct.headerlength)){
 			if (QccENTArithmeticDecode(&input_buffer, model, &symbol, 1))
 			{
 			QccErrorAddMessage("%s: Error calling QccENTArithmeticDecode()",
@@ -745,7 +840,7 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 		};
 	};
 #ifdef EZW_ARITH	
-	if (input_buffer.bit_cnt >= *outputsize-64) break;
+	if (input_buffer.bit_cnt >= *outputsize-(*streamstruct.headerlength)) break;
 #else
 	if ((*streamlast)*8+ (*count) > *outputsize) break;
 #endif
@@ -754,6 +849,19 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 #endif
 
 	//significance pass
+	#ifdef EZW_ARITH_RESET_MODEL
+// 	QccENTArithmeticSetModelAdaption(model, QCCENT_NONADAPTIVE);
+	for (i=0;i<CONT_NUM;i++){
+		QccENTArithmeticResetModel(model, i);
+// 		if (QccENTArithmeticSetModelProbabilities(model, probasig, i))
+// 		{
+// 		QccErrorAddMessage("%s: Error calling QccENTArithmeticSetModelProbabilities()",
+// 		argv1[0]);
+// 		QccErrorExit();
+// 		}
+	}
+// 	QccENTArithmeticSetModelAdaption(model, QCCENT_ADAPTIVE);
+	#endif
 	flagsig=0;
 	for (i=0;i< npix;i++){
 // 		if ((map_zt[i] == 1) || (map_sig[i] ==1)){//TODO une seule structure ???
@@ -764,6 +872,13 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 		y=(i/imageprop.nsmax) % (imageprop.nlmax);
 		l=(i/(imageprop.nsmax*imageprop.nlmax));
 
+// 	for (m=0; m<imageprop.nsmax+imageprop.nlmax+imageprop.nbmax; m++){//parcours zigzag
+// 	  for (x=0; x <= min(m,imageprop.nsmax-1); x++){
+// 	    for (y=0; y<= min(m-x,imageprop.nlmax-1); y++){
+// 	      l=m-x-y;
+//               if (l<= imageprop.nbmax-1){
+// 			i =  x + (y+l*imageprop.nlmax)*imageprop.nsmax;
+// 		if ((map_zt[i] == 0) && (map_sig[i] ==0)){ 
 /*Selection du contexte*/
 #ifdef EZW_ARITH
 #ifdef EZWUSEZ
@@ -807,7 +922,7 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 #endif
 /*Fin de selection du contexte*/
 #ifdef EZW_ARITH
-			if (input_buffer.bit_cnt < *outputsize-64){
+			if (input_buffer.bit_cnt < *outputsize-(*streamstruct.headerlength)){
 			if (QccENTArithmeticDecode(&input_buffer, model, &symbol, 1))
 			{
 			QccErrorAddMessage("%s: Error calling QccENTArithmeticDecode()",
@@ -821,7 +936,7 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 			if (symbol == SYMB_NEG){bit = 1; bit2=0;}//NEG
 			if (symbol == SYMB_IZ){bit = 0; bit2=0;}//IZ
 			if (symbol == SYMB_ZTR){bit = 0; bit2=1;}//ZTR
-			if (symbol == SYMB_Z){bit = 0; bit2=-1;}//Z
+			if (symbol == SYMB_Z){bit = 0; bit2=0;}//Z
 #else
 			if ((*streamlast)*8+ (*count) <= *outputsize){
 				bit= read_from_stream(stream, count, streamlast);
@@ -884,8 +999,8 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 				nzeroisol++;
 			} else {//ZT
 				list_desc=list_init();
-				r=spat_spec_desc_ezw((struct pixel_struct) {x,y,l}, list_desc, 1, image, thres_ind, map_sig);//sans early ending...
-// 				r=spec_desc_ezw((struct pixel_struct) {x,y,l}, list_desc, 1, image, thres_ind, map_sig);//sans early ending...
+				r=spat_spec_desc_ezw((pixel_struct) {x,y,l}, list_desc, 1, image, thres_ind, map_sig);//sans early ending...
+// 				r=spec_desc_ezw((pixel_struct) {x,y,l}, list_desc, 1, image, thres_ind, map_sig);//sans early ending...
 				map_zt[i]=1;
 				current_el=first_el(list_desc);
 				while (current_el != NULL){
@@ -902,14 +1017,18 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 			}
 		};
 	};
+// 	}}}	
 
 	//on remet la map_zt a zero...
 	for (i=0; i<npix; i++){
 		map_zt[i]=0;
+#ifdef EZWNOREF
+		map_sig[i]=0;
+#endif
 	};
 
 #ifdef EZW_ARITH	
-	if (input_buffer.bit_cnt >= *outputsize-64) break;
+	if (input_buffer.bit_cnt >= *outputsize-(*streamstruct.headerlength)) break;
 #else
 	if ((*streamlast)*8+ (*count) > *outputsize) break;
 #endif
@@ -918,7 +1037,20 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 	//refinement pass
 	flagsig=1;
 #ifdef EZW_ARITH
-	if (input_buffer.bit_cnt < *outputsize-64){
+	#ifdef EZW_ARITH_RESET_MODEL
+// 	QccENTArithmeticSetModelAdaption(model, QCCENT_NONADAPTIVE);
+	for (i=0;i<CONT_NUM;i++){
+		QccENTArithmeticResetModel(model, i);
+// 		if (QccENTArithmeticSetModelProbabilities(model, probaref, i))
+// 		{
+// 		QccErrorAddMessage("%s: Error calling QccENTArithmeticSetModelProbabilities()",
+// 		argv1[0]);
+// 		QccErrorExit();
+// 		}
+	}
+// 	QccENTArithmeticSetModelAdaption(model, QCCENT_ADAPTIVE);
+	#endif
+	if (input_buffer.bit_cnt < *outputsize-(*streamstruct.headerlength)){
 	if (QccENTArithmeticSetModelContext(model, CONT_REFINE)) //contexte 0 pour refinement
 	{
 	QccErrorAddMessage("%s: Error calling QccENTArithmeticSetModelContext()",
@@ -930,7 +1062,7 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 	for (i=0;i< npix;i++){
 		if ((map_sig[i] == 1) &&  (abs(image[i]) >= 2*threshold)) {
 #ifdef EZW_ARITH
-			if (input_buffer.bit_cnt < *outputsize-64){
+			if (input_buffer.bit_cnt < *outputsize-(*streamstruct.headerlength)){
 			if (QccENTArithmeticDecode(&input_buffer, model, &symbol, 1))
 			{
 			QccErrorAddMessage("%s: Error calling QccENTArithmeticDecode()",
@@ -963,7 +1095,7 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 	};
 	
 #ifdef EZW_ARITH	
-	if (input_buffer.bit_cnt >= *outputsize-64) break;
+	if (input_buffer.bit_cnt >= *outputsize-(*streamstruct.headerlength)) break;
 #else
 	if ((*streamlast)*8+ (*count) > *outputsize) break;
 #endif

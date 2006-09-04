@@ -19,7 +19,7 @@
 **********************************/
 
 
-int spiht_code_ra5(long int *image, struct stream_struct streamstruct, long int *outputsize, struct coder_param_struct coder_param){
+int spiht_code_ra5(long int *image, stream_struct streamstruct, long int *outputsize, coder_param_struct coder_param){
 
 // struct imageprop_struct imageprop={NSMAX_CONST, NLMAX_CONST, NBMAX_CONST, NSMIN_CONST, NLMIN_CONST, NBMIN_CONST};
 
@@ -33,19 +33,19 @@ int nbmin=imageprop.nbmin;
 // struct list_struct * LSC[NRES];
 // struct list_struct * LIC[NRES];
 // struct list_struct * LIS[NRES];
-struct list_struct ** LSC = (struct list_struct **) calloc(imageprop.nres, sizeof(struct list_struct *));
-struct list_struct ** LIC = (struct list_struct **) calloc(imageprop.nres, sizeof(struct list_struct *));
-struct list_struct ** LIS = (struct list_struct **) calloc(imageprop.nres, sizeof(struct list_struct *));
-struct pixel_struct pixel;
+list_struct ** LSC = (list_struct **) calloc(imageprop.nres, sizeof(list_struct *));
+list_struct ** LIC = (list_struct **) calloc(imageprop.nres, sizeof(list_struct *));
+list_struct ** LIS = (list_struct **) calloc(imageprop.nres, sizeof(list_struct *));
+pixel_struct pixel;
 
-struct list_el * el=NULL;
-struct list_el * current_el=NULL;
-struct list_el * tmp_el=NULL;
-struct list_el * current_child=NULL;
-struct list_el * lastLIScurrentthres=NULL;
+list_el * el=NULL;
+list_el * current_el=NULL;
+list_el * tmp_el=NULL;
+list_el * current_child=NULL;
+list_el * lastLIScurrentthres=NULL;
 
-struct list_struct * list_desc=NULL;
-struct list_struct * list_grand_desc=NULL;
+list_struct * list_desc=NULL;
+list_struct * list_grand_desc=NULL;
 
 long int value_pix=0;
 unsigned char bit=255;
@@ -79,7 +79,7 @@ int * flagfirst = (int *) malloc (sizeof(int));
 //debit-distortion
 long long int dist=0;
 float alpha, beta, rate_i, rate_e;
-struct datablock_struct * datablock;
+datablock_struct * datablock;
 float lambda=0.0;
 
 int maxres=imageprop.nres;
@@ -92,7 +92,7 @@ int resspec=0;
 
 #ifdef NOLISTB
 int is_accessible=0;
-struct parents_struct parents;
+parents_struct parents;
 #endif
 
 #ifdef DEBUG
@@ -145,7 +145,7 @@ njloc=(nlmin+1)/2;
 nkloc=(nbmin+1)/2;
 nblock=niloc* njloc* nkloc;
 
-datablock=(struct datablock_struct *) malloc(nblock* sizeof(struct datablock_struct));
+datablock=(datablock_struct *) malloc(nblock* sizeof(datablock_struct));
 
 
 
@@ -865,7 +865,7 @@ return 0;
 ***         DECODER            ***
 **********************************/
 
-int spiht_decode_ra5(long int *image, struct stream_struct streamstruct, long int *outputsize, struct coder_param_struct coder_param){
+int spiht_decode_ra5(long int *image, stream_struct streamstruct, long int *outputsize, coder_param_struct coder_param){
 
 // struct imageprop_struct imageprop={NSMAX_CONST, NLMAX_CONST, NBMAX_CONST, NSMIN_CONST, NLMIN_CONST, NBMIN_CONST};
 
@@ -879,26 +879,26 @@ int nbmin=imageprop.nbmin;
 // struct list_struct * LSC[NRES];
 // struct list_struct * LIC[NRES];
 // struct list_struct * LIS[NRES];
-struct list_struct ** LSC = (struct list_struct **) calloc(imageprop.nres, sizeof(struct list_struct *));
-struct list_struct ** LIC = (struct list_struct **) calloc(imageprop.nres, sizeof(struct list_struct *));
-struct list_struct ** LIS = (struct list_struct **) calloc(imageprop.nres, sizeof(struct list_struct *));
-struct pixel_struct pixel;
-struct parents_struct parents;
+list_struct ** LSC = (list_struct **) calloc(imageprop.nres, sizeof(list_struct *));
+list_struct ** LIC = (list_struct **) calloc(imageprop.nres, sizeof(list_struct *));
+list_struct ** LIS = (list_struct **) calloc(imageprop.nres, sizeof(list_struct *));
+pixel_struct pixel;
+parents_struct parents;
 int is_accessible=0;
 
 
-struct list_el * el=NULL;
-struct list_el * current_el=NULL;
-struct list_el * tmp_el=NULL;
-struct list_el * current_child=NULL;
-struct list_el * lastLIScurrentthres=NULL;
+list_el * el=NULL;
+list_el * current_el=NULL;
+list_el * tmp_el=NULL;
+list_el * current_child=NULL;
+list_el * lastLIScurrentthres=NULL;
 
 
 
-struct list_el * lastprocessed=NULL;
+list_el * lastprocessed=NULL;
 
-struct list_struct * list_desc=NULL;
-struct list_struct * list_grand_desc=NULL;
+list_struct * list_desc=NULL;
+list_struct * list_grand_desc=NULL;
 unsigned char bit=255;
 unsigned char bitsig=255;
 int r=0;
@@ -952,7 +952,7 @@ int LSCprocessed = 0;
 int flagLIS = 0;
 #endif
 
-struct datablock_struct * datablock;
+datablock_struct * datablock;
 
 int res=0;
 #ifdef RES_SCAL
@@ -1010,7 +1010,7 @@ njloc=(nlmin+1)/2;
 nkloc=(nbmin+1)/2;
 nblock=niloc* njloc* nkloc;
 
-datablock=(struct datablock_struct *) malloc(nblock* sizeof(struct datablock_struct));
+datablock=(datablock_struct *) malloc(nblock* sizeof(datablock_struct));
 
 for (i=0; i<nblock; i++){
 	datablock_init(&(datablock[i]));

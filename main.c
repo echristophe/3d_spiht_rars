@@ -26,13 +26,13 @@ int filename_supplied = 0;
 int output_filename_supplied = 0;
 int size_supplied = 0;
 int ndecomp_supplied = 0;
-int type_supplied = 0;
-int type = 2;
+
+coder_option_struct coder_option;
 
 int selected = -1;
 float rate=0.0;
-char * filename = (char *) calloc(256,sizeof(char));
-char * output_filename = (char *) calloc(256,sizeof(char));
+
+init_coder_option(&coder_option);
 
 	for (i = 1; i < argc;) {
 	if (argv[i][0] == '-') 	{
@@ -48,9 +48,12 @@ char * output_filename = (char *) calloc(256,sizeof(char));
 		case 'r':		/* use rate */
 			i++;
 			if (i>=argc) usage(argv[0]);
-// 			sscanf(argv[i],"%ld",&rate);
 			if (sscanf(argv[i],"%f",&rate) == 0) usage(argv[0]);
 			i++;
+			break;
+		case 'm':		/* use mean substraction */
+			i++;
+			coder_option.flag_meansub=1;
 			break;
 		case 's':	/* image size */
 			size_supplied = 1;
@@ -78,16 +81,15 @@ char * output_filename = (char *) calloc(256,sizeof(char));
 			i++;
 			break;
 		case 't':	/*data type*/
-			type_supplied = 1;
 			i++;
 			if (i>=argc) usage(argv[0]);
-			if (sscanf(argv[i],"%d",&(type)) == 0) usage(argv[0]);
+			if (sscanf(argv[i],"%d",&(coder_option.type)) == 0) usage(argv[0]);
 			i++;
 			break;
 		case 'o':  /*output filename*/
 			output_filename_supplied = 1;
 			i++;
-			output_filename = argv[i];
+			coder_option.output_filename = argv[i];
 			i++;
 			break;
 		default:
@@ -98,7 +100,7 @@ char * output_filename = (char *) calloc(256,sizeof(char));
 	} else {
 		//read filename
 		if (filename_supplied) usage(argv[0]);
-		filename = argv[i];
+		coder_option.filename = argv[i];
 		filename_supplied = 1;
 		i++;
 	}
@@ -108,31 +110,28 @@ char * output_filename = (char *) calloc(256,sizeof(char));
 	if ( !filename_supplied){
 		if (selected == ENCODE){
 // 		filename = "/home/christop/Boulot/images/hyper_test/moffett3-ani-lsb.img";
-		#ifdef S64
-		filename = "/home/christop/Boulot/images/hyper_test/moffett3-64-lsb.img";
-		#else
-		filename = "/home/christop/Boulot/images/hyper_test/moffett3-lsb.img";
-		#endif
+// 		#ifdef S64
+// 		coder_option.filename = "/home/christop/Boulot/images/hyper_test/moffett3-64-lsb.img";
+// 		#else
+		coder_option.filename = "/home/christop/Boulot/images/hyper_test/moffett3-lsb.img";
+// 		#endif
 		} else {
-		#ifdef OUTPUT
-		filename = "/home/christop/Boulot/images/output_stream/output.dat";
-		#else
-		filename = "output.dat";
-		#endif
+// 		#ifdef OUTPUT
+// 		coder_option.filename = "/home/christop/Boulot/images/output_stream/output.dat";
+// 		#else
+		coder_option.filename = "output.dat";
+// 		#endif
 		}
 	}
 
 	if ( !output_filename_supplied){
 	    if(selected == ENCODE){
-		output_filename = "output.dat";
+		coder_option.output_filename = "output.dat";
 	    } else {
-		output_filename = "output.img";
+		coder_option.output_filename = "output.img";
 	    }
 	}
 
-	if (!type_supplied){
-		type = 2; //default 16 bits signed integer data
-	}
 
 //default values
 	if ((selected == ENCODE) && (!size_supplied)){
@@ -159,7 +158,7 @@ char * output_filename = (char *) calloc(256,sizeof(char));
 			usage(argv[0]);
 	}
 
-	printf("File: %s\n", filename);
+	printf("File: %s\n", coder_option.filename);
 
 	if (rate != 0){
 		printf("at rate %f\n", rate);
@@ -168,10 +167,10 @@ char * output_filename = (char *) calloc(256,sizeof(char));
 	//do the encoding or decoding
 	switch(selected) {
 		case ENCODE:
-			encode(filename,output_filename,type,rate);
+			encode(coder_option);
 			break;
 		case DECODE:
-			decode(filename,output_filename,type);
+			decode(coder_option);
 			break;
 		default:
 			usage(argv[0]);
@@ -187,13 +186,14 @@ char * output_filename = (char *) calloc(256,sizeof(char));
 void usage(char *str1){
 	fprintf(stderr,
 		"\nUsage:"
-		"%s [-e | -d] [-r rate] [-s ns nl nb] [-n d1 d2] [-t datatype] [-o outputfile] [filename]\n"
+		"%s [-e | -d] [-r rate] [-s ns nl nb] [-n d1 d2] [-t datatype] [-m] [-o outputfile] [filename]\n"
 		"ns: # samples                 [256]\n"
 		"nl: # lines                   [256]\n"
 		"nb: # bands                   [224]\n"
 		"d1: # spectral decompositions [5]\n"
 		"d2: # spatial decompositions  [5]\n"
-		"datatype: 2 short int (default), 1 unsigned char\n",
+		"-t datatype: 2 short int (default), 1 unsigned char\n"
+		"-m: use mean substraction for every spectral band prior to wavelet transform\n",
 	       str1
 	       );
 	exit(1);
@@ -205,7 +205,13 @@ void usage(char *str1){
 //****************************************************
 
 //add the option here later...
-int encode(char * filename, char * output_filename, int type, float rate){
+int encode(coder_option_struct coder_option){
+
+
+char * filename = coder_option.filename;
+char * output_filename = coder_option.output_filename;
+int type = coder_option.type;
+float rate = coder_option.rate;
 
 // short *imageoritmp=NULL;
 // unsigned char *imageoritmpbyte=NULL;
@@ -218,25 +224,20 @@ unsigned char * stream=NULL;
 long int * streamlast=(long int *) calloc(1,sizeof(long int));
 unsigned char * count=(unsigned char *) calloc(1,sizeof(unsigned char *));
 int *maxquantvalue=(int*) malloc(sizeof(int));
+int * headerlength = (int *) malloc(sizeof(int));
 long int * outputsize=NULL;
 long int npix;
 long int i_l;
 int niloc, njloc,nkloc, nblock;
 int iloc, jloc, kloc, blockind;
-struct stream_struct streamstruct;
+stream_struct streamstruct;
 
 int status;
 // FILE *data_file;
 FILE *output_file;
 
-struct coder_param_struct coder_param;
+coder_param_struct coder_param;
 
-//tmp
-// double valpi=0.141592653589793238462643383279502884197169399375;
-// data_file = fopen("pibin", "w");
-// status = fwrite(&valpi, sizeof(double), 1, data_file);
-// fclose(data_file);
-//fin temp
 
 #ifdef TIME
 clock_t start, end;
@@ -313,15 +314,13 @@ imageori = read_hyper(filename, npix, type);
 //perform wavelet checking
 // if (! wavelet_check(imageori,npix)) return 0;
 
-#ifdef MEANSUB
+if (coder_option.flag_meansub){
 // mean substraction
 printf("Be aware: using mean substraction\n");
 mean = (long int *) calloc(imageprop.nbmax,sizeof(long int));
 compute_mean(imageori, mean);
 substract_mean(imageori, mean);
-#endif
-
-
+}
 
 waveletDWT(imageori,image,imageprop.nresspec-1,imageprop.nresspat-1);
 #endif
@@ -383,12 +382,13 @@ print_imageprop();
 streamstruct.stream=stream;
 streamstruct.streamlast=streamlast;
 streamstruct.count=count;
+streamstruct.headerlength=headerlength;
 
 //Image header coding
 status=write_header(streamstruct);
-#ifdef MEANSUB
+if (coder_option.flag_meansub){
 status=write_header_mean(streamstruct, mean);
-#endif
+}
 // add_to_stream_number(imageprop.nsmax, stream, count, streamlast, 16);
 // add_to_stream_number(imageprop.nlmax, stream, count, streamlast, 16);
 // add_to_stream_number(imageprop.nbmax, stream, count, streamlast, 16);
@@ -400,6 +400,8 @@ status=write_header_mean(streamstruct, mean);
 // add_to_stream_number(mean[i_l], stream, count, streamlast, 16);
 // }
 // #endif
+
+// wavelet_check(image, npix);
 
 #ifdef TIME
 start = clock();
@@ -460,7 +462,12 @@ return 0;
 //****************************************************
 
 
-int decode(char * filename, char * output_filename, int type){
+int decode(coder_option_struct coder_option){
+
+char * filename = coder_option.filename;
+char * output_filename = coder_option.output_filename;
+int type = coder_option.type;
+float rate = coder_option.rate;
 
 long int * imageidwt=NULL;
 short * imageitmp=NULL;
@@ -477,7 +484,8 @@ long int * imageidwtori=NULL;
 unsigned char * stream=NULL;
 long int * streamlast=(long int *) calloc(1,sizeof(long int));
 unsigned char * count=(unsigned char *) calloc(1,sizeof(unsigned char *));
-struct stream_struct streamstruct;
+int * headerlength = (int *) malloc(sizeof(int));
+stream_struct streamstruct;
 // struct imageprop_struct imageprop={NSMAX_CONST, NLMAX_CONST, NBMAX_CONST, NSMIN_CONST, NLMIN_CONST, NBMIN_CONST};
 
 #ifdef TIME
@@ -495,7 +503,7 @@ FILE *stream_file;
 long int stream_size;
 int niloc, njloc, nkloc, nblock;
 int iloc, jloc, kloc, blockind;
-struct coder_param_struct coder_param;
+coder_param_struct coder_param;
 
 // long int *imageori;
 short *imageori;
@@ -507,7 +515,7 @@ long int maxerrnz=0;
 long int i_l=0;
 long int * mean=NULL;
 int i;
-struct pixel_struct pixel;
+pixel_struct pixel;
 long int nnewpix;
 int nsnewmax, nbnewmax, nlnewmax;
 int spatdec, specdec;
@@ -531,11 +539,16 @@ status = fclose(stream_file);
 streamstruct.stream=stream;
 streamstruct.streamlast=streamlast;
 streamstruct.count=count;
+streamstruct.headerlength=headerlength;
 
 status=read_header(streamstruct);
-#ifdef MEANSUB
-status=read_header_mean(streamstruct,mean);
-#endif
+
+if (coder_option.flag_meansub){
+printf("Be aware: using mean substraction\n");
+mean = (long int *) calloc(imageprop.nbmax,sizeof(long int));
+status=read_header_mean(streamstruct, mean);
+}
+
 // imageprop.nsmax = read_from_stream_number(stream, count, streamlast, 16);
 // imageprop.nlmax = read_from_stream_number(stream, count, streamlast, 16);
 // imageprop.nbmax = read_from_stream_number(stream, count, streamlast, 16);
@@ -746,10 +759,9 @@ waveletIDWT(image,imageidwt,specdec,spatdec);
 // free(image); //was freed inside the IDWT
 
 // mean substraction
-#ifdef MEANSUB
+if (coder_option.flag_meansub){
 add_mean(imageidwt, mean);
-#endif
-
+}
 
 #ifdef OUTPUT
 // if (type ==2){

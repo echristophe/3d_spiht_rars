@@ -209,14 +209,14 @@ long int count_zero(char * image){
 				if (pix !=0) {
 					moysign = moysign + 1.0/pix *(i-moysign);
 				} else {
-					moysign=i;
+					moysign=i;//warning, counting begin at 0, so moysign corresponds to the number of bit to refine
 				}
 			}
 			if ((flagsig ==1) && (image[i+pix*NBITS] == 0)) nzero++;
 	
 		}
 	}
-	printf("Moyenne du premier bit significatif: %f\n", moysign);
+	printf("Average amount of bits to refine: %f\n", moysign);
 	return nzero;
 }
 

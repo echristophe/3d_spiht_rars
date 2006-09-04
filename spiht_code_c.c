@@ -16,7 +16,7 @@
 
 // int spiht_code_c(long int *image, unsigned char *stream, long int *outputsize, int *maxquantvalue)
 // int spiht_code_c(long int *image, struct stream_struct streamstruct, long int *outputsize, int maxquantvalue)
-int spiht_code_c(long int *image, struct stream_struct streamstruct, long int *outputsize, struct coder_param_struct coder_param)
+int spiht_code_c(long int *image, stream_struct streamstruct, long int *outputsize, coder_param_struct coder_param)
 {
 
 // struct imageprop_struct imageprop={NSMAX_CONST, NLMAX_CONST, NBMAX_CONST, 8, 8, 7};
@@ -29,11 +29,11 @@ int nsmin=imageprop.nsmin;
 int nlmin=imageprop.nlmin;
 int nbmin=imageprop.nbmin;
 
-struct list_struct * LSC=NULL;
-struct list_struct * LIC=NULL;
-struct list_struct * LIS=NULL;
-struct pixel_struct pixel;
-struct parents_struct parents;
+list_struct * LSC=NULL;
+list_struct * LIC=NULL;
+list_struct * LIS=NULL;
+pixel_struct pixel;
+parents_struct parents;
 int is_accessible=0;
 // int maxquant=imageprop.maxquant;
 // int maxquant=MAXQUANT_CONST;
@@ -42,16 +42,16 @@ int is_accessible=0;
 int maxquant = (int) *coder_param.maxquant;
 
 int minquant=0;
-struct list_el * el=NULL;
-struct list_el * current_el=NULL;
-struct list_el * tmp_el=NULL;
-struct list_el * current_child=NULL;
-struct list_el * lastLSC=NULL;
+list_el * el=NULL;
+list_el * current_el=NULL;
+list_el * tmp_el=NULL;
+list_el * current_child=NULL;
+list_el * lastLSC=NULL;
 
 
-struct list_struct * list_desc=NULL;
+list_struct * list_desc=NULL;
 // struct list_struct * tmp_list=NULL;
-struct list_struct * list_grand_desc=NULL;
+list_struct * list_grand_desc=NULL;
 
 long int value_pix=0;
 unsigned char bit=255;
@@ -452,7 +452,7 @@ return 0;
 
 // int spiht_decode_c(long int *image, unsigned char *stream, long int *outputsize, int *maxquantvalue)
 // int spiht_decode_c(long int *image, struct stream_struct streamstruct, long int *outputsize, int maxquantvalue)
-int spiht_decode_c(long int *image, struct stream_struct streamstruct, long int *outputsize, struct coder_param_struct coder_param)
+int spiht_decode_c(long int *image, stream_struct streamstruct, long int *outputsize, coder_param_struct coder_param)
 {
 
 // struct imageprop_struct imageprop={NSMAX_CONST, NLMAX_CONST, NBMAX_CONST, 8, 8, 7};
@@ -465,11 +465,11 @@ int nsmin=imageprop.nsmin;
 int nlmin=imageprop.nlmin;
 int nbmin=imageprop.nbmin;
 
-struct list_struct * LSC=NULL;
-struct list_struct * LIC=NULL;
-struct list_struct * LIS=NULL;
-struct pixel_struct pixel;
-struct parents_struct parents;
+list_struct * LSC=NULL;
+list_struct * LIC=NULL;
+list_struct * LIS=NULL;
+pixel_struct pixel;
+parents_struct parents;
 int is_accessible=0;
 // int maxquant=imageprop.maxquant;
 // int maxquant=MAXQUANT_CONST;
@@ -478,16 +478,16 @@ int is_accessible=0;
 int maxquant=(int) *coder_param.maxquant;
 
 int minquant=0;
-struct list_el * el=NULL;
-struct list_el * current_el=NULL;
-struct list_el * tmp_el=NULL;
-struct list_el * current_child=NULL;
+list_el * el=NULL;
+list_el * current_el=NULL;
+list_el * tmp_el=NULL;
+list_el * current_child=NULL;
 
-struct list_el * lastLSC=NULL;
-struct list_el * lastprocessed=NULL;
+list_el * lastLSC=NULL;
+list_el * lastprocessed=NULL;
 
-struct list_struct * list_desc=NULL;
-struct list_struct * list_grand_desc=NULL;
+list_struct * list_desc=NULL;
+list_struct * list_grand_desc=NULL;
 // long int value_pix=0;
 unsigned char bit=255;
 unsigned char bitsig=255;

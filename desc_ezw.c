@@ -38,7 +38,7 @@ SPECTRAL - SPATIAL
 
 /*function spat_spec_desc_spiht_fast, current_pix_x, current_pix_y, current_pix_l, desc_array_x, desc_array_y, desc_array_l, thres_cube, imageprop, directchildonly=directchildonly*/
 
-int spat_spec_desc_ezw(struct pixel_struct pixel, struct list_struct * list_desc, int directchildonly, long int *image, int thres_ind, unsigned char *map_LSC)
+int spat_spec_desc_ezw(pixel_struct pixel, list_struct * list_desc, int directchildonly, long int *image, int thres_ind, unsigned char *map_LSC)
 {
 
 int r1=0;
@@ -56,11 +56,11 @@ int nlmin=imageprop.nlmin;
 #endif
 // int nbmin=imageprop.nbmin;
 
-struct list_el *current_el=NULL;
-struct list_struct *tmp_list=NULL;
+list_el *current_el=NULL;
+list_struct *tmp_list=NULL;
 
 // #ifdef EZW
-struct list_el *tmp_el=NULL;
+list_el *tmp_el=NULL;
 // #endif
 
 
@@ -203,13 +203,13 @@ return out;
 SPECTRAL
 ******************************************************/
 
-int spec_desc_ezw(struct pixel_struct pixel, struct list_struct * list_desc, int directchildonly, long int *image, int thres_ind, unsigned char *map_LSC){
+int spec_desc_ezw(pixel_struct pixel, list_struct * list_desc, int directchildonly, long int *image, int thres_ind, unsigned char *map_LSC){
 
-struct pixel_struct new_pixel;
-struct pixel_struct new_pixel1;
-struct pixel_struct new_pixel2;
+pixel_struct new_pixel;
+// pixel_struct new_pixel1;
+pixel_struct new_pixel2;
 long int value_pix;
-struct list_el * current_el=NULL;
+list_el * current_el=NULL;
 
 int r=0;
 int out=1;
@@ -221,8 +221,8 @@ int nbmax=imageprop.nbmax;
 // int nlmin=imageprop.nlmin;
 int nbmin=imageprop.nbmin;
 
-struct list_el *current_el1=NULL;
-struct list_el *current_el2=NULL;
+list_el *current_el1=NULL;
+list_el *current_el2=NULL;
 
 
 if (pixel.l >= nbmax / 2) return 0;
@@ -343,7 +343,7 @@ return out;
 SPATIAL
 ******************************************************/
 
-int spat_desc_ezw(struct pixel_struct pixel, struct list_struct * list_desc, int directchildonly, long int *image, int thres_ind, unsigned char *map_LSC){
+int spat_desc_ezw(pixel_struct pixel, list_struct * list_desc, int directchildonly, long int *image, int thres_ind, unsigned char *map_LSC){
 
 int nsmax=imageprop.nsmax;
 int nlmax=imageprop.nlmax;
@@ -352,21 +352,25 @@ int nsmin=imageprop.nsmin;
 int nlmin=imageprop.nlmin;
 // int nbmin=imageprop.nbmin;
 
-struct list_el *current_el1=NULL;
-struct list_el *current_el2=NULL;
-struct list_el *current_el3=NULL;
-struct list_el *current_el4=NULL;
+list_el *current_el1=NULL;
+list_el *current_el2=NULL;
+list_el *current_el3=NULL;
+list_el *current_el4=NULL;
 
-struct pixel_struct new_pixel1;
-struct pixel_struct new_pixel2;
-struct pixel_struct new_pixel3;
-struct pixel_struct new_pixel4;
+pixel_struct new_pixel1;
+pixel_struct new_pixel2;
+pixel_struct new_pixel3;
+pixel_struct new_pixel4;
 
 long int value_pix;
 
 int r;
 int out=1;
 
+new_pixel1 = init_pixel();
+new_pixel2 = init_pixel();
+new_pixel3 = init_pixel();
+new_pixel4 = init_pixel();
 
 /* Any offspring ?*/
 if (pixel.x >= nsmax / 2) return 0;

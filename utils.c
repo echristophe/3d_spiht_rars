@@ -11,6 +11,11 @@
  * 
  */
 
+
+#include "libQccPack.h"
+#include "libQccPackVQ.h"
+#include "libQccPackENT.h"
+
 #include "main.h"
 
 void print_imageprop(){
@@ -78,9 +83,9 @@ unsigned char read_from_stream(unsigned char * stream, unsigned char * count, lo
 	return output;
 };
 
-struct list_el * el_init(struct pixel_struct pixel){
-    struct list_el * ptr;
-    ptr = (struct list_el *) malloc( sizeof(struct list_el));
+list_el * el_init(pixel_struct pixel){
+    list_el * ptr;
+    ptr = (list_el *) malloc( sizeof(list_el));
     ptr->next = NULL;
     ptr->pixel = pixel;
     ptr->type = 0;
@@ -88,9 +93,9 @@ struct list_el * el_init(struct pixel_struct pixel){
     return ptr;
 };
 
-struct list_struct * list_init(void){
-    struct list_struct * ptr;
-    ptr = (struct list_struct *) malloc( sizeof(struct list_struct));
+list_struct * list_init(void){
+    list_struct * ptr;
+    ptr = (list_struct *) malloc( sizeof(list_struct));
     ptr->first = NULL;
     ptr->last = NULL;
     ptr->current = NULL;
@@ -98,9 +103,9 @@ struct list_struct * list_init(void){
     return ptr;
 };
 
-void list_free(struct list_struct * list){
-	struct list_el * previous=NULL;
-	struct list_el * current_el=NULL;
+void list_free(list_struct * list){
+	list_el * previous=NULL;
+	list_el * current_el=NULL;
 	if (list != NULL){
 	previous=list->first;
 	current_el=list->first;
@@ -113,9 +118,9 @@ void list_free(struct list_struct * list){
 	};
 };
 
-void list_flush(struct list_struct * list){
-	struct list_el * previous=NULL;
-	struct list_el * current_el=NULL;
+void list_flush(list_struct * list){
+	list_el * previous=NULL;
+	list_el * current_el=NULL;
 	if (list != NULL){
 	previous=list->first;
 	current_el=list->first;
@@ -131,20 +136,20 @@ void list_flush(struct list_struct * list){
 	};
 };
 
-struct list_el * first_el(struct list_struct * list){
+list_el * first_el(list_struct * list){
 	list->previous=NULL;
 	list->current=list->first;
 	return list->current;
 };
 
 
-// struct list_el * next_el(struct list_struct * list){
+// list_el * next_el(list_struct * list){
 // 	list->previous=list->current;
 // 	list->current=list->previous->next;
 // 	return list->current;
 // };
 
-struct list_el * next_el(struct list_struct * list){
+list_el * next_el(list_struct * list){
 //modif 21-02-06
 	if (list->current != NULL){
 		list->previous=list->current;
@@ -158,7 +163,7 @@ struct list_el * next_el(struct list_struct * list){
 };
 
 /*Insert el at the end of list*/
-void insert_el(struct list_struct * list, struct list_el * el)
+void insert_el(list_struct * list, list_el * el)
 {
 	if (list->last == NULL){/* The list is still empty*/ 
 		list->last = el;
@@ -172,7 +177,7 @@ void insert_el(struct list_struct * list, struct list_el * el)
 };
 
 
-void insert_el_inplace(struct list_struct * list, struct list_el * el)
+void insert_el_inplace(list_struct * list, list_el * el)
 {
 // 	if (list->current == NULL){ /* The list is still empty*/
 // 		list->last = el;
@@ -207,7 +212,7 @@ void insert_el_inplace(struct list_struct * list, struct list_el * el)
 };
 
 /*Insert el after 'place' and change 'place' to this element*/
-void insert_el_after(struct list_struct * list, struct list_el * el, struct list_el ** place)
+void insert_el_after(list_struct * list, list_el * el, list_el ** place)
 {
 	if ((*place) != el){
 	if ((*place) != NULL){
@@ -222,9 +227,9 @@ void insert_el_after(struct list_struct * list, struct list_el * el, struct list
 	(*place) = el;
 };
 
-struct list_el * remove_current_el(struct list_struct * list)
+list_el * remove_current_el(list_struct * list)
 {
-	struct list_el * ptr;
+	list_el * ptr;
 	ptr=list->current;
 	if (list->current == list->first){/*if current is the first*/
 		if (list->current->next == NULL){/*list is now empty*/
@@ -264,10 +269,10 @@ struct list_el * remove_current_el(struct list_struct * list)
 	return ptr; /*Pour eventuellement liberer la memoire si ce n'est pas un deplacement*/
 };
 
-int check_list(struct list_struct * list){
-	struct list_el * el_current=NULL;
-	struct list_el * el_previous=NULL;
-	struct list_el * el;
+int check_list(list_struct * list){
+	list_el * el_current=NULL;
+	list_el * el_previous=NULL;
+	list_el * el;
 	el_current=list->current;
 	el_previous=list->previous;
 	el = first_el(list);
@@ -286,7 +291,7 @@ int check_list(struct list_struct * list){
 	}
 };
 
-int count_list(struct list_struct * list){
+int count_list(list_struct * list){
 	int count=0;
 	printf("WARNING: destructif effect on list");
 	list->current=list->first;
@@ -313,11 +318,11 @@ int check_map(unsigned char * map){
 	return 0;
 };
 
-int print_list(struct list_struct * list)
+int print_list(list_struct * list)
 {
-	struct list_el * el_current=NULL;
-	struct list_el * el_previous=NULL;
-	struct list_el * el=NULL;
+	list_el * el_current=NULL;
+	list_el * el_previous=NULL;
+	list_el * el=NULL;
 	int output;
 	el_current=list->current;
 	el_previous=list->previous;
@@ -350,7 +355,7 @@ long int count_map(unsigned char * map, long int size){
 };
 
 
-// long int trans_pixel(struct pixel_struct pixel)
+// long int trans_pixel(pixel_struct pixel)
 // {
 //    return pixel.x + (pixel.y + pixel.l*imageprop.nlmax)*imageprop.nsmax;
 // };
@@ -389,8 +394,8 @@ int isLSC(long int value_pix, int thres_ind){
 //WARNING 
 //Plus valable dans le cas où une ssbde de longueur impaire est decomposee...
 //Seulement la derniere ssbde peut etre de longueur impaire.(pour spect)
-struct parents_struct find_parents(struct pixel_struct pixel){
-	struct parents_struct parents;
+parents_struct find_parents(pixel_struct pixel){
+	parents_struct parents;
 	parents.spat.x=-1;//spatial parent
 	parents.spat.y=-1;
 	parents.spat.l=-1;
@@ -450,8 +455,8 @@ struct parents_struct find_parents(struct pixel_struct pixel){
 	return parents;
 };
 
-int is_accessible_from(struct pixel_struct pixel,unsigned char * map){
-	struct parents_struct parents;
+int is_accessible_from(pixel_struct pixel,unsigned char * map){
+	parents_struct parents;
 	int out=0;
 	parents = find_parents(pixel);
 // 	printf("parents.spat %d %d %d\n",parents.spat.x,parents.spat.y,parents.spat.l);
@@ -479,7 +484,7 @@ int is_accessible_from(struct pixel_struct pixel,unsigned char * map){
 #ifdef DEBUG
 int check_accessibility_of_all(unsigned char * map_LSC, unsigned char * map_LIC, unsigned char * map_LIS){
 	int i,j,k, out;
-	struct pixel_struct pixel;
+	pixel_struct pixel;
 	out=0;
 	printf("Verification d'accessibilite\n");
 	for (i=0; i<imageprop.nsmax; i++){
@@ -518,7 +523,7 @@ int check_accessibility_of_all(unsigned char * map_LSC, unsigned char * map_LIC,
 // 	int i,j,k;
 // 	int ii, ji, ki;
 // 	int ie, je, ke;
-// 	struct pixel_struct pixel;
+// 	pixel_struct pixel;
 // 	ki=2*kloc;
 // 	ji=2*jloc;
 // 	ii=2*iloc;
@@ -539,7 +544,7 @@ int check_accessibility_of_all(unsigned char * map_LSC, unsigned char * map_LIC,
 // }
 
 //update distortion value
-int update_dist(struct pixel_struct pixel, int thres_ind, long long int * dist,  long int *image){
+int update_dist(pixel_struct pixel, int thres_ind, long long int * dist,  long int *image){
 	long long int value=0;
 	value = (long long int) abs(image[trans_pixel(pixel)]);
 	*dist -= (1<<thres_ind)
@@ -548,7 +553,7 @@ int update_dist(struct pixel_struct pixel, int thres_ind, long long int * dist, 
 }
 
 //Is it time to add the cutting point to the rate-distortion list ?
-int add_to_rddata(struct rddata_struct *rddata, long long int rate, long long int dist){
+int add_to_rddata(rddata_struct *rddata, long long int rate, long long int dist){
 	if ((*rddata).reval[(*rddata).ptcourant] > rate) {
 		return 0;
 	} else {
@@ -563,7 +568,7 @@ int add_to_rddata(struct rddata_struct *rddata, long long int rate, long long in
 //and put ptcourant to the min
 //TODO cost_j value useful for debuging but useless waste of memory
 //to remove later...
-int compute_cost(struct rddata_struct *rddata, float lambda){
+int compute_cost(rddata_struct *rddata, float lambda){
 	int i=0;
 	float min=0;
 	if (lambda != 0) {
@@ -598,7 +603,7 @@ int compute_cost(struct rddata_struct *rddata, float lambda){
 }
 
 //fin the lambda corresponding to a given rate
-float compute_lambda(struct datablock_struct *datablock, long int rate, int nblock){
+float compute_lambda(datablock_struct *datablock, long int rate, int nblock){
 	float lambda_inf = 0.0;
 	float lambda_sup = 500000.0;
 	float lambda = 0.0;
@@ -647,7 +652,7 @@ float compute_lambda(struct datablock_struct *datablock, long int rate, int nblo
 }
 
 //functions to take care of data_block
-int datablock_init(struct datablock_struct *datablock){
+int datablock_init(datablock_struct *datablock){
 	(*datablock).stream = (unsigned char *) calloc(sizeblockstream,sizeof(unsigned char *));
 	if ((*datablock).stream == NULL) {fprintf(stderr, "******** Allocation problem in datablock_init (strem)\n");};
 	(*datablock).streamlast = (long int *) malloc(sizeof(long int));
@@ -666,7 +671,7 @@ int datablock_init(struct datablock_struct *datablock){
 	return 0;
 }
 
-int datablock_free(struct datablock_struct *datablock){
+int datablock_free(datablock_struct *datablock){
 	free((*datablock).stream);
 	free((*datablock).streamlast);
 	free((*datablock).count);
@@ -739,7 +744,7 @@ int copy_to_stream(long int currentpos, long long int rate, unsigned char * stre
 
 //interleaving block streams for lambda
 
-int interleavingblocks(struct datablock_struct *datablock, int nblock, unsigned char * stream, unsigned char * count, long int * streamlast, float lambda, int *flagfirst){
+int interleavingblocks(datablock_struct *datablock, int nblock, unsigned char * stream, unsigned char * count, long int * streamlast, float lambda, int *flagfirst){
 	int i=0;
 #ifdef RES_RATE
 // 	int posmin[NRES];
@@ -833,7 +838,7 @@ int interleavingblocks(struct datablock_struct *datablock, int nblock, unsigned 
 }
 
 //desinterleaving block and storing in datablock_struct
-int desinterleavingblocks(struct datablock_struct *datablock, int nblock, struct stream_struct streamstruct, long int  insize, int nlayer){
+int desinterleavingblocks(datablock_struct *datablock, int nblock, stream_struct streamstruct, long int  insize, int nlayer){
 	int i=0;
 	int j;
 	int err=0;
@@ -902,7 +907,7 @@ int desinterleavingblocks(struct datablock_struct *datablock, int nblock, struct
 }
 
 
-// void print_lastm(struct list_el * lastm[NRES][MAXQUANT_CONST+1]){
+// void print_lastm(list_el * lastm[NRES][MAXQUANT_CONST+1]){
 // int i,j;
 // for (j=MAXQUANT_CONST; j>=0; j--){
 // for (i=0; i<imageprop.nres; i++){
@@ -930,7 +935,7 @@ fseek (f, currentpos, SEEK_SET);
 return end;
 }
 
-int init_coder_param(struct coder_param_struct * coder_param, int nblock){
+int init_coder_param(coder_param_struct * coder_param, int nblock){
 	(*coder_param).nblock = nblock;
 	(*coder_param).maxres = (char *) calloc(nblock,sizeof(char *));
 #ifdef RES_SCAL
@@ -943,7 +948,7 @@ int init_coder_param(struct coder_param_struct * coder_param, int nblock){
 	return 0;
 }
 
-int free_coder_param(struct coder_param_struct * coder_param){
+int free_coder_param(coder_param_struct * coder_param){
 	(*coder_param).nblock = 0;
 	free((*coder_param).maxres);
 #ifdef RES_SCAL
@@ -953,6 +958,23 @@ int free_coder_param(struct coder_param_struct * coder_param){
 	free((*coder_param).maxquant);
 	free((*coder_param).minquant);
 	free(coder_param);
+	return 0;
+}
+
+int init_coder_option(coder_option_struct * coder_option){
+	(*coder_option).filename = (char *) calloc(256,sizeof(char));
+	(*coder_option).output_filename = (char *) calloc(256,sizeof(char));
+	(*coder_option).type = 2;
+	(*coder_option).nlayer = 100;
+	(*coder_option).rate = 0;
+	(*coder_option).flag_meansub=0;
+	return 0;
+}
+
+int free_coder_option(coder_option_struct * coder_option){
+	free((*coder_option).filename);
+	free((*coder_option).output_filename);
+	free(coder_option);
 	return 0;
 }
 
@@ -1009,11 +1031,11 @@ int add_mean(long int * image, long int *mean){
 }
 
 #ifdef CHECKEND
-int check_end(long int *image, struct list_struct ** list, struct coder_param_struct coder_param, int blockind){
+int check_end(long int *image, list_struct ** list, coder_param_struct coder_param, int blockind){
 int res;
-struct list_el * current_el=NULL;
-struct list_el * current_sav=NULL;
-struct list_el * previous_sav=NULL;	
+list_el * current_el=NULL;
+list_el * current_sav=NULL;
+list_el * previous_sav=NULL;	
 long int err, maxerr;
 
 for (res=0; res<(coder_param.maxres[blockind]); res++){	
@@ -1117,7 +1139,7 @@ mask = (double *) calloc(imageprop.nsmax * imageprop.nlmax,sizeof(double));
 	return 0;
 }
 
-int output_rd(struct datablock_struct *datablock, int nblock){
+int output_rd(datablock_struct *datablock, int nblock){
 int i;
 int status;
 FILE *r_file;
@@ -1274,7 +1296,7 @@ int compare_hyper_short(short int * imagedeg, short int * imageref){
 	return err;
 }
 
-int write_header(struct stream_struct streamstruct){
+int write_header(stream_struct streamstruct){
 
 	unsigned char * stream = streamstruct.stream;
 	long int * streamlast = streamstruct.streamlast;
@@ -1287,11 +1309,11 @@ int write_header(struct stream_struct streamstruct){
 	add_to_stream_number(imageprop.nresspec, stream, count, streamlast, 4);
 	add_to_stream_number(imageprop.nresspat, stream, count, streamlast, 4);
 
-	streamstruct.headerlength=8* (* streamlast)+(*count);
+	*streamstruct.headerlength=8* (* streamlast)+(*count);
 	return 0;
 }
 
-int read_header(struct stream_struct streamstruct){
+int read_header(stream_struct streamstruct){
 
 	unsigned char * stream = streamstruct.stream;
 	long int * streamlast = streamstruct.streamlast;
@@ -1303,12 +1325,12 @@ int read_header(struct stream_struct streamstruct){
 	imageprop.maxquant = read_from_stream_number(stream, count, streamlast, 8);
 	imageprop.nresspec = read_from_stream_number(stream, count, streamlast, 4);
 	imageprop.nresspat = read_from_stream_number(stream, count, streamlast, 4);
-
+	*streamstruct.headerlength=8* (*streamlast)+(*count);
 	return 0;
 	
 }
 
-int write_header_mean(struct stream_struct streamstruct,long int * mean){
+int write_header_mean(stream_struct streamstruct,long int * mean){
 
 	unsigned char * stream = streamstruct.stream;
 	long int * streamlast = streamstruct.streamlast;
@@ -1320,22 +1342,109 @@ int write_header_mean(struct stream_struct streamstruct,long int * mean){
 	add_to_stream_number(mean[i_l], stream, count, streamlast, 16);
 	}
 
-	streamstruct.headerlength=8* (*streamlast)+(*count);
+	*streamstruct.headerlength=8* (*streamlast)+(*count);
 	return 0;
 }
 
 
-int read_header_mean(struct stream_struct streamstruct,long int * mean){
+int read_header_mean(stream_struct streamstruct,long int * mean){
 
 	unsigned char * stream = streamstruct.stream;
 	long int * streamlast = streamstruct.streamlast;
 	unsigned char * count = streamstruct.count;
 	long int i_l=0;
 	printf("Be aware: using mean substraction\n");
-	mean = (long int *) calloc(imageprop.nbmax,sizeof(long int));
+// 	mean = (long int *) calloc(imageprop.nbmax,sizeof(long int));
 	for (i_l=0;i_l<imageprop.nbmax;i_l++){
 		mean[i_l] = read_from_stream_number(stream, count, streamlast, 16);
 	}
-
+	*streamstruct.headerlength=8* (*streamlast)+(*count);
 	return 0;
 }
+
+pixel_struct init_pixel(){
+	pixel_struct new_pixel;
+	new_pixel.x=-1;
+	new_pixel.y=-1;
+	new_pixel.l=-1;
+	return new_pixel;
+}
+
+
+int QccENTArithmeticResetModel(QccENTArithmeticModel *model,
+                             int context)
+{
+  int symbol;
+
+      for (symbol = 0; symbol <= model->num_symbols[context]; symbol++)
+        {
+          model->frequencies[context][symbol] = 1;
+          model->cumulative_frequencies[context][symbol] =
+            model->num_symbols[context] - symbol;
+        }
+      model->frequencies[context][0] = 0;
+
+  return(0);
+
+}
+
+
+// int printCompileOptions(){
+// 
+// 	printf("Compilation options:\n");
+// #ifdef EZW 
+// 	printf("EZW\n");
+// #endif
+// #ifdef DEBUG 
+// 	printf("DEBUG\n");
+// #endif
+// #ifdef NEWTREE
+// 	printf("NEWTREE : AT tree\n");
+// #else
+// 	#ifdef NEWTREE2
+// 		printf("NEWTREE2 : AOT tree\n");
+// 	#else
+// 		printf("-------- : OT tree\n");
+// 	#endif
+// #endif
+// 
+// #ifdef SIGNED 
+// 	printf("SIGNED\n");
+// #endif
+// #ifdef SIGNED011
+// 	printf("SIGNED011\n");
+// #endif
+// #ifdef EZWUSEZ 
+// 	printf("EZWUSEZ\n");
+// #endif
+// #ifdef EZWREF
+// 	printf("EZWREF\n");
+// #endif
+// #ifdef EZWREFAFTER
+// 	printf("EZWREFAFTER\n");
+// #endif
+// #ifdef REFINEMENT
+// 	printf("REFINEMENT\n");
+// #endif
+// #ifdef EZW_ARITH 
+// 	printf("EZW_ARITH\n");
+// #endif
+// #ifdef EZW_ARITH_CONTEXT 
+// 	printf("EZW_ARITH_CONTEXT \n");
+// #endif
+// #ifdef EZW_ARITH_RESET_MODEL
+// 	printf("EZW_ARITH_RESET_MODEL\n");
+// #endif
+// 	printf("--------------------\n");
+// 
+// #ifdef CONT_NUM
+// 	printf("CONT_NUM: "
+// 		 'CONT_NUM\n');
+// #endif
+// #ifdef NUM_SYMBOLS
+// 	printf("NUM_SYMBOLS: "
+// 		 'NUM_SYMBOLS\n');
+// #endif
+// 
+// return 0;
+// }
