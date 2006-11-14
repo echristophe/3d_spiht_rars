@@ -6,7 +6,7 @@
  * Author:		Emmanuel Christophe	
  * Contact:		e.christophe at melaneum.com
  * Description:		Utility functions header for hyperspectral image compression
- * Version:		v1.0 - 2006-04	
+ * Version:		v1.1 - 2006-10	
  * 
  */
 
@@ -17,7 +17,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 // #include <unistd.h> 
-#include "math.h"
+#include <math.h>
 
 #ifdef TIME
 #include <time.h>
@@ -37,62 +37,6 @@
 
 #include "signdigit.h"
 
-// #if !defined(S64) && !defined(S2D) && !defined(S512)
-// #define S256
-// #endif
-
-// #ifdef S64
-// #define NSMAX_CONST 64
-// #define NLMAX_CONST 64
-// #define NBMAX_CONST 56
-// #define NSMIN_CONST 8
-// #define NLMIN_CONST 8
-// #define NBMIN_CONST 7
-// #define MAXQUANT_CONST 16
-// #endif
-// 
-// #ifdef S256
-// #define NSMAX_CONST 256
-// #define NLMAX_CONST 256
-// #define NBMAX_CONST 224
-// #define NSMIN_CONST 8
-// #define NLMIN_CONST 8
-// #define NBMIN_CONST 7
-// #define MAXQUANT_CONST 19
-// #endif
-// 
-// #ifdef S2D
-// #define NSMAX_CONST 512
-// #define NLMAX_CONST 512
-// #define NBMAX_CONST 1
-// #define NSMIN_CONST 16
-// #define NLMIN_CONST 16
-// #define NBMIN_CONST 1
-// #define MAXQUANT_CONST 12
-// #endif
-// 
-// #ifdef S512
-// #define NSMAX_CONST 512
-// #define NLMAX_CONST 512
-// #define NBMAX_CONST 224
-// #define NSMIN_CONST 16
-// #define NLMIN_CONST 16
-// #define NBMIN_CONST 7
-// #define MAXQUANT_CONST 20
-// #endif
-// 
-// 
-// #ifdef S64
-// #define NRES 16
-// #define NRESSPEC 4
-// #define NRESSPAT 4
-// #else
-// #define NRES 36
-// #define NRESSPEC 6
-// #define NRESSPAT 6
-// #endif
-
-
 
 #define NBITS 32
 
@@ -106,6 +50,13 @@ long int nbitswrittenheader;
 
 #ifdef CHECKEND
 long int * imageoriglobal;
+#endif
+
+#define WEIGHTMULTVALUE 1000
+
+#ifdef TEMPWEIGHTCHECKING
+long int * imageweight;
+long int * imageweightcount;
 #endif
 
 //Warning, valable pour au pire une compression nulle sur 16 bit avec des arbres a 5 niveaux 
@@ -169,31 +120,42 @@ typedef struct{
 typedef struct{
 	int nblock;
 	char * maxres;
-#ifdef RES_SCAL
+// #ifdef RES_SCAL
 	char * maxresspat;
 	char * maxresspec;
-#endif
+// #endif
 	char * maxquant;
 	char * minquant;
-	int nlayer;
-	float rate;
-} coder_param_struct;
-
-typedef struct{
+	char * roi_filename;
+        unsigned char flag_roi;
 	char * filename;
 	char * output_filename;
 	int type;
 	int nlayer;
 	float rate;
-	unsigned char flag_meansub;
-} coder_option_struct;
+	unsigned char * flag_meansub;
+	unsigned char * flag_arith;
+	unsigned char * flag_spiht;
+        unsigned char * flag_wavelet_int;
+} coder_param_struct;
+
+// typedef struct{
+// 	char * filename;
+// 	char * output_filename;
+// 	int type;
+// 	int nlayer;
+// 	float rate;
+// 	unsigned char flag_meansub;
+// 	unsigned char flag_arith;
+// } coder_option_struct;
 
 
 //declaration as global
 //  imageprop_struct imageprop;
 imageprop_struct imageprop;
 
-void print_imageprop();
+int print_imageprop();
+int print_coderparam(coder_param_struct coder_param);
 
 static inline long int min(long int a, long int b){
 	return (a<b)?a:b;
@@ -208,6 +170,7 @@ void list_flush( list_struct * list);
  list_el * next_el( list_struct * list);
 void insert_el( list_struct * list,  list_el * el);
 void insert_el_inplace( list_struct * list,  list_el * el);
+void insert_el_after(list_struct * list, list_el * el, list_el ** place);
  list_el * remove_current_el( list_struct * list);
 int check_list(list_struct * list);
 int count_list(list_struct * list);
@@ -223,7 +186,7 @@ long int count_map(unsigned char * map, long int size);
 
 unsigned char get_bit(long int value,int thres_ind);
 
-void add_to_stream(unsigned char *stream, unsigned char *count, int input, long int *streamlast);
+int add_to_stream(unsigned char *stream, unsigned char *count, int input, long int *streamlast);
 
 unsigned char read_from_stream(unsigned char * stream, unsigned char * count, long int *streamlast);
 
@@ -264,9 +227,9 @@ int spat_desc_ezw(pixel_struct pixel, list_struct * list_desc, int directchildon
 int spiht_code_c(long int *image, stream_struct streamstruct, long int *outputsize, coder_param_struct coder_param);
 int spiht_decode_c(long int *image, stream_struct streamstruct, long int *outputsize, coder_param_struct coder_param);
 
-int ezw_code_c(long int *image, stream_struct streamstruct,long int * outputsize, int maxquantvalue);
+int ezw_code_c(long int *image, stream_struct streamstruct,long int * outputsize, coder_param_struct coder_param);
 
-int ezw_decode_c(long int *image, stream_struct streamstruct, long int *outputsize, int maxquantvalue);
+int ezw_decode_c(long int *image, stream_struct streamstruct, long int *outputsize, coder_param_struct coder_param);
 
 //signed digit representation
 int check_zero(char * a, int t);
@@ -279,8 +242,8 @@ int spat_spec_desc_ezw_signed(pixel_struct pixel, list_struct * list_desc, int d
 int spec_desc_ezw_signed(pixel_struct pixel, list_struct * list_desc, int directchildonly, char *image_signed, int thres_ind, unsigned char *map_LSC);
 int spat_desc_ezw_signed(pixel_struct pixel, list_struct * list_desc, int directchildonly, char *image_signed, int thres_ind, unsigned char *map_LSC);
 
-int ezw_code_signed_c(long int *image, stream_struct streamstruct, long int *outputsize, int maxquantvalue);
-int ezw_decode_signed_c(long int *image, stream_struct streamstruct, long int *outputsize, int maxquantvalue);
+int ezw_code_signed_c(long int *image, stream_struct streamstruct, long int *outputsize, coder_param_struct coder_param);
+int ezw_decode_signed_c(long int *image, stream_struct streamstruct, long int *outputsize, coder_param_struct coder_param);
 
 int change_rep(char * a);
 
@@ -306,7 +269,7 @@ int spiht_code_ra5(long int *image, stream_struct streamstruct,long int * output
 int spiht_decode_ra5(long int *image, stream_struct streamstruct, long int *outputsize, coder_param_struct coder_param);
 
 //rate allocation
-#define NUMRD 1000
+#define NUMRD 2000
 typedef struct{
 	long long int r[NUMRD];
 	long long int d[NUMRD];
@@ -318,6 +281,10 @@ typedef struct{
 // long long int eval_dist_grp(int iloc, int jloc,int kloc, long int *image, int thres_ind);
 
 int update_dist(pixel_struct pixel, int thres_ind, long long int * dist, long int *image);
+int update_dist_first(pixel_struct pixel, int thres_ind, long long int * dist,  long int *image);
+int update_dist1(pixel_struct pixel, int thres_ind, long long int * dist,  long int *image);
+int update_dist0(pixel_struct pixel, int thres_ind, long long int * dist,  long int *image);
+int compute_weightingFactor(pixel_struct pixel);
 
 int add_to_rddata(rddata_struct *rddata, long long int rate, long long int dist);
 
@@ -363,25 +330,27 @@ int interleavingblocks(datablock_struct *datablock, int nblock, unsigned char * 
 
 int desinterleavingblocks(datablock_struct *datablock, int nblock, stream_struct streamstruct, long int  insize, int nlayer);
 
+int sizeChecking();
 void usage(char *str1);
 
 
-
+int preinit_coder_param(coder_param_struct * coder_param);
 int init_coder_param(coder_param_struct * coder_param, int nblock);
 int free_coder_param(coder_param_struct * coder_param);
 
-int encode(coder_option_struct coder_option);
-int decode(coder_option_struct coder_option);
+int encode(coder_param_struct coder_param);
+int decode(coder_param_struct coder_param);
 
 long int file_size(FILE *f);
 
 long int find_max(long int * image, long int npix);
 
 int compute_mean(long int * image, long int *mean);
+int add_mean(long int * image, long int *mean);
 int substract_mean(long int * image, long int *mean);
 
-int waveletDWT(long int * imagein, long int * imageout, int specdec, int spatdec);
-int waveletIDWT(long int * imagein, long int * imageout, int specdec, int spatdec);
+int waveletDWT(long int * imagein, long int * imageout, int specdec, int spatdec, coder_param_struct coder_param);
+int waveletIDWT(long int * imagein, long int * imageout, int specdec, int spatdec, coder_param_struct coder_param);
 
 
 
@@ -395,11 +364,14 @@ int write_hyper(char * filename, long int * image, long int npix, int type);
 int compare_hyper_long(long int * imagedeg, long int * imageref);
 int compare_hyper_short(short int * imagedeg, short int * imageref);
 
+int write_magic(stream_struct streamstruct, coder_param_struct coder_param);
+int read_magic(stream_struct streamstruct, coder_param_struct coder_param);
 int write_header(stream_struct streamstruct);
 int read_header(stream_struct streamstruct);
 int write_header_mean(stream_struct streamstruct,long int * mean);
 int read_header_mean(stream_struct streamstruct,long int * mean);
 
+int read_roi_spec(coder_param_struct coder_param);
 
 pixel_struct init_pixel();
 

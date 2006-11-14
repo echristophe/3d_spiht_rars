@@ -6,13 +6,12 @@
  * Author:		Emmanuel Christophe	
  * Contact:		e.christophe at melaneum.com
  * Description:		Utility functions for hyperspectral image compression
- * Version:		v1.0 - 2006-04	
+ * Version:		v1.1 - 2006-10	
  * 
  */
 
 
 #include "main.h"
-
 
 
 #ifdef EZW_ARITH
@@ -21,15 +20,7 @@
 // #define SYMBOL_STREAM_LENGTH 100
 #endif
 
-// #ifdef EZWREF
-// #define REFINEMENT
-// #endif
-// 
-// #ifdef EZWREFAFTER
-// #define REFINEMENT
-// #endif
-
-#ifdef EZW_ARITH
+// #ifdef EZW_ARITH
    #ifdef REFINEMENT
 	#ifdef EZW_ARITH_CONTEXT
 		#define CONT_REFINE_0 0
@@ -84,16 +75,8 @@
 #endif
 	#define NUM_SYMBOLS 4
 
-#endif
+// #endif
 
-//temporaire
-	#define CONT_SIGN_GEN_0 0
-	#define CONT_SIGN_GEN_1 1
-	#define CONT_SIGN_HF_0 2
-	#define CONT_SIGN_HF_1 3
-
-	#define CONT_NUM 4
-//fin temporaire
 
 int printCompileOptions(){
 	int val=0;
@@ -157,14 +140,15 @@ return 0;
 
 
 
-int ezw_code_signed_c(long int *image, stream_struct streamstruct, long int *outputsize, int  maxquantvalue){
+int ezw_code_signed_c(long int *image, stream_struct streamstruct, long int *outputsize, coder_param_struct coder_param){
 
-int maxquant=(int) maxquantvalue;
-int minquant=0;
+int maxquant=(int) (*coder_param.maxquant);
+int minquant=(int) (*coder_param.minquant);
 long int npix=0;
-long int i,m;
+long int i;
+// long int m;
 unsigned char bit=255;
-unsigned char bit2=255;
+// unsigned char bit2=255;
 int r=0;
 int x,y,l;
 
@@ -181,11 +165,11 @@ unsigned char *map_sig_last = NULL;
 list_struct * list_desc=NULL;
 list_el * current_el=NULL;
 
-#ifndef EZW_ARITH
+// #ifndef EZW_ARITH
 unsigned char *stream = streamstruct.stream;
 unsigned char * count = streamstruct.count;
 long int *streamlast = streamstruct.streamlast;
-#endif
+// #endif
 
 #ifdef DEBUG
 #ifdef REFINEMENT
@@ -209,7 +193,6 @@ FILE *data_file;//TODO useless after...
 int status=0;
 
 char *image_signed =NULL;
-// char * image_signed2;
 #ifdef OUTPUTSIGNED
 FILE *output_file;
 #endif
@@ -221,22 +204,14 @@ long int symb_counter = 0;
 FILE *output_file;
 unsigned char * streambyte;
 #endif
-#ifdef EZW_ARITH
+
+// #ifdef EZW_ARITH
 int symbol = -1;
-// long int symb_stream_length = 100000000;
-// #ifdef EZWUSEZ
-// int NUM_SYMBOLS = 5;
-// int num_context=CONT_NUM;
-// int num_symbols[CONT_NUM]; 
-// #else
-// int NUM_SYMBOLS = 4;
 int num_context=CONT_NUM;
 int num_symbols[CONT_NUM]; 
-// #endif
 
 
-// unsigned char * streambyte;
-FILE *output_file; //int status;
+// FILE *output_file; //int status;
 QccBitBuffer output_buffer;
 QccENTArithmeticModel *model = NULL;
 int * argc1=NULL;
@@ -245,7 +220,7 @@ argv1[0] = (char *) malloc(256*sizeof(char));
 strcpy(argv1[0],"spihtcode");
 struct stat filestat;
 
-#endif
+// #endif
 
 
 
@@ -274,10 +249,6 @@ int flag_jump_coding=0;
 #endif
 
 #ifdef DEBUG
-// #ifdef REFINEMENT
-// printf("***** si si, REFINEMENT est defini "
-// 	'REFINEMENT\n');
-// #endif
 
 printCompileOptions();
 #endif
@@ -297,8 +268,9 @@ for (i=0;i<npix;i++){
 fprintf(stderr, "Attention, non compatible avec le flag_jump_coding (-> update: should be OK)\n");
 #endif
 
-#ifdef EZW_ARITH
-    QccInit(argc1, argv1);
+// #ifdef EZW_ARITH
+if (*(coder_param.flag_arith) == 1){
+    QccInit(*argc1, argv1);
     QccBitBufferInitialize(&output_buffer);
 
 	for (i = 0; i < num_context; i++)
@@ -332,8 +304,8 @@ fprintf(stderr, "Attention, non compatible avec le flag_jump_coding (-> update: 
     argv1[0]);
     QccErrorExit();
     }
-#endif
-
+// #endif
+}
 
 for (i=0;i< npix;i++){
 	bin_value(image[i], &(image_signed[NBITS*i]));
@@ -375,12 +347,6 @@ for (i=0;i< npix;i++){
 if (i == npix){
 printf("WARNING: NO EXTRA BITPLANE NEEDED !!! (and none added anyway...) \n");
 }
-// #ifndef SIGNED011
-// maxquant++;
-// #endif
-
-// printf("maxquant +1 \n");
-// maxquant++;
 
 //codage EZW
 for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
@@ -388,18 +354,13 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 	threshold= 1 << (long int)thres_ind;
 	printf("Processing for thres_ind %d (threshold: %ld)...\n",thres_ind, threshold);
 
-// 	nref=0;
-// 	npos=0;
-// 	nneg=0;
-// 	nzeroisol=0;
-// 	nzerotree=0;	
-	
 
 //refinement pass
 #ifndef EZWREFAFTER
 #ifdef EZWREF
 
-#ifdef EZW_ARITH
+// #ifdef EZW_ARITH
+if (*(coder_param.flag_arith) == 1){
 
 	#ifdef EZW_ARITH_RESET_MODEL
 	for (i=0;i<CONT_NUM;i++){
@@ -415,7 +376,8 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 	QccErrorExit();
 	}
 #endif
-#endif
+// #endif
+}
 
 // if non adjacent and preceedings non 0, no output (0 for sure)
 // 1 1 for 1
@@ -425,12 +387,7 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 		x=i % (imageprop.nsmax);
 		y=(i/imageprop.nsmax) % (imageprop.nlmax);
 		l=(i/(imageprop.nsmax*imageprop.nlmax));
-// 	for (m=0; m<imageprop.nsmax+imageprop.nlmax+imageprop.nbmax; m++){//parcours zigzag
-// 	  for (x=0; x <= min(m,imageprop.nsmax-1); x++){
-// 	    for (y=0; y<= min(m-x,imageprop.nlmax-1); y++){
-// 	      l=m-x-y;
-//               if (l<= imageprop.nbmax-1){
-// 			i =  x + (y+l*imageprop.nlmax)*imageprop.nsmax;
+
 		if (map_sig[i] == 1){
 #ifndef SIGNED011
 if (image_signed[NBITS*i+thres_ind+1] != 0){
@@ -499,7 +456,8 @@ nref_jumped++;
 			nref_1++;
 		   }
 
-#ifdef EZW_ARITH
+// #ifdef EZW_ARITH
+if (*(coder_param.flag_arith) == 1){
 			symbol = -1;//to make sure we are not going to encode rubish
 			if ((bit == 1) && (bit2 == 1)) symbol = SYMB_REF_POS;
 			if ((bit == 1) && (bit2 == 0)) symbol = SYMB_REF_NEG;
@@ -512,41 +470,34 @@ nref_jumped++;
 			#ifdef DEBUG3  
 			printf("%d",symbol);  
 			#endif
-#else
+// #else
+} else {
 			add_to_stream(stream, count, (int) bit, streamlast);
 			if (bit != 0) add_to_stream(stream, count, (int) bit2, streamlast);
-				
-#endif
+// #endif
+}
 
 		   nref++;
 }
 		};
-// 	      }
-// 	    }
-// 	  }
 	};
 #endif
 #endif
 	
 	//significance pass
-
+if (*(coder_param.flag_arith) == 1){
 	#ifdef EZW_ARITH_RESET_MODEL
 	for (i=0;i<CONT_NUM;i++){
 		QccENTArithmeticResetModel(model, i);
 	}
 	#endif
+}
 
 	for (i=0;i< npix;i++){//parcours lineaire
 		x=i % (imageprop.nsmax);
 		y=(i/imageprop.nsmax) % (imageprop.nlmax);
 		l=(i/(imageprop.nsmax*imageprop.nlmax));
 
-// 	for (m=0; m<imageprop.nsmax+imageprop.nlmax+imageprop.nbmax; m++){//parcours zigzag
-// 	  for (x=0; x <= min(m,imageprop.nsmax-1); x++){
-// 	    for (y=0; y<= min(m-x,imageprop.nlmax-1); y++){
-// 	      l=m-x-y;
-//               if (l<= imageprop.nbmax-1){
-// 			i =  x + (y+l*imageprop.nlmax)*imageprop.nsmax;
 
 		if ( (map_zt[i] == 0) && (map_sig[i] ==0) ){
 #ifndef REFINEMENT
@@ -554,10 +505,10 @@ nref_jumped++;
 			flag_jump_coding=0;
 #endif
 #endif
-// 		if  (map_zt[i] == 0){
 		//This point is NOT part of a zerotree already and is NOT processed during refinement
 /*Selection du contexte*/
-#ifdef EZW_ARITH
+// #ifdef EZW_ARITH
+if (*(coder_param.flag_arith) == 1){
 			symbol = -1;//to make sure we are not going to encode rubish
 #ifdef EZW_ARITH_CONTEXT
 			if (x>0) {
@@ -651,10 +602,6 @@ nref_jumped++;
 #ifndef SIGNED011
 			} else {
 				flag_jump_coding=1;
-// 					if (QccENTArithmeticSetModelContext(model, CONT_SIGN_GEN_FOLLOW1)){
-// 					QccErrorAddMessage("%s: Error calling QccENTArithmeticSetModelContext()",argv1[0]);
-// 					QccErrorExit();
-// 					}
 			}
 // #else
 // }
@@ -679,7 +626,8 @@ nref_jumped++;
 			QccErrorExit();
 			}
 #endif
-#endif
+// #endif
+}
 /*Fin de selection du contexte*/
 
 
@@ -698,7 +646,8 @@ if (flag_jump_coding ==0){
 #ifdef EZWREFAFTER
 				map_sig_last[i] = 1;
 #endif
-#ifdef EZW_ARITH
+// #ifdef EZW_ARITH
+if (*(coder_param.flag_arith) == 1){
 				symbol = SYMB_POS;
 
 				if (QccENTArithmeticEncode(&symbol, 1, model, &output_buffer))
@@ -710,14 +659,18 @@ if (flag_jump_coding ==0){
 				#ifdef DEBUG3  
 				printf("%d",symbol);  
 				#endif
-#else
+// #else
+} else {
 
 				bit = 1;
 				add_to_stream(stream, count, (int) bit, streamlast);
 				bit = 1;
 				add_to_stream(stream, count, (int) bit, streamlast);
-#endif
+// #endif
+}
+				#ifdef DEBUG
 				npos++;
+				#endif
 // 				printf("Adding pixel:%d %d %d\n",x,y,l);
 				#ifdef COMPUTE_STAT
 				symbol_stream[symb_counter]=1;
@@ -730,7 +683,8 @@ if (flag_jump_coding ==0){
 #ifdef EZWREFAFTER
 				map_sig_last[i] = 1;
 #endif
-#ifdef EZW_ARITH
+// #ifdef EZW_ARITH
+if (*(coder_param.flag_arith) == 1){
 				symbol = SYMB_NEG;
 				if (QccENTArithmeticEncode(&symbol, 1, model, &output_buffer))
 				{
@@ -741,13 +695,17 @@ if (flag_jump_coding ==0){
 				#ifdef DEBUG3  
 				printf("%d",symbol);  
 				#endif
-#else
+// #else
+} else {
 				bit = 1;
 				add_to_stream(stream, count, (int) bit, streamlast);
 				bit = 0;
 				add_to_stream(stream, count, (int) bit, streamlast);
-#endif
+// #endif
+}
+				#ifdef DEBUG
 				nneg++;
+				#endif
 				#ifdef COMPUTE_STAT
 				symbol_stream[symb_counter]=2;
 				symb_counter++;
@@ -768,8 +726,8 @@ if (flag_jump_coding ==0){
 					&& (l >= imageprop.nbmax / 2) ){
 	  #endif
 	#endif
-// 			   if ( ((x >= imageprop.nsmax / 2) || (y >= imageprop.nlmax / 2)) && (l >= imageprop.nbmax / 2) ){//HF, on peut reunir ZTR et IZ : TODO faire au décodage
-#ifdef EZW_ARITH
+// #ifdef EZW_ARITH
+if (*(coder_param.flag_arith) == 1){
 				symbol = SYMB_Z;
 				if (QccENTArithmeticEncode(&symbol, 1, model, &output_buffer))
 				{
@@ -780,11 +738,15 @@ if (flag_jump_coding ==0){
 				#ifdef DEBUG3  
 				printf("%d",symbol);  
 				#endif
-#else
+// #else
+} else {
 					bit = 0;
 					add_to_stream(stream, count, (int) bit, streamlast);
-#endif
+// #endif
+}
+					#ifdef DEBUG
 					nz++;
+					#endif
 			   } else {
 #else
 			   {
@@ -793,7 +755,8 @@ if (flag_jump_coding ==0){
 				r=spat_spec_desc_ezw_signed((pixel_struct) {x,y,l}, list_desc, 0, image_signed, thres_ind, map_sig);
 				//une modification est-elle necessaire pour tenir compte des elements appartenat deja aux ZT ? NOPE
 				if ((r ==-1)||(r == 0)){// zero isole (early ending ou pas de desc
-#ifdef EZW_ARITH
+// #ifdef EZW_ARITH
+if (*(coder_param.flag_arith) == 1){
 				symbol = SYMB_IZ;
 				if (QccENTArithmeticEncode(&symbol, 1, model, &output_buffer))
 				{
@@ -804,23 +767,24 @@ if (flag_jump_coding ==0){
 				#ifdef DEBUG3  
 				printf("%d",symbol);  
 				#endif
-#else
+// #else
+} else {
 					bit = 0;
 					add_to_stream(stream, count, (int) bit, streamlast);
 					bit = 0;
 					add_to_stream(stream, count, (int) bit, streamlast);
-#endif
-					nzeroisol++;	
+// #endif
+}
+					#ifdef DEBUG
+					nzeroisol++;
+					#endif	
 					#ifdef COMPUTE_STAT
 					symbol_stream[symb_counter]=0;
 					symb_counter++;
 					#endif
 				} else {// we have a zerotree
-// 					printf("ZTR for %d, %d, %d\n",x,y,l);
-// 					if ( (x == 1) && (y == 0) && (l == 7) ){
-// 						printf("time for a break !\n");
-// 					};
-#ifdef EZW_ARITH
+// #ifdef EZW_ARITH
+if (*(coder_param.flag_arith) == 1){
 				symbol = SYMB_ZTR;
 				if (QccENTArithmeticEncode(&symbol, 1, model, &output_buffer))
 				{
@@ -831,12 +795,14 @@ if (flag_jump_coding ==0){
 				#ifdef DEBUG3  
 				printf("%d",symbol);  
 				#endif
-#else
+// #else
+} else {
 					bit = 0;
 					add_to_stream(stream, count, (int) bit, streamlast);
 					bit = 1;
 					add_to_stream(stream, count, (int) bit, streamlast);
-#endif
+// #endif
+}
 					//do not forget to update map_zt
 					list_desc=list_init();
 					r=spat_spec_desc_ezw_signed((pixel_struct) {x,y,l}, list_desc, 1, image_signed, thres_ind, map_sig);//sans early ending...
@@ -846,7 +812,9 @@ if (flag_jump_coding ==0){
 						map_zt[trans_pixel(current_el->pixel)]=1;
 						current_el=next_el(list_desc);
 					};
+					#ifdef DEBUG
 					nzerotree++;
+					#endif
 					#ifdef COMPUTE_STAT
 					symbol_stream[symb_counter]=3;
 					symb_counter++;
@@ -856,16 +824,11 @@ if (flag_jump_coding ==0){
 				//ne pas oublier de liberer la liste
 			   }
 			};
-// 		}else {
-// 			if (map_zt[i] = 1) printf("Skip for map %ld\n",i); 
 			#ifdef COMPUTE_STAT
 			if (symb_counter > symb_stream_length) fprintf(stderr,"Symbol stream overflow\n");
 			#endif
-// #ifndef SIGNED011
 		}//le flag_jump_coding
-// #endif
 		};
-// 	}}}//for zigzag
 	};
 	
 
@@ -873,8 +836,8 @@ if (flag_jump_coding ==0){
 #ifdef EZWREFAFTER
 #ifdef EZWREF
 
-#ifdef EZW_ARITH
-
+// #ifdef EZW_ARITH
+if (*(coder_param.flag_arith) == 1){
 	#ifdef EZW_ARITH_RESET_MODEL
 	for (i=0;i<CONT_NUM;i++){
 		QccENTArithmeticResetModel(model, i);
@@ -889,7 +852,8 @@ if (flag_jump_coding ==0){
 	QccErrorExit();
 	}
 #endif
-#endif
+// #endif
+}
 
 // if non adjacent and preceedings non 0, no output (0 for sure)
 // 1 1 for 1
@@ -899,12 +863,6 @@ if (flag_jump_coding ==0){
 		x=i % (imageprop.nsmax);
 		y=(i/imageprop.nsmax) % (imageprop.nlmax);
 		l=(i/(imageprop.nsmax*imageprop.nlmax));
-// 	for (m=0; m<imageprop.nsmax+imageprop.nlmax+imageprop.nbmax; m++){//parcours zigzag
-// 	  for (x=0; x <= min(m,imageprop.nsmax-1); x++){
-// 	    for (y=0; y<= min(m-x,imageprop.nlmax-1); y++){
-// 	      l=m-x-y;
-//               if (l<= imageprop.nbmax-1){
-// 			i =  x + (y+l*imageprop.nlmax)*imageprop.nsmax;
 		if ((map_sig[i] == 1) && (map_sig_last[i] == 0)){
 #ifndef SIGNED011
 if (image_signed[NBITS*i+thres_ind+1] != 0){
@@ -973,7 +931,8 @@ nref_jumped++;
 			nref_1++;
 		   }
 
-#ifdef EZW_ARITH
+// #ifdef EZW_ARITH
+if (*(coder_param.flag_arith) == 1){
 			symbol = -1;//to make sure we are not going to encode rubish
 			if ((bit == 1) && (bit2 == 1)) symbol = SYMB_REF_POS;
 			if ((bit == 1) && (bit2 == 0)) symbol = SYMB_REF_NEG;
@@ -986,18 +945,17 @@ nref_jumped++;
 			#ifdef DEBUG3  
 			printf("%d",symbol);  
 			#endif
-#else
+// #else
+} else {
 			add_to_stream(stream, count, (int) bit, streamlast);
 			if (bit != 0) add_to_stream(stream, count, (int) bit2, streamlast);
 				
-#endif
+// #endif
+}
 
 		   nref++;
 }
 		};
-// 	      }
-// 	    }
-// 	  }
 	};
 #endif
 #endif
@@ -1015,21 +973,28 @@ nref_jumped++;
 #endif
 	};
 
-#ifdef EZW_ARITH
+// #ifdef EZW_ARITH
+if (*(coder_param.flag_arith) == 1){
 outputsize[thres_ind]=output_buffer.bit_cnt; //TODO check if correct
-#else
+// #else
+} else {
 outputsize[thres_ind]=(*streamlast)*8 + (*count);
-#endif
+// #endif
+}
 
 #ifdef DEBUG
-#ifndef EZW_ARITH
+// #ifndef EZW_ARITH
+if (*(coder_param.flag_arith) == 0){
 printf("Stream size: %ld \n",*streamlast);
 printf("count:       %uc \n",*count);
 printf("Size in bit: %ld \n", *streamlast*8+*count);
-#endif
-#ifdef EZW_ARITH
-printf("Size in bit: %ld \n", output_buffer.bit_cnt);
-#endif
+// #endif
+}
+// #ifdef EZW_ARITH
+if (*(coder_param.flag_arith) == 1){
+printf("Size in bit: %d \n", output_buffer.bit_cnt);
+// #endif
+}
 #ifdef EZWREF
 printf("nref: %ld \n",nref);
 printf("nref_jumped: %ld \n",nref_jumped);
@@ -1046,13 +1011,17 @@ printf("-------------------------\n");
 
 };
 
-#ifdef EZW_ARITH 
+// #ifdef EZW_ARITH
+if (*(coder_param.flag_arith) == 1){ 
 outputsize[thres_ind]=output_buffer.bit_cnt;
-#else
+// #else
+} else {
 outputsize[0]=(*streamlast)*8 + (*count);
-#endif
+// #endif
+}
 
-#ifdef EZW_ARITH
+// #ifdef EZW_ARITH
+if (*(coder_param.flag_arith) == 1){
     if (QccENTArithmeticEncodeEnd(model,
     0,
     &output_buffer))
@@ -1070,8 +1039,7 @@ outputsize[0]=(*streamlast)*8 + (*count);
 
     QccENTArithmeticFreeModel(model);
 
-   //copie pour assurer la compatibilité
-
+   //copie pour assurer la compatibilite
 
     if (stat("tmp", &filestat) == 0){
         // The size of the file in bytes is in
@@ -1085,10 +1053,9 @@ outputsize[0]=(*streamlast)*8 + (*count);
    status= fclose(data_file);
    *streamstruct.streamlast += filestat.st_size;
 
-//    *streamstruct.count = 0;
-//    printf("Size in byte: %ld \n", *streamstruct.streamlast);
    outputsize[0]=(*streamstruct.streamlast)*8 + (*streamstruct.count);
-#endif
+// #endif
+}
 
 //Just for global IDL serialing
 data_file = fopen("/tmp/maxquant.dat","w");
@@ -1123,12 +1090,12 @@ return 0;
 };
 
 
-int ezw_decode_signed_c(long int *image, stream_struct streamstruct, long int *outputsize, int maxquantvalue)
+int ezw_decode_signed_c(long int *image, stream_struct streamstruct, long int *outputsize, coder_param_struct coder_param)
 {
 
 
-int maxquant=(int) maxquantvalue;
-int minquant=0;
+int maxquant=(int) (*coder_param.maxquant);
+int minquant=(int) (*coder_param.minquant);
 long int npix=0;
 long int i,m;
 // long int value_pix=0;
@@ -1156,8 +1123,6 @@ long int nref_2=0;
 
 long int threshold=0;
 int thres_ind=0;
-// int flagsig=0;
-// long int lastprocessed=0;
 
 unsigned char *map_zt = NULL;
 unsigned char *map_sig = NULL;
@@ -1165,49 +1130,34 @@ unsigned char *map_sig = NULL;
 unsigned char *map_sig_last = NULL;
 #endif
 
-#ifdef EZW_ARITH
+// #ifdef EZW_ARITH
 int symbol = -1;
-// long int symb_stream_length = 100000000;
-// #ifdef EZWUSEZ
-// int NUM_SYMBOLS = 5;
-// int num_context=CONT_NUM;
-// int num_symbols[CONT_NUM]; 
-// #else
-// int NUM_SYMBOLS = 4;
 int num_context= CONT_NUM;
 int num_symbols[CONT_NUM]; 
-// #endif
-long int symb_counter = 0;
-// int symbol_stream[symb_stream_length];
-// int * symbol_stream = (int *) malloc(symb_stream_length*sizeof(int));
-unsigned char * streambyte;
-FILE *input_file; //int status;
+// long int symb_counter = 0;
+// unsigned char * streambyte;
+// FILE *input_file; //int status;
 QccBitBuffer input_buffer;
 QccENTArithmeticModel *model = NULL;
 int * argc1=NULL;
 char * argv1[1];
 argv1[0] = (char *) malloc(256*sizeof(char)); 
 strcpy(argv1[0],"spihtcode");
-struct stat filestat;
+// struct stat filestat;
 FILE *data_file;
 int status=0;
-#endif
+// #endif
 
 list_struct * list_desc=NULL;
 list_el * current_el=NULL;
 
 char * image_signed = (char *) malloc (imageprop.nsmax*imageprop.nbmax*imageprop.nlmax*NBITS);
 
-#ifndef EZW_ARITH
+// #ifndef EZW_ARITH
 unsigned char *stream = streamstruct.stream;
 unsigned char * count = streamstruct.count;
 long int *streamlast = streamstruct.streamlast;
-#endif
-// unsigned char * count = (unsigned char *) malloc(sizeof(unsigned char));
-// long int *streamlast = (long int *) malloc(sizeof(long int));
-
-// *count=0;
-// *streamlast=0;
+// #endif
 
 map_zt=(unsigned char *) malloc(imageprop.nsmax*imageprop.nbmax*imageprop.nlmax*sizeof(unsigned char));
 map_sig= (unsigned char *) malloc(imageprop.nsmax*imageprop.nbmax*imageprop.nlmax*sizeof(unsigned char));
@@ -1240,20 +1190,18 @@ for (i=0;i<npix;i++){
 #endif
 }
 
-// for (m=0; m<imageprop.nsmax+imageprop.nlmax+imageprop.nbmax*NBITS; m++){
 for (m=0; m<imageprop.nsmax*imageprop.nlmax*imageprop.nbmax*NBITS; m++){
 	image_signed[m]=0;
 }
 
-#ifdef EZW_ARITH
-   //copy pour compatibilité
+// #ifdef EZW_ARITH
+if (*(coder_param.flag_arith) == 1){
+   //copy pour compatibilite   
    data_file = fopen("tmp", "w");
    status = fwrite(&streamstruct.stream[(*streamstruct.headerlength)/8], 1, *outputsize/8 - (*streamstruct.headerlength)/8, data_file);
-//    status = fwrite(&streamstruct.stream[8], 1, *outputsize/8 - 8, data_file);//WARNING depends on header size, not valid if mean sub (TODO add header size property)
-//    *streamstruct.streamlast += filestat.st_size;
    status=fclose(data_file);
 
-    QccInit(argc1, argv1);
+    QccInit(*argc1, argv1);
     QccBitBufferInitialize(&input_buffer);
 
     for (i = 0; i < num_context; i++)
@@ -1287,16 +1235,13 @@ for (m=0; m<imageprop.nsmax*imageprop.nlmax*imageprop.nbmax*NBITS; m++){
     argv1[0]);
     QccErrorExit();
     }
-#endif
+// #endif
+}
 
 npix=imageprop.nsmax * imageprop.nlmax * imageprop.nbmax;
 
 
 printf("WARNING: not adding bitplane... check if correct\n");
-// #ifndef SIGNED011
-// printf("maxquant +1 \n");
-// maxquant++;
-// #endif
 
 //decodage EZW
 for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
@@ -1304,12 +1249,6 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 	threshold= 1 << (long int)thres_ind;
 	printf("Processing for thres_ind %d (threshold: %ld)...\n",thres_ind, threshold);
 	
-// 	nref=0;
-// 	npos=0;
-// 	nneg=0;
-// 	nzeroisol=0;
-// 	nzerotree=0;	
-// 	nz=0;
 	
 
 	//refinement pass
@@ -1320,7 +1259,8 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 // 1 0 for -1
 // 0 for 0
 
-#ifdef EZW_ARITH
+// #ifdef EZW_ARITH
+if (*(coder_param.flag_arith) == 1){
 
 	#ifdef EZW_ARITH_RESET_MODEL
 	for (i=0;i<CONT_NUM;i++){
@@ -1336,17 +1276,12 @@ for (thres_ind=maxquant; thres_ind >= minquant; thres_ind--){
 	QccErrorExit();
 	}
 #endif
-#endif
+// #endif
+}
 	for (i=0;i< npix;i++){//parcours lineaire
 		x=i % (imageprop.nsmax);
 		y=(i/imageprop.nsmax) % (imageprop.nlmax);
 		l=(i/(imageprop.nsmax*imageprop.nlmax));
-// 	for (m=0; m<imageprop.nsmax+imageprop.nlmax+imageprop.nbmax; m++){//parcours zigzag
-// 	  for (x=0; x <= min(m,imageprop.nsmax-1); x++){
-// 	    for (y=0; y<= min(m-x,imageprop.nlmax-1); y++){
-// 	      l=m-x-y;
-//               if (l<= imageprop.nbmax-1){
-// 			i =  x + (y+l*imageprop.nlmax)*imageprop.nsmax;
 		if  (map_sig[i] == 1){
 #ifndef SIGNED011
 if (image_signed[NBITS*i+thres_ind+1] != 0){
@@ -1402,7 +1337,8 @@ if (image_signed[NBITS*i+thres_ind+1] != 0){
 	}
 #endif
 
-#ifdef EZW_ARITH
+// #ifdef EZW_ARITH
+if (*(coder_param.flag_arith) == 1){
 			if (input_buffer.bit_cnt < *outputsize-(*streamstruct.headerlength)){
 			if (QccENTArithmeticDecode(&input_buffer, model, &symbol, 1))
 			{
@@ -1427,7 +1363,8 @@ if (image_signed[NBITS*i+thres_ind+1] != 0){
 				nref_2;
 			}
 
-#else
+// #else
+} else {
 
 		   if ((*streamlast)*8+ (*count) <= *outputsize){
 			bit= read_from_stream(stream, count, streamlast);
@@ -1444,43 +1381,40 @@ if (image_signed[NBITS*i+thres_ind+1] != 0){
 				image_signed[NBITS*i+thres_ind] = -1;
 			}
 		   }
-#endif
+// #endif
+}
 		   nref++;
 }
 		};
-// 	      }
-// 	    }
-// 	  }
 	};
 #endif
 #endif
 
 
-#ifdef EZW_ARITH	
+// #ifdef EZW_ARITH
+if (*(coder_param.flag_arith) == 1){
 	if (input_buffer.bit_cnt >= *outputsize-(*streamstruct.headerlength)) break;
-#else
+// #else
+} else {
 	if ((*streamlast)*8+ (*count) > *outputsize) break;
-#endif
+// #endif
+}
 
 	//significance pass
+if (*(coder_param.flag_arith) == 1){
 	#ifdef EZW_ARITH_RESET_MODEL
 	for (i=0;i<CONT_NUM;i++){
 		QccENTArithmeticResetModel(model, i);
 	}
 	#endif
+}
 
-// 	flagsig=0;
+
 	for (i=0;i< npix;i++){//parcours lineaire
 		x=i % (imageprop.nsmax);
 		y=(i/imageprop.nsmax) % (imageprop.nlmax);
 		l=(i/(imageprop.nsmax*imageprop.nlmax));
 
-// 	for (m=0; m<imageprop.nsmax+imageprop.nlmax+imageprop.nbmax; m++){//parcours zigzag
-// 	  for (x=0; x <= min(m,imageprop.nsmax-1); x++){
-// 	    for (y=0; y<= min(m-x,imageprop.nlmax-1); y++){
-// 	      l=m-x-y;
-//               if (l<= imageprop.nbmax-1){
-// 			i =  x + (y+l*imageprop.nlmax)*imageprop.nsmax;
 
 		if ((map_zt[i] == 0) && (map_sig[i] ==0)){
 #ifndef REFINEMENT
@@ -1489,7 +1423,8 @@ if (image_signed[NBITS*i+thres_ind+1] != 0){
 #endif
 #endif
 /*Selection du contexte*/
-#ifdef EZW_ARITH
+// #ifdef EZW_ARITH
+if (*(coder_param.flag_arith) == 1){
 
 #ifdef EZW_ARITH_CONTEXT
 			if (x>0) {
@@ -1582,10 +1517,6 @@ if (image_signed[NBITS*i+thres_ind+1] != 0){
 #ifndef SIGNED011
 			} else {
 				flag_jump_coding=1;
-// 					if (QccENTArithmeticSetModelContext(model, CONT_SIGN_GEN_FOLLOW1)){
-// 					QccErrorAddMessage("%s: Error calling QccENTArithmeticSetModelContext()",argv1[0]);
-// 					QccErrorExit();
-// 					}
 			}
 // #else
 // }
@@ -1610,18 +1541,21 @@ if (image_signed[NBITS*i+thres_ind+1] != 0){
 		QccErrorExit();
 		}
 #endif
-#endif
+// #endif
+}
 /*Fin de selection du contexte*/
-#ifdef EZW_ARITH
+// #ifdef EZW_ARITH
+// if (*(coder_param.flag_arith) == 1){ //on le met plus bas
 	#ifndef REFINEMENT
-	#ifndef SIGNED011
-	if (flag_jump_coding ==0){
+		#ifndef SIGNED011
+		if (flag_jump_coding ==0){
+		#else
+		{
+		#endif
 	#else
 	{
 	#endif
-	#else
-	{
-	#endif
+		if (*(coder_param.flag_arith) == 1){
 			if (input_buffer.bit_cnt < *outputsize-(*streamstruct.headerlength)){
 			if (QccENTArithmeticDecode(&input_buffer, model, &symbol, 1))
 			{
@@ -1640,50 +1574,42 @@ if (image_signed[NBITS*i+thres_ind+1] != 0){
 			if (symbol == SYMB_IZ){bit = 0; bit2=0;}//IZ
 			if (symbol == SYMB_ZTR){bit = 0; bit2=1;}//ZTR
 			if (symbol == SYMB_Z){bit = 0; bit2=0;}//Z
-#else
-			{
+// 		}//
+// #else
+		} else {
+// 			{
 			if ((*streamlast)*8+ (*count) <= *outputsize){
 				bit= read_from_stream(stream, count, streamlast);
 			} else break;
-#endif
-// 			if ((*streamlast)*8+ (*count) <= *outputsize){
-// 				bit2= read_from_stream(stream, count, streamlast);
-// 			} else break;
-// 			if ((bit == 1) && (bit2 == 1)){//POS
-// 				map_sig[i] = 1;
-// // 				image[i] += threshold;
-// 				image_signed[NBITS*i+thres_ind] = 1;
-// 				npos++;
-// 			};
-// 			if ((bit == 1) && (bit2 == 0)){//NEG
-// 				map_sig[i] = 1;
-// // 				image[i] -= threshold;
-// 				image_signed[NBITS*i+thres_ind] = -1;
-// 				nneg++;
-// 			};
+		// #endif
+		}
 			if (bit == 1) {
-#ifndef EZW_ARITH
+// #ifndef EZW_ARITH
+if (*(coder_param.flag_arith) == 0){
 			 if ((*streamlast)*8+ (*count) <= *outputsize){
 				bit2= read_from_stream(stream, count, streamlast);
 			 } else break;
-#endif
+// #endif
+}
 			  if (bit2 == 1){//POS
 				map_sig[i] = 1;
 #ifdef EZWREFAFTER
 				map_sig_last[i] = 1;
 #endif
-// 				image[i] += threshold;
 				image_signed[NBITS*i+thres_ind] = 1;
+				#ifdef DEBUG
 				npos++;
+				#endif
 			  };
 			  if (bit2 == 0){//NEG
 				map_sig[i] = 1;
 #ifdef EZWREFAFTER
 				map_sig_last[i] = 1;
 #endif
-// 				image[i] -= threshold;
 				image_signed[NBITS*i+thres_ind] = -1;
+				#ifdef DEBUG
 				nneg++;
+				#endif
 			  };
 			} else {
 #ifdef EZWUSEZ
@@ -1700,22 +1626,27 @@ if (image_signed[NBITS*i+thres_ind+1] != 0){
 	  #endif
 	#endif
 
-
+				#ifdef DEBUG
 				nz++;//rien a faire
+				#endif
 			  } else {
 #else
 			{
 #endif
 
-#ifndef EZW_ARITH
+// #ifndef EZW_ARITH
+if (*(coder_param.flag_arith) == 0){
 				if ((*streamlast)*8+ (*count) <= *outputsize){
 					bit2= read_from_stream(stream, count, streamlast);
 				} else break;
-#endif
+// #endif
+}
 
 				if (bit2 == 0){//IZ
 					//nothing to do
+					#ifdef DEBUG
 					nzeroisol++;
+					#endif
 				};
 				if (bit2 == 1){//ZT
 					list_desc=list_init();
@@ -1727,14 +1658,15 @@ if (image_signed[NBITS*i+thres_ind+1] != 0){
 						current_el=next_el(list_desc);
 					};
 					list_free(list_desc);
+					#ifdef DEBUG
 					nzerotree++;
+					#endif
 				};
 			   }
 
 			}
 		}//le flag_jump_coding
 		};
-// 	}}}//zigzag
 	};
 
 #ifdef EZWREFAFTER
@@ -1744,7 +1676,8 @@ if (image_signed[NBITS*i+thres_ind+1] != 0){
 // 1 0 for -1
 // 0 for 0
 
-#ifdef EZW_ARITH
+// #ifdef EZW_ARITH
+if (*(coder_param.flag_arith) == 1){
 	#ifdef EZW_ARITH_RESET_MODEL
 	for (i=0;i<CONT_NUM;i++){
 		QccENTArithmeticResetModel(model, i);
@@ -1759,17 +1692,12 @@ if (image_signed[NBITS*i+thres_ind+1] != 0){
 	QccErrorExit();
 	}
 #endif
-#endif
+// #endif
+}
 	for (i=0;i< npix;i++){//parcours lineaire
 		x=i % (imageprop.nsmax);
 		y=(i/imageprop.nsmax) % (imageprop.nlmax);
 		l=(i/(imageprop.nsmax*imageprop.nlmax));
-// 	for (m=0; m<imageprop.nsmax+imageprop.nlmax+imageprop.nbmax; m++){//parcours zigzag
-// 	  for (x=0; x <= min(m,imageprop.nsmax-1); x++){
-// 	    for (y=0; y<= min(m-x,imageprop.nlmax-1); y++){
-// 	      l=m-x-y;
-//               if (l<= imageprop.nbmax-1){
-// 			i =  x + (y+l*imageprop.nlmax)*imageprop.nsmax;
 		if ((map_sig[i] == 1) && (map_sig_last[i] == 0)){
 #ifndef SIGNED011
 if (image_signed[NBITS*i+thres_ind+1] != 0){
@@ -1825,7 +1753,8 @@ if (image_signed[NBITS*i+thres_ind+1] != 0){
 	}
 #endif
 
-#ifdef EZW_ARITH
+// #ifdef EZW_ARITH
+if (*(coder_param.flag_arith) == 1){
 			if (input_buffer.bit_cnt < *outputsize-(*streamstruct.headerlength)){
 				if (QccENTArithmeticDecode(&input_buffer, model, &symbol, 1))
 				{
@@ -1850,7 +1779,8 @@ if (image_signed[NBITS*i+thres_ind+1] != 0){
 				nref_2;
 			}
 
-#else
+// #else
+} else {
 
 		   if ((*streamlast)*8+ (*count) <= *outputsize){
 			bit= read_from_stream(stream, count, streamlast);
@@ -1867,13 +1797,11 @@ if (image_signed[NBITS*i+thres_ind+1] != 0){
 				image_signed[NBITS*i+thres_ind] = -1;
 			}
 		   }
-#endif
+// #endif
+}
 		   nref++;
 }
 		};
-// 	      }
-// 	    }
-// 	  }
 	};
 #endif
 #endif
@@ -1892,36 +1820,47 @@ if (image_signed[NBITS*i+thres_ind+1] != 0){
 #endif
 	};
 
-#ifdef EZW_ARITH	
+// #ifdef EZW_ARITH
+if (*(coder_param.flag_arith) == 1){
 	if (input_buffer.bit_cnt >= *outputsize-(*streamstruct.headerlength)) break;
-#else
+// #else
+} else {
 	if ((*streamlast)*8+ (*count) > *outputsize) break;
-#endif
+// #endif
+}
 
-#ifndef EZW_ARITH
+// #ifndef EZW_ARITH
+if (*(coder_param.flag_arith) == 0){
 printf("Stream size: %ld \n",*streamlast);
 printf("count:       %uc \n",*count);
 printf("Size in bit: %ld \n", *streamlast*8+*count);
-#endif
-#ifdef EZW_ARITH
-printf("Size in bit: %ld \n", input_buffer.bit_cnt);
-#endif
+// #endif
+}
+// #ifdef EZW_ARITH
+if (*(coder_param.flag_arith) == 1){
+printf("Size in bit: %d \n", input_buffer.bit_cnt);
+// #endif
+}
 #ifdef EZWREF
 printf("nref: %ld \n",nref);
 printf("nref_jumped: %ld \n",nref_jumped);
 printf("nref_1: %ld \n",nref_1);
 printf("nref_2: %ld \n",nref_2);
 #endif
+#ifdef DEBUG
 printf("POS: %ld \n",npos);
 printf("NEG: %ld \n",nneg);
 printf("IZ:  %ld \n",nzeroisol);
 printf("ZTR: %ld \n",nzerotree);
 printf("Z: %ld \n",nz);
+#endif
 printf("-------------------------\n");
 
 };
 
-#ifdef EZW_ARITH
+// #ifdef EZW_ARITH
+
+if (*(coder_param.flag_arith) == 1){
     if (QccBitBufferEnd(&input_buffer))
     {
     QccErrorAddMessage("%s: Error calling QccBitBufferEnd()",
@@ -1930,10 +1869,10 @@ printf("-------------------------\n");
     }
 
     QccENTArithmeticFreeModel(model);
-#endif
+// #endif
+}
 
 for (i=0;i< npix;i++){
-// 	bin_value(image[i], &(image_signed[NBITS*i]));
 	image[i] = value_signed(&(image_signed[NBITS*i]));
 }
 

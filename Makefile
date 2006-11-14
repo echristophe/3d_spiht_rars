@@ -1,11 +1,11 @@
 
 #  Hyperspectral compression program
 # 
-#  Name:		main.c	
+#  Name:		Makefile	
 #  Author:		Emmanuel Christophe	
 #  Contact:		e.christophe at melaneum.com
 #  Description:		Utility functions for hyperspectral image compression
-#  Version:		v1.0 - 2006-04	
+#  Version:		v1.1 - 2006-10	
  
 
 # options possibles
@@ -31,6 +31,9 @@
 # DEBUG : many details
 # DEBUG2: more synthetic information
 # OUTPUT: output intermediates wavelet hypercubes
+
+#WARNING:
+#Do not use the -DEZW option anymore, it is now automatically included
 
 CC = LC_ALL=C gcc
 
@@ -101,12 +104,14 @@ LIBS = -lQccPack -lm
 
 #REFERENCES
 #produce slightly better results than EZW on barbara (result on paper)
- C_OPT = -O3 -DEZW -DDEBUG -DEZWUSEZ -DEZW_ARITH -DEZWREFAFTER -DEZW_ARITH_RESET_MODEL 
+# C_OPT = -g -DDEBUG -DEZWUSEZ -DEZW_ARITH -DEZWREFAFTER -DEZW_ARITH_RESET_MODEL 
 #signed representation without ref pass, perform almost as well as EZW
-# C_OPT = -O3 -DEZW -DDEBUG -DNEWTREE -DSIGNED -DEZWUSEZ -DEZW_ARITH -DEZW_ARITH_CONTEXT -DEZW_ARITH_RESET_MODEL
+# C_OPT = -g -DDEBUG -DNEWTREE -DSIGNED -DEZWUSEZ -DEZW_ARITH -DEZW_ARITH_CONTEXT -DEZW_ARITH_RESET_MODEL
 #en 3D, on rajoute en plus l'arbre...
-#C_OPT = -O3 -DEZW -DDEBUG -DNEWTREE2 -DEZWUSEZ -DEZW_ARITH -DEZWREFAFTER -DEZW_ARITH_RESET_MODEL 
-# C_OPT = -O3 -DEZW -DDEBUG -DNEWTREE2 -DSIGNED -DEZWUSEZ -DEZW_ARITH -DEZW_ARITH_CONTEXT -DEZW_ARITH_RESET_MODEL
+# C_OPT = -O3 -DDEBUG -DNEWTREE2 -DEZWUSEZ -DEZW_ARITH -DEZWREFAFTER -DEZW_ARITH_RESET_MODEL 
+# C_OPT = -O3 -DDEBUG -DNEWTREE2 -DSIGNED -DEZWUSEZ -DEZW_ARITH -DEZW_ARITH_CONTEXT -DEZW_ARITH_RESET_MODEL
+
+
 
 # spiht
 # C_OPT = -O3  -DDEBUG
@@ -131,13 +136,22 @@ LIBS = -lQccPack -lm
 #SPIHT original (AT tree)
 # C_OPT = -g  -DDEBUG -DNEWTREE -DNORA
 #SPIHT original (3D tree)
-# C_OPT = -O3  -DDEBUG -DNORA -DINPLACE
+# C_OPT = -O3  -DDEBUG -DNORA
 #SPIHT RA (resolution scalable, but no separation between spatial and spectral)
 # C_OPT = -Wall -O3  -DNEWTREE -DTIME -DDEBUG2 -DSIZE
 
+#for testing only
+# C_OPT = -Wall -g -DNEWTREE -DSIZE -DDEBUG2 
+
+
+
 #SPIHT RARS
 # C_OPT = -Wall -O3  -DNEWTREE -DDEBUG2 -DTIME -DRES_SCAL -DSIZE -DLSCBEFORE
-# C_OPT = -Wall -O3  -DNEWTREE -DDEBUG2 -DTIME -DRES_SCAL -DSIZE
+# C_OPT = -Wall -g  -DNEWTREE -DDEBUG2 -DTIME -DRES_SCAL -DSIZE
+# C_OPT = -Wall -g  -DNEWTREE -DDEBUG2 -DTIME -DSIZE -DOLDRATE
+# C_OPT = -Wall -g  -DNEWTREE -DDEBUG2 -DTIME -DSIZE 
+
+C_OPT = -Wall -g  -DNEWTREE -DDEBUG2 -DTIME -DSIZE  -DNORA
 
 #lossless
 # C_OPT = -Wall -O3  -DNEWTREE -DDEBUG2 -DTIME -DRES_SCAL -DSIZE -DLSCBEFORE  -DWAV53 -DOUTPUT
@@ -152,16 +166,22 @@ PROF =
 
 DEP = main.h Makefile
 
-all : libspiht.so spihtcode
+all : libspiht.so spihtcode ezwcode
 
-spihtcode : spiht_code_c.o desc.o desc_ezw.o ezw_code_c.o  main.o signdigit.o desc_ezw_signed.o ezw_code_signed_c.o  utils.o wavelet_c.o spiht_code_ra5.o 
-	$(CC) $(PROF) $(LIBS) -o spihtcode spiht_code_c.o desc.o desc_ezw.o ezw_code_c.o  main.o signdigit.o desc_ezw_signed.o ezw_code_signed_c.o  utils.o wavelet_c.o spiht_code_ra5.o 
+spihtcode : spiht_code_c.o desc.o  main_spiht.o signdigit.o utils.o wavelet_c.o spiht_code_ra5.o 
+	$(CC) $(PROF) $(LIBS) -o spihtcode spiht_code_c.o desc.o  main_spiht.o signdigit.o  utils.o wavelet_c.o spiht_code_ra5.o 
+
+ezwcode : desc_ezw.o ezw_code_c.o main_ezw.o signdigit.o desc_ezw_signed.o ezw_code_signed_c.o  utils.o wavelet_c.o 
+	$(CC) $(PROF) $(LIBS) -o ezwcode desc_ezw.o ezw_code_c.o  main_ezw.o signdigit.o desc_ezw_signed.o ezw_code_signed_c.o  utils.o wavelet_c.o 
 	
-libspiht.so : spiht_code_c.o desc.o desc_ezw.o ezw_code_c.o  main.o signdigit.o utils.o  desc_ezw_signed.o ezw_code_signed_c.o   wavelet_c.o spiht_code_ra5.o 
-	$(CC) $(PROF) $(LIBS) -shared -o libspiht.so spiht_code_c.o desc.o desc_ezw.o ezw_code_c.o  main.o signdigit.o desc_ezw_signed.o ezw_code_signed_c.o   utils.o wavelet_c.o spiht_code_ra5.o 
+libspiht.so : spiht_code_c.o desc.o desc_ezw.o ezw_code_c.o   signdigit.o utils.o  desc_ezw_signed.o ezw_code_signed_c.o wavelet_c.o spiht_code_ra5.o 
+	$(CC) $(PROF) $(LIBS) -shared -o libspiht.so spiht_code_c.o desc.o desc_ezw.o ezw_code_c.o  signdigit.o desc_ezw_signed.o ezw_code_signed_c.o utils.o wavelet_c.o spiht_code_ra5.o 
 
-main.o : main.c $(DEP)
-	$(CC) $(PROF) $(C_OPT) -Wall -c main.c 
+main_spiht.o : main.c $(DEP)
+	$(CC) $(PROF) $(C_OPT) -Wall -c  -o main_spiht.o main.c
+
+main_ezw.o : main.c $(DEP)
+	$(CC) $(PROF) $(C_OPT) -DEZW -Wall -c -o main_ezw.o main.c
 
 utils.o : utils.c $(DEP)
 	$(CC) $(PROF) $(C_OPT) -Wall -c utils.c 
@@ -174,12 +194,6 @@ ezw_code_signed_c.o : ezw_code_signed_c.c $(DEP)
 
 spiht_code_c.o : spiht_code_c.c $(DEP)
 	$(CC) $(PROF) $(C_OPT) -Wall -c spiht_code_c.c 
-
-# spiht_code_ra2.o : spiht_code_ra2.c $(DEP)
-# 	$(CC) $(PROF) $(C_OPT) -Wall -c spiht_code_ra2.c
-# 
-# spiht_code_ra3.o : spiht_code_ra3.c $(DEP)
-# 	$(CC) $(PROF) $(C_OPT) -Wall -c spiht_code_ra3.c
 
 spiht_code_ra5.o : spiht_code_ra5.c $(DEP)
 	$(CC) $(PROF) $(C_OPT) -Wall -c spiht_code_ra5.c
@@ -199,8 +213,6 @@ desc_ezw_signed.o : desc_ezw_signed.c  $(DEP)
 wavelet_c.o : wavelet_c.c  $(DEP)
 	$(CC) $(PROF) $(C_OPT) -Wall -c wavelet_c.c 
 
-# desc_cumul.o : desc_cumul.c  $(DEP)
-# 	$(CC) $(PROF) $(C_OPT) -Wall -c desc_cumul.c 
 
 package:
 	tar cf - Makefile README *.c *.h | gzip -9 > ../spiht3d_c.tar.gz

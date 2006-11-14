@@ -6,13 +6,11 @@
  * Author:		Emmanuel Christophe	
  * Contact:		e.christophe at melaneum.com
  * Description:		Utility functions for hyperspectral image compression
- * Version:		v1.0 - 2006-04	
+ * Version:		v1.1 - 2006-10	
  * 
  */
 
 
-// #include "spiht_code_c.h"
-// #include "desc_ezw.h"
 #include "main.h"
 
 
@@ -27,17 +25,8 @@ Attention, l'option directchildonly a une signification difference si compile av
 sans option:
 recherche uniquement les descendants directs, sans appel recursif
 avec option:
-recherche tous les descendant, mais pas de sortie anticipée
+recherche tous les descendant, mais pas de sortie anticipï¿½
 */
-
-// int isLSC(long int value_pix, int thres_ind){
-// 	long int threshold= 1 << (long int)thres_ind;
-// 	if ((abs(value_pix) >= threshold) && (abs(value_pix) < 2*threshold)) {
-// 		return 1;
-// 	} else {
-// 		return 0;
-// 	}
-// };
 
 
 
@@ -45,7 +34,6 @@ recherche tous les descendant, mais pas de sortie anticipée
 SPECTRAL - SPATIAL
 ******************************************************/
 
-/*function spat_spec_desc_spiht_fast, current_pix_x, current_pix_y, current_pix_l, desc_array_x, desc_array_y, desc_array_l, thres_cube, imageprop, directchildonly=directchildonly*/
 
 int spat_spec_desc_ezw_signed(pixel_struct pixel, list_struct * list_desc, int directchildonly, char *image_signed, int thres_ind , unsigned char *map_LSC)
 {
@@ -54,7 +42,6 @@ int r1=0;
 int r2=0;
 int r=0;
 int out=1;
-/*long int threshold;*/
 
 int nsmax=imageprop.nsmax;
 int nlmax=imageprop.nlmax;
@@ -63,14 +50,11 @@ int nbmax=imageprop.nbmax;
 int nsmin=imageprop.nsmin;
 int nlmin=imageprop.nlmin;
 #endif
-// int nbmin=imageprop.nbmin;
 
 list_el *current_el=NULL;
 list_struct *tmp_list=NULL;
 
-// #ifdef EZW
 list_el *tmp_el=NULL;
-// #endif
 
 
 if (directchildonly == 0){
@@ -78,9 +62,6 @@ if (directchildonly == 0){
 };
 
 
-/*
-;Is there any offspring ?
-if (((current_pix_x GE nsmax / 2) || (current_pix_y GE nlmax / 2)) &&  (current_pix_l GE nbmax / 2)) then return, 0*/
 #ifdef NEWTREE
 if ((pixel.x >= nsmax / 2) || (pixel.y >= nlmax / 2)) {
 	if (directchildonly == 0){list_free(tmp_list);};
@@ -100,24 +81,14 @@ if (((pixel.x >= nsmax / 2) || (pixel.y >= nlmax / 2)) &&  (pixel.l >= nbmax / 2
    #endif
 #endif
 
-/*
-;otherwise, general case with 6 offspring
-
-;find spectral offspring
-desc_array_spec_x=current_pix_x
-desc_array_spec_y=current_pix_y
-desc_array_spec_l=current_pix_l*/
-
-/*r=spec_desc_spiht_fast(current_pix_x, current_pix_y, current_pix_l, desc_array_spec_x, desc_array_spec_y, desc_array_spec_l, thres_cube, imageprop, directchildonly=directchildonly)*/
 #ifdef NEWTREE
-if ((pixel.x < nsmin) && (pixel.y < nlmin)){//modif 02-01-2006 chgmt structure arbre
+if ((pixel.x < nsmin) && (pixel.y < nlmin)){
 #endif
 #ifdef NEWTREE2
-if ((pixel.x < nsmax/2) && (pixel.y < nlmax/2)){//modif 19-07-2006 mix 3D-spat
+if ((pixel.x < nsmax/2) && (pixel.y < nlmax/2)){
 #endif 
 if (directchildonly == 0){
-// r1=spec_desc_ezw_signed(pixel, tmp_list, directchildonly, image_signed, thres_ind, map_LSC);
-r1=spec_desc_ezw_signed(pixel, tmp_list, 1, image_signed, thres_ind, map_LSC);//modif 09-04-06 non verifiee
+r1=spec_desc_ezw_signed(pixel, tmp_list, 1, image_signed, thres_ind, map_LSC);
 	if (r1 == -1) {
 		if (directchildonly == 0){list_free(tmp_list);};
 		return -1;
@@ -132,62 +103,34 @@ r1=spec_desc_ezw_signed(pixel, list_desc, directchildonly, image_signed, thres_i
 };
 #endif
 
-// #ifdef EZW
 if (directchildonly == 1){
 tmp_el=list_desc->last;
 };
-// #endif
-
-/*if (r EQ -1) then return, -1*/
-/*if (r == -1) return -1;*/
-
-/*
-ndesc=n_elements(desc_array_spec_x)
-
-if (ndesc GT 1) then begin
-	desc_array_x=[desc_array_x, desc_array_spec_x[1:ndesc-1]]
-	desc_array_y=[desc_array_y, desc_array_spec_y[1:ndesc-1]]
-	desc_array_l=[desc_array_l, desc_array_spec_l[1:ndesc-1]]
-endif*/
 
 
-
-/* dans tous les cas, on regarde les descendant spatiaux du pixel courant */
 r2=spat_desc_ezw_signed(pixel, list_desc, directchildonly, image_signed, thres_ind, map_LSC);
 
 if ((directchildonly == 0) && ((r1 == -1) || (r2 == -1))) {
 	if (directchildonly == 0){list_free(tmp_list);};
-	return -1;//sortie anticipée
+	return -1;
 };
 if ((directchildonly == 1) && ((r1 == -1) || (r2 == -1))) out=-1;
 if ((r1 == 0) && (r2 == 0)) {
 	if (directchildonly == 0){list_free(tmp_list);};
-	return 0;//pas de descendant (LF paires)
+	return 0;
 };
-/*
-for i=0, ndesc-1 do begin
-   current_pix_spec_x=desc_array_spec_x[i]
-   current_pix_spec_y=desc_array_spec_y[i]
-   current_pix_spec_l=desc_array_spec_l[i]
-   r=spat_desc_spiht_fast(current_pix_spec_x, current_pix_spec_y, current_pix_spec_l, desc_array_x, desc_array_y, desc_array_l, thres_cube, imageprop, directchildonly=directchildonly)
-   if (r EQ -1) then return, -1
 
-endfor
-*/
 if (directchildonly == 0) {
-//   current_el=list_desc->first;
   current_el=tmp_list->first;
   while (current_el != NULL){
   	r=spat_desc_ezw_signed(current_el->pixel, list_desc, directchildonly, image_signed, thres_ind, map_LSC);
   	current_el= current_el->next;
 	if ((directchildonly == 0) && (r == -1)) {return -1; list_free(tmp_list);};
-// 	if ((directchildonly == 1) && (r == -1)) out= -1;
   };
   list_free(tmp_list);
 };
 
 
-// #ifdef EZW
 if (directchildonly == 1) {
    if(tmp_el !=NULL){
   current_el=list_desc->first;
@@ -195,7 +138,6 @@ if (directchildonly == 1) {
   	r=spat_desc_ezw_signed(current_el->pixel, list_desc, directchildonly, image_signed, thres_ind, map_LSC);
   	current_el= current_el->next;
 	if ((directchildonly == 0) && (r == -1)) {return -1; list_free(tmp_list);};
-// 	if ((directchildonly == 1) && (r == -1)) out= -1;
   };
   r=spat_desc_ezw_signed(current_el->pixel, list_desc, directchildonly, image_signed, thres_ind, map_LSC);
   current_el= current_el->next;
@@ -203,7 +145,6 @@ if (directchildonly == 1) {
   list_free(tmp_list);
   };
 };
-// #endif
 
 return out;
 };
@@ -216,23 +157,17 @@ int spec_desc_ezw_signed(pixel_struct pixel, list_struct * list_desc, int direct
 
 pixel_struct new_pixel;
 long int value_pix;
-struct list_el * current_el=NULL;
+list_el * current_el=NULL;
 
-// long int threshold=0; /*WARNING temporaire*/
 int r=0;
 int out=1;
 
-// int nsmax=imageprop.nsmax;
-// int nlmax=imageprop.nlmax;
 int nbmax=imageprop.nbmax;
-// int nsmin=imageprop.nsmin;
-// int nlmin=imageprop.nlmin;
 int nbmin=imageprop.nbmin;
 
 list_el *current_el1=NULL;
 list_el *current_el2=NULL;
 
-// printf("Processing pixel : %d, %d, %d \n",pixel.x,pixel.y,pixel.l);
 
 if (pixel.l >= nbmax / 2) return 0;
 
@@ -256,11 +191,9 @@ if (pixel.l < nbmin){/*lower frequency*/
 		insert_el(list_desc, current_el);
 
 	/*;Recursive call on offspring*/
-// 	if (directchildonly == 0){//remove 09-04-06 non verifiee
 		r = spec_desc_ezw_signed(new_pixel, list_desc, directchildonly, image_signed, thres_ind, map_LSC);
 		if ((directchildonly == 0) && (r == -1)) return -1;
 		if ((directchildonly == 1) && (r == -1)) out= -1;
-// 	};
 } else { /*;general case*/
 	/*;Add offspring coordinate to the array*/
 	
@@ -312,10 +245,8 @@ int spat_desc_ezw_signed(pixel_struct pixel, list_struct * list_desc, int direct
 
 int nsmax=imageprop.nsmax;
 int nlmax=imageprop.nlmax;
-// int nbmax=imageprop.nbmax;
 int nsmin=imageprop.nsmin;
 int nlmin=imageprop.nlmin;
-// int nbmin=imageprop.nbmin;
 
 list_el *current_el1=NULL;
 list_el *current_el2=NULL;
@@ -327,7 +258,6 @@ pixel_struct new_pixel2;
 pixel_struct new_pixel3;
 pixel_struct new_pixel4; 
 
-// long int threshold=0; /*WARNING temporaire*/
 long int value_pix;
 
 int r;
@@ -338,7 +268,6 @@ new_pixel2 = init_pixel();
 new_pixel3 = init_pixel();
 new_pixel4 = init_pixel();
 
-// printf("Processing pixel : %d, %d, %d \n",pixel.x,pixel.y,pixel.l);
 
 /* Any offspring ?*/
 if (pixel.x >= nsmax / 2) return 0;
@@ -383,10 +312,10 @@ if ((pixel.x < nsmin) && (pixel.y < nlmin)){
 };
 
 
-if (directchildonly == 1){/*Si on ne veut que les descendant, il faut les ajouter à la liste...*/
-		insert_el(list_desc, current_el1);
-		insert_el(list_desc, current_el2);
-		insert_el(list_desc, current_el3);
+if (directchildonly == 1){
+	insert_el(list_desc, current_el1);
+	insert_el(list_desc, current_el2);
+	insert_el(list_desc, current_el3);
 	if (!((pixel.x < nsmin) && (pixel.y < nlmin))){
 		insert_el(list_desc, current_el4);
 	};
@@ -430,7 +359,6 @@ if (!((pixel.x < nsmin) && (pixel.y < nlmin))){
 };
 
 
-//dans le cas EZW on fait l'appel recursif dans le cas directchildonly=1 aussi.
 	r = spat_desc_ezw_signed(new_pixel1, list_desc, directchildonly, image_signed, thres_ind, map_LSC);
 	if ((directchildonly == 0) && (r == -1)) return -1;
 	r = spat_desc_ezw_signed(new_pixel2, list_desc, directchildonly, image_signed, thres_ind, map_LSC);
