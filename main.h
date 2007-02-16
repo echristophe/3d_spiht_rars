@@ -53,6 +53,7 @@ long int * imageoriglobal;
 #endif
 
 #define WEIGHTMULTVALUE 1000
+// #define WEIGHTMULTVALUE 1
 
 #ifdef TEMPWEIGHTCHECKING
 long int * imageweight;

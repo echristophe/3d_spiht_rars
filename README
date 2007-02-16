@@ -6,9 +6,10 @@
  * Author:		Emmanuel Christophe	
  * Contact:		e.christophe at melaneum.com
  * Description:		Utility functions for hyperspectral image compression
- * Version:		v1.0 - 2006-04	
+ * Version:		v1.2 - 2007-02
  * 
  */
+
 
  Demonstration compression program for 3D images:
  	- hyperspectral images
@@ -17,9 +18,26 @@
 
  The method is based on 3D SPIHT or 3D EZW with random access and resolution scalability properties.
 
+***************************************
+************** History ****************
+***************************************
 
+This is a development code and history strongly influenced the development. Some options from the beginning are not guaranty to work with the latest one according to the choices.
+Here is a brief history of the development to help understand what may or may not work:
+10/2005: 3D EWD in IDL language with 3 different types of trees
+11/2005: 3D SPIHT in IDL with 3 different types of trees. The long processing time lead to
+12/2005: C implementation of 3D EWZ and SPIHT
+01/2006: Research on how to use properly the overlapping tree with SPIHT (finally abandonned). Added the wavelet coding in C using QccPack.
+02-04/2006: Random access, resolution scalability and lagrangian rate allocation added
+07-08/2006: Signed binary digits added for 3D EZW. Arithmetic coding of the output for 3D EZW (using QccPack). Simplification of the partial decoding (dead zone quantizer made directly).
+09/2006: Contextual arithmetic coding added for 3D SPIHT
+11/2006: Improvement of the distortion estimation, making full use of the dead zone quantizer. Possibility to use the real weight for the distortion estimation (the 9/7 is only quasi-orthogonal).
 
-Installation:
+As the overlapping tree was abandonned quite early for SPIHT, it will not work with the properties of scalability.
+
+***************************************
+************ Installation *************
+***************************************
 
 * QccPack
 - need the libQccPack installed available at http://qccpack.sourceforge.net/
@@ -29,8 +47,9 @@ Installation:
 * 3D SPIHT RARS
 - 'make' create and executable and a shared library
 
-
-Syntax:
+***************************************
+*************** Syntax ****************
+***************************************
 
 Usage:spihtcode [-e | -d] [-r rate] [-s ns nl nb] [-n d1 d2] [-t datatype][filename]
 ns: # samples                 [256]
@@ -39,6 +58,27 @@ nb: # bands                   [224]
 d1: # spectral decompositions [5]
 d2: # spatial decompositions  [5]
 datatype: 2 short int (default), 1 unsigned char
+
+***************************************
+***************** Files ***************
+***************************************
+
+What file correspond to what ?
+- main.c : command line reading, help message, encoding and decoding function (in charge of combining the wavelet transform and the coefficient coding)
+- main.h : all functions headers
+- utils.c : all the small side functions, handle list, manipulates bits, lagrangian rate allocation, etc
+- signdigit.c : small side functions specific to signed binary digits, convertion between different notation, etc
+
+- desc.c : computation of SPIHT descendant trees. Switch between the different types of tree is done by compilation option.
+- desc_ezw.c : computation of EZW descendant trees.  Switch between the different types of tree is done by compilation option.
+- desc_ezw_signed.c : computation of EZW descendant trees in case of signed binary digit notation.  Switch between the different types of tree is done by compilation option.
+
+- ezw_code.c : encoding and decoding functions for EZW
+- ezw_code_signed.c : encoding and decoding functions for EWZ signed
+- spiht_code_c.c : standard 3D SPIHT encoding and decoding functions
+- spiht_code_ra5.c : 3D SPIHT encoding and decoding functions with random access, resolution scalability, ROI coding and decoding, etc...
+
+
 
 
 

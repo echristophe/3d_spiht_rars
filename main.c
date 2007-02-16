@@ -197,7 +197,7 @@ int sizeChecking(){
    if ( tmpValue*(1<<(imageprop.nresspat)) != imageprop.nsmax ) return 1;
    tmpValue = (imageprop.nlmax/(1<<(imageprop.nresspat)));
    if ( tmpValue*(1<<(imageprop.nresspat)) != imageprop.nlmax ) return 1;
-   tmpValue = (imageprop.nbmax/(1<<(imageprop.nresspat-1)));
+   tmpValue = (imageprop.nbmax/(1<<(imageprop.nresspec-1)));
    if ( tmpValue*(1<<(imageprop.nresspec-1)) != imageprop.nbmax ) return 1;
    return 0;
 }
@@ -228,7 +228,8 @@ void usage(char *str1){
 		"d2: # spatial decompositions  [5]\n"
 		"-t datatype: 2 short int (default), 1 unsigned char\n"
                 "-i: use 5/3 integer transform instead of default 9/7\n"
-		"-m: use mean substraction for every spectral band prior to wavelet transform\n\n",
+		"-m: use mean substraction for every spectral band prior to wavelet transform\n"
+                "  Default value in []\n\n",
 	       str1
 	       );
 	exit(1);
@@ -424,11 +425,11 @@ printf("Outputsize: %ld bits\n", *outputsize);
 
 
 //output coded stream
-#ifdef OUTPUT
-output_file = fopen("/home/christop/Boulot/images/output_stream/output.dat","w");
-#else
+// #ifdef OUTPUT
+// output_file = fopen("/home/christop/Boulot/images/output_stream/output.dat","w");
+// #else
 output_file = fopen(output_filename,"w");
-#endif
+// #endif
 if (output_file == NULL) fprintf(stderr, "Error opening file...\n");
 status = fwrite(stream, 1, (*outputsize+7)/8, output_file);
 status = fclose(output_file);
@@ -698,18 +699,18 @@ if (*(coder_param.flag_meansub)){
 add_mean(imageidwt, mean);
 }
 
-#ifdef OUTPUT
-
-
-status=write_hyper("/home/christop/Boulot/images/output_stream/output.img", imageidwt, npix, type);
-free(imageidwt);imageidwt=NULL;
-
-#else
+// #ifdef OUTPUT
+// 
+// 
+// status=write_hyper("/home/christop/Boulot/images/output_stream/output.img", imageidwt, npix, type);
+// free(imageidwt);imageidwt=NULL;
+// 
+// #else
 
 status=write_hyper(output_filename, imageidwt, npix, type);
 free(imageidwt);imageidwt=NULL;
 
-#endif
+// #endif
 
 
 

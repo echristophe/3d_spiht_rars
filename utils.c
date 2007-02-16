@@ -490,6 +490,8 @@ int update_dist0(pixel_struct pixel, int thres_ind, long long int * dist,  long 
 int compute_weightingFactor(pixel_struct pixel){
   double factorLowPass = 0.982954; //valid only for the 9/7 wavelet
   double factorHighPass = 1.040435;
+//   double factorLowPass = 1/1.040435; //valid only for the 9/7 wavelet
+//   double factorHighPass = 1/0.982954;
   int spec_pos = 0;
   int spat_pos = 0;
   int currentValuex=pixel.x;
@@ -524,6 +526,7 @@ int compute_weightingFactor(pixel_struct pixel){
      }
   }
   finalFactor = round(WEIGHTMULTVALUE*spatialFactor*spectralFactor);
+//   finalFactor = round(WEIGHTMULTVALUE/(spatialFactor*spectralFactor));
 #ifdef TEMPWEIGHTCHECKING
   imageweight[trans_pixel(pixel)] += finalFactor;
   imageweightcount[trans_pixel(pixel)] += 1;
@@ -535,7 +538,7 @@ int compute_weightingFactor(pixel_struct pixel){
 //Is it time to add the cutting point to the rate-distortion list ?
 int add_to_rddata(rddata_struct *rddata, long long int rate, long long int dist){
   //WARNING to invert below
-#ifdef OLDRATE 
+#ifdef OLDRATE0 
   if ((*rddata).reval[(*rddata).ptcourant] > rate) {
     return 0;
   } else {
@@ -587,6 +590,7 @@ int compute_cost(rddata_struct *rddata, float lambda){
   else {//lambda = 0 we want lossless here
     min = (*rddata).d[NUMRD-1];//should be the final answer anyway unless particular situation (all even numbers for eg).
     (*rddata).ptcourant = NUMRD-1;
+    if (0){
     for (i=0; i< NUMRD; i++){
       if ((*rddata).r[i] !=0 ){
         if (((*rddata).d[i]  <= min) && ((*rddata).d[i] < (*rddata).d[(*rddata).ptcourant])){//TODO to reread carefully, we want the min here
@@ -594,6 +598,7 @@ int compute_cost(rddata_struct *rddata, float lambda){
                 (*rddata).ptcourant = i;
         }
       }
+    }
     }
   }
   if ((*rddata).ptcourant == NUMRD) fprintf(stderr, "Compute_cost to check...\n");//test 

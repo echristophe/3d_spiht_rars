@@ -2,7 +2,7 @@
  *
  *  Hyperspectral compression program
  *
- * Name:		signdigit.c	
+ * Name:		main.c	
  * Author:		Emmanuel Christophe	
  * Contact:		e.christophe at melaneum.com
  * Description:		Utility functions for hyperspectral image compression
@@ -13,7 +13,7 @@
 #include "main.h"
 
 
-  
+
 // long int value_signed(char * a);
 
 /*int main(void) {

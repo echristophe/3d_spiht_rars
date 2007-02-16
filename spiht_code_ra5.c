@@ -13,6 +13,7 @@
 
 #include "main.h"
 
+// int test=0;
 
 /*********************************
 ***          CODER             ***
@@ -90,6 +91,29 @@ int resspec=0;
 // parents_struct parents;
 // #endif
 
+
+// #ifdef EZW_ARITH
+#define CONT_NUM 1
+int symbol = -1;
+
+int num_context=CONT_NUM;
+int num_symbols[CONT_NUM]; 
+
+// long int symb_counter = 0;
+
+// unsigned char * streambyte;
+// FILE *output_file; //int status;
+QccBitBuffer output_buffer;
+QccENTArithmeticModel *model = NULL;
+int argc1=1;
+char * argv1[1];
+argv1[0] = (char *) malloc(256*sizeof(char)); 
+strcpy(argv1[0],"tmp");
+struct stat filestat;
+FILE *data_file;//TODO useless after...
+int status=0;
+// #endif
+
 #ifdef DEBUG
 long int nLICloop;
 long int nLSCloop;
@@ -145,6 +169,8 @@ datablock=(datablock_struct *) malloc(nblock* sizeof(datablock_struct));
 
 
 
+
+
 //**********************************************
 //Parcours des differentes localisations
 //**********************************************
@@ -181,7 +207,38 @@ for (kloc=0;kloc<nkloc;kloc++){
    for (jloc=0;jloc<njloc;jloc++){
       for (iloc=0;iloc<niloc;iloc++){
 
+// test=0;
+// #ifdef EZW_ARITH
+if (*(coder_param.flag_arith) == 1){
+    QccInit(argc1, argv1);
+    QccBitBufferInitialize(&output_buffer);
 
+    num_symbols[0]=2;
+//     num_symbols[CONT_REFINE]=2;
+//     num_symbols[CONT_SIGN_HF]=3;
+//     num_symbols[CONT_SIGN_GEN]=4;
+
+    output_buffer.type = QCCBITBUFFER_OUTPUT;
+    strcpy(output_buffer.filename,"tmp");
+
+    if (QccBitBufferStart(&output_buffer))
+    {
+    QccErrorAddMessage("%s: Error calling QccBitBufferStart()",
+    argv1[0]);
+    QccErrorExit();
+    }
+
+    if ((model = QccENTArithmeticEncodeStart(num_symbols,
+    num_context,
+    NULL,
+    QCCENT_ANYNUMBITS)) == NULL)
+    {
+    QccErrorAddMessage("%s: Error calling QccENTArithmeticEncodeStart()",
+    argv1[0]);
+    QccErrorExit();
+    }
+}
+// #endif
 
 blockind = iloc + jloc*niloc + kloc * niloc *njloc;
 
@@ -246,12 +303,26 @@ if( (resspat < coder_param.maxresspat[blockind]) &&  (resspec < coder_param.maxr
 dist=0;
 ratebefore= *(datablock[blockind].streamlast)*8+*(datablock[blockind].count);
 #endif
+
+ if (*(coder_param.flag_arith) == 1){
+	for (i=0;i<CONT_NUM;i++){
+		QccENTArithmeticResetModel(model, i);
+	}
+}
+
 for (thres_ind=(coder_param.maxquant[blockind]); thres_ind >= (coder_param.minquant[blockind]); thres_ind--){	
 #endif
 
 #ifndef RES_SCAL
 for (thres_ind=(coder_param.maxquant[blockind]); thres_ind >= (coder_param.minquant[blockind]); thres_ind--){	
 nbitswritten=0;
+
+ if (*(coder_param.flag_arith) == 1){
+	for (i=0;i<CONT_NUM;i++){
+		QccENTArithmeticResetModel(model, i);
+	}
+}
+
 for (res=0; res<(coder_param.maxres[blockind]); res++){	
 #endif
 
@@ -274,6 +345,7 @@ nLISloopB=0;
 // if (blockind == 52 && thres_ind == 14 ){
 //   printf("Stop here\n");
 // } 
+
 
 /*******************************
 LIC
@@ -300,19 +372,47 @@ while ((current_el != NULL) && (current_el->thres > thres_ind)){
 #endif
    value_pix=image[trans_pixel(current_el->pixel)];
    bit = get_bit(value_pix, thres_ind);	
-   add_to_stream((datablock[blockind].stream), (datablock[blockind].count), (int) bit, (datablock[blockind].streamlast));//SPIHT 2.1.1)
+   if (*(coder_param.flag_arith) == 1){
+        symbol =  bit;
+        if (QccENTArithmeticEncode(&symbol, 1, model, &output_buffer))
+        {
+        QccErrorAddMessage("%s: Error calling QccENTArithmeticEncode()",
+        argv1[0]);
+        QccErrorExit();
+        }
+//         test++;
+   } else {
+    add_to_stream((datablock[blockind].stream), (datablock[blockind].count), (int) bit, (datablock[blockind].streamlast));//SPIHT 2.1.1)
+   }
   if (bit == 1) { //SPIHT 2.1.2)
      bitsig = (value_pix > 0);
+   if (*(coder_param.flag_arith) == 1){
+         symbol =  bitsig;
+        if (QccENTArithmeticEncode(&symbol, 1, model, &output_buffer))
+        {
+        QccErrorAddMessage("%s: Error calling QccENTArithmeticEncode()",
+        argv1[0]);
+        QccErrorExit();
+        }
+//         test++;
+   } else {
      add_to_stream((datablock[blockind].stream), (datablock[blockind].count), (int) bitsig, (datablock[blockind].streamlast));
+   }
+if (coder_param.rate != 0.0){
 #ifdef OLDRATE
      update_dist(current_el->pixel, thres_ind, &dist, image);
 #else
      update_dist_first(current_el->pixel, thres_ind, &dist, image);
 //       update_dist1(current_el->pixel, thres_ind, &dist, image);
 #endif
+}
 // #ifdef RES_RATE
 // #else
+   if (*(coder_param.flag_arith) == 1){
+     add_to_rddata(&datablock[blockind].rddata, output_buffer.bit_cnt, dist);
+   } else {
      add_to_rddata(&datablock[blockind].rddata, *(datablock[blockind].streamlast)*8+*(datablock[blockind].count), dist);
+   }
 // #endif
 
 #ifndef NEWTREE
@@ -345,31 +445,58 @@ while ((current_el != NULL) && (current_el->thres > thres_ind)){
 #endif
 	value_pix=image[trans_pixel(current_el->pixel)];
 	bit = get_bit(value_pix, thres_ind);
+      if (*(coder_param.flag_arith) == 1){
+          symbol =  bit;
+          if (QccENTArithmeticEncode(&symbol, 1, model, &output_buffer))
+          {
+          QccErrorAddMessage("%s: Error calling QccENTArithmeticEncode()",
+          argv1[0]);
+          QccErrorExit();
+          }
+//               test++;
+      } else {
 	add_to_stream((datablock[blockind].stream), (datablock[blockind].count), (int) bit, (datablock[blockind].streamlast));
+      }
 	if (bit ==1) {
+if (coder_param.rate != 0.0){
 #ifdef OLDRATE
 		update_dist(current_el->pixel, thres_ind, &dist, image);
 #else
                 update_dist1(current_el->pixel, thres_ind, &dist, image);
 #endif
+}
 // #ifdef RES_RATE
 // #else
+   if (*(coder_param.flag_arith) == 1){
+     add_to_rddata(&datablock[blockind].rddata, output_buffer.bit_cnt, dist);
+   } else {
 		add_to_rddata(&datablock[blockind].rddata, *(datablock[blockind].streamlast)*8+*(datablock[blockind].count), dist);
+   }
 // #endif
 	} else {
+if (coder_param.rate != 0.0){
 #ifndef OLDRATE
                 update_dist0(current_el->pixel, thres_ind, &dist, image);
 #endif
+}
 // #ifdef RES_RATE
 // #else
+   if (*(coder_param.flag_arith) == 1){
+     add_to_rddata(&datablock[blockind].rddata, output_buffer.bit_cnt, dist);
+   } else {
 		add_to_rddata(&datablock[blockind].rddata, *(datablock[blockind].streamlast)*8+*(datablock[blockind].count), dist);
+   }
 // #endif
         }
 	current_el=next_el(LSC[res]);
 };
 
 #ifdef RES_RATE
+   if (*(coder_param.flag_arith) == 1){
+     add_to_rddata(&datablock[blockind].rddata, output_buffer.bit_cnt, dist);
+   } else {
 add_to_rddata(&((datablock[blockind].rddata)[res]), *(datablock[blockind].streamlast)*8+*(datablock[blockind].count)-ratebefore, dist);//we want to keep one point per threshold.
+   }
 #endif
 
 #endif
@@ -409,7 +536,18 @@ nLISloop++;
 	r=spat_spec_desc_spiht(current_el->pixel, list_desc, 0, image, thres_ind, map_LSC);
 	
 	bit = (r == -1);//at least one descendant is significant
+      if (*(coder_param.flag_arith) == 1){
+          symbol =  bit;
+          if (QccENTArithmeticEncode(&symbol, 1, model, &output_buffer))
+          {
+          QccErrorAddMessage("%s: Error calling QccENTArithmeticEncode()",
+          argv1[0]);
+          QccErrorExit();
+          }
+//               test++;
+      } else {
         add_to_stream((datablock[blockind].stream), (datablock[blockind].count), (int) bit, (datablock[blockind].streamlast)); //SPIHT 2.2.1.1
+      }
         if (bit == 1) { //SPIHT 2.2.1.2
 	   list_desc=list_init();
 	   r=spat_spec_desc_spiht(current_el->pixel, list_desc, 1, image, thres_ind, map_LSC);
@@ -421,8 +559,20 @@ nLISloop++;
 	      if ((map_LSC[trans_pixel(current_child->pixel)] == 0) && (map_LIC[trans_pixel(current_child->pixel)] == 0)){ 
 #endif
         	value_pix=image[trans_pixel(current_child->pixel)]; 
-		bit = get_bit(value_pix, thres_ind);	
+		bit = get_bit(value_pix, thres_ind);
+	
+      if (*(coder_param.flag_arith) == 1){
+          symbol =  bit;
+          if (QccENTArithmeticEncode(&symbol, 1, model, &output_buffer))
+          {
+          QccErrorAddMessage("%s: Error calling QccENTArithmeticEncode()",
+          argv1[0]);
+          QccErrorExit();
+          }
+//               test++;
+      } else {
 		add_to_stream((datablock[blockind].stream), (datablock[blockind].count), (int) bit, (datablock[blockind].streamlast)); //SPIHT 2.2.1.2.1.1
+      }
 		if (bit == 0){ //SPIHT 2.2.1.2.1.3
 #ifndef NEWTREE
  			(map_LIC[trans_pixel(current_child->pixel)])++;
@@ -448,16 +598,33 @@ nLISloop++;
 #endif
 		} else { //SPIHT 2.2.1.2.1.2
 			bitsig = (value_pix > 0);
+      if (*(coder_param.flag_arith) == 1){
+          symbol =  bitsig;
+          if (QccENTArithmeticEncode(&symbol, 1, model, &output_buffer))
+          {
+          QccErrorAddMessage("%s: Error calling QccENTArithmeticEncode()",
+          argv1[0]);
+          QccErrorExit();
+          }
+//               test++;
+      } else {
 			add_to_stream((datablock[blockind].stream), (datablock[blockind].count), (int) bitsig, (datablock[blockind].streamlast));
+      }
+if (coder_param.rate != 0.0){
 #ifdef OLDRATE
 			update_dist(current_child->pixel, thres_ind, &dist, image);
 #else
                         update_dist_first(current_child->pixel, thres_ind, &dist, image);
 //                         update_dist1(current_child->pixel, thres_ind, &dist, image);
 #endif
+}
 // #ifdef RES_RATE
 // #else
+   if (*(coder_param.flag_arith) == 1){
+     add_to_rddata(&datablock[blockind].rddata, output_buffer.bit_cnt, dist);
+   } else {
 			add_to_rddata(&datablock[blockind].rddata, *(datablock[blockind].streamlast)*8+*(datablock[blockind].count), dist);
+   }
 // #endif
 #ifndef NEWTREE
 			(map_LSC[trans_pixel(current_child->pixel)])++;
@@ -533,7 +700,18 @@ nLISloop++;
 #endif
 		current_child=next_el(list_desc);
 	 };
+      if (*(coder_param.flag_arith) == 1){
+          symbol =  bit;
+          if (QccENTArithmeticEncode(&symbol, 1, model, &output_buffer))
+          {
+          QccErrorAddMessage("%s: Error calling QccENTArithmeticEncode()",
+          argv1[0]);
+          QccErrorExit();
+          }
+//               test++;
+      } else {
 	 add_to_stream((datablock[blockind].stream), (datablock[blockind].count), (int) bit, (datablock[blockind].streamlast));
+      }
 
 	 if (bit == 1){
 		current_child = first_el(list_desc);
@@ -593,31 +771,58 @@ while ((current_el != NULL) && (current_el->thres > thres_ind)){
 #endif
 	value_pix=image[trans_pixel(current_el->pixel)];
 	bit = get_bit(value_pix, thres_ind);
+      if (*(coder_param.flag_arith) == 1){
+          symbol =  bit;
+          if (QccENTArithmeticEncode(&symbol, 1, model, &output_buffer))
+          {
+          QccErrorAddMessage("%s: Error calling QccENTArithmeticEncode()",
+          argv1[0]);
+          QccErrorExit();
+          }
+//               test++;
+      } else {
 	add_to_stream((datablock[blockind].stream), (datablock[blockind].count), (int) bit, (datablock[blockind].streamlast));
+      }
 	if (bit ==1) {
+if (coder_param.rate != 0.0){
 #ifdef OLDRATE
 		update_dist(current_el->pixel, thres_ind, &dist, image);
 #else
                 update_dist1(current_el->pixel, thres_ind, &dist, image);
 #endif
+}
 // #ifdef RES_RATE
 // #else
+   if (*(coder_param.flag_arith) == 1){
+     add_to_rddata(&datablock[blockind].rddata, output_buffer.bit_cnt, dist);
+   } else {
 		add_to_rddata(&datablock[blockind].rddata, *(datablock[blockind].streamlast)*8+*(datablock[blockind].count), dist);
+   }
 // #endif
 	} else {
+if (coder_param.rate != 0.0){
 #ifndef OLDRATE
             update_dist0(current_el->pixel, thres_ind, &dist, image);
 #endif
+}
 #ifdef RES_RATE
 #else
+   if (*(coder_param.flag_arith) == 1){
+     add_to_rddata(&datablock[blockind].rddata, output_buffer.bit_cnt, dist);
+   } else {
 		add_to_rddata(&datablock[blockind].rddata, *(datablock[blockind].streamlast)*8+*(datablock[blockind].count), dist);
+   }
 #endif
         }
 	current_el=next_el(LSC[res]);
 };
 
 #ifdef RES_RATE
+   if (*(coder_param.flag_arith) == 1){
+     add_to_rddata(&datablock[blockind].rddata, output_buffer.bit_cnt, dist);
+   } else {
 add_to_rddata(&((datablock[blockind].rddata)[res]), *(datablock[blockind].streamlast)*8+*(datablock[blockind].count)-ratebefore, dist);//we want to keep one point per threshold.
+   }
 #endif
 
 #endif
@@ -629,16 +834,33 @@ add_to_rddata(&((datablock[blockind].rddata)[res]), *(datablock[blockind].stream
 
 #ifndef RES_SCAL
 };//fin resolution
+if (*(coder_param.flag_arith) == 1){
+nbitswritten = output_buffer.bit_cnt;
+} 
 (datablock[blockind].partsize)[thres_ind] = nbitswritten;
+
 #endif
 
-
+if (*(coder_param.flag_arith) == 1){
+outputsize[thres_ind] += output_buffer.bit_cnt;
+}else{
 outputsize[thres_ind] += (*(datablock[blockind].streamlast))*8 + (*(datablock[blockind].count));
+}
+
+// printf("test %d\n",test);
+// printf("at %ld bits for thres %d\n",output_buffer.bit_cnt,thres_ind);//tmp
+
 };//end threshold
+
+
 
 #ifdef RES_SCAL
 }//end of if on resspat and resspec
+if (*(coder_param.flag_arith) == 1){
+nbitswritten = output_buffer.bit_cnt;
+} 
 (datablock[blockind].partsize)[res] = nbitswritten;
+
 #ifdef RES_RATE
 
 #endif
@@ -646,8 +868,19 @@ outputsize[thres_ind] += (*(datablock[blockind].streamlast))*8 + (*(datablock[bl
 #endif
 
 
+
+
 #ifndef RES_RATE
+//flush coder
+QccENTArithmeticEncodeFlush(model, &output_buffer);//not sure if required...
+
+
+if (*(coder_param.flag_arith) == 1){
+(datablock[blockind].rddata.r)[NUMRD-1]= output_buffer.bit_cnt;//warning, don't take the flush into account...
+// printf("Full blocksize  recorded: %d\n",(datablock[blockind].rddata.r)[NUMRD-1]);
+} else {
 (datablock[blockind].rddata.r)[NUMRD-1]=(*(datablock[blockind].streamlast))*8 + (*(datablock[blockind].count));
+}
 (datablock[blockind].rddata.d)[NUMRD-1]=dist;
 #endif
 
@@ -655,6 +888,46 @@ for (i=0; i<imageprop.nres; i++){
 list_flush(LSC[i]);
 list_flush(LIC[i]);
 list_flush(LIS[i]);
+}
+
+
+if (*(coder_param.flag_arith) == 1){
+    if (QccENTArithmeticEncodeEnd(model,
+    0,
+    &output_buffer))
+    {
+    QccErrorAddMessage("%s: Error calling QccENTArithmeticEncodeEnd()");
+    QccErrorExit();
+    }
+
+    if (QccBitBufferEnd(&output_buffer))
+    {
+    QccErrorAddMessage("%s: Error calling QccBitBufferEnd()",
+    argv1[0]);
+    QccErrorExit();
+    }
+
+    QccENTArithmeticFreeModel(model);
+
+
+    if (stat("tmp", &filestat) == 0){
+   } else {
+	fprintf(stderr, "Error on tmp file...\n");
+   }
+
+   data_file = fopen("tmp", "r");
+//    status = fread(&(streamstruct.stream[*streamstruct.streamlast]), 1, filestat.st_size, data_file);
+   status = fread(&(datablock[blockind].stream[*(datablock[blockind].streamlast)]), 1, filestat.st_size, data_file);
+   status= fclose(data_file);
+   *(datablock[blockind].streamlast) = filestat.st_size;//why += ???
+//    if ((datablock[blockind].count) != 0){
+//        printf(" ****************************************************************\n");
+//     }
+//    outputsize[0]=(*(datablock[blockind].streamlast))*8 + (*(datablock[blockind].count));
+    outputsize[0]=(*(datablock[blockind].streamlast))*8;
+// outputsize[0] = filestat.st_size * 8
+(datablock[blockind].rddata.r)[NUMRD-1]=filestat.st_size * 8; //test
+// #endif
 }
 
 #ifdef DEBUG2
@@ -794,6 +1067,27 @@ int maxresspat=imageprop.nresspat;
 int maxres=imageprop.nres;	
 	
 
+// #ifdef EZW_ARITH
+int symbol = -1;
+
+int num_context=CONT_NUM;
+int num_symbols[CONT_NUM];
+
+// long int symb_counter = 0;
+
+// unsigned char * streambyte;
+// FILE *input_file;
+QccBitBuffer input_buffer;
+QccENTArithmeticModel *model = NULL;
+int argc1=1;
+char * argv1[1];
+argv1[0] = (char *) malloc(256*sizeof(char)); 
+strcpy(argv1[0],"spihtcode");
+// struct stat filestat;
+FILE *data_file;
+int status=0;
+// #endif
+
 // int lastres=0;
 // int flagLSClastres=0;
 // int LSCprocessed = 0;
@@ -866,7 +1160,7 @@ for (i=0; i<nblock; i++){
 
 //Desinterleaving stream
 err=desinterleavingblocks(datablock, nblock, streamstruct, *outputsize, coder_param.nlayer);//carefull for the bit counting later...
-if (err) {fprintf(stderr, "******** ERROR desinterleavingblocks (truncation)\n");};
+if (err) {fprintf(stderr, "******** ERROR desinterleavingblocks (truncation ?)\n");};
 
 for (i=0; i<nblock; i++){
 	datablock[i].currentpos=(*(datablock[i].streamlast))*8+ *(datablock[i].count);
@@ -883,6 +1177,7 @@ nbitsread=0;
 for (kloc=0;kloc<nkloc;kloc++){
    for (jloc=0;jloc<njloc;jloc++){
       for (iloc=0;iloc<niloc;iloc++){
+// test=0;
 
 #ifdef DEBUG2
 printf("Decoding grp: %d %d %d\n",iloc, jloc, kloc);
@@ -890,6 +1185,51 @@ printf("Decoding grp: %d %d %d\n",iloc, jloc, kloc);
 
 blockind = iloc + jloc*niloc + kloc * niloc *njloc;
 *outputsize = datablock[blockind].currentpos;
+
+// #ifdef EZW_ARITH
+if (*(coder_param.flag_arith) == 1){
+   data_file = fopen("tmp", "w");
+//    status = fwrite(&streamstruct.stream[(*streamstruct.headerlength)/8], 1, *outputsize/8 - (*streamstruct.headerlength)/8, data_file);
+   //we want the current block
+   status = fwrite(datablock[blockind].stream ,1, (datablock[blockind].currentpos+7)/8,data_file);
+   status=fclose(data_file);
+
+    QccInit(argc1, argv1);
+    QccBitBufferInitialize(&input_buffer);
+
+    num_symbols[0]=2;
+//     num_symbols[CONT_REFINE]=2;
+//     num_symbols[CONT_SIGN_HF]=3;
+//     num_symbols[CONT_SIGN_GEN]=4;
+
+    input_buffer.type = QCCBITBUFFER_INPUT;
+    strcpy(input_buffer.filename,"tmp");
+
+    if (QccBitBufferStart(&input_buffer))
+    {
+    QccErrorAddMessage("%s: Error calling QccBitBufferStart()",
+    argv1[0]);
+    QccErrorExit();
+    }
+
+    if ((model = QccENTArithmeticDecodeStart(&input_buffer, 
+    num_symbols,
+    num_context,
+    NULL,
+    datablock[blockind].currentpos)) == NULL) //WARNING, the +8 is empirical
+//     QCCENT_ANYNUMBITS)) == NULL)
+    {
+    QccErrorAddMessage("%s: Error calling QccENTArithmeticDecodeStart()",
+    argv1[0]);
+    QccErrorExit();
+    }
+
+
+// #endif
+}
+
+
+
 //SPIHT 1)
 ki=2*kloc;
 ji=2*jloc;
@@ -934,6 +1274,13 @@ resspec=res / maxresspat;
 resspat=res / maxresspec;
 resspec=res % maxresspec;
 #endif
+
+ if (*(coder_param.flag_arith) == 1){
+	for (i=0;i<CONT_NUM;i++){
+		QccENTArithmeticResetModel(model, i);
+	}
+}
+
 #ifdef DEBUG
 printf("Processing for res %d ...\n",res);
 #endif	
@@ -947,6 +1294,13 @@ if( (resspat < coder_param.maxresspat[blockind]) &&  (resspec < coder_param.maxr
 
 #ifndef RES_SCAL
 for (thres_ind=(coder_param.maxquant[blockind]); thres_ind >= (coder_param.minquant[blockind]); thres_ind--){	
+
+ if (*(coder_param.flag_arith) == 1){
+	for (i=0;i<CONT_NUM;i++){
+		QccENTArithmeticResetModel(model, i);
+	}
+}
+
 	if (thres_ind>10){
 		maxres =imageprop.nres; //WARNING valid ONLY if encoding was full !!!
 	}else{
@@ -1007,20 +1361,45 @@ while ((current_el != NULL) && (current_el->thres > thres_ind) && ((*(datablock[
    nLICloop++;
 #endif
 
+if (*(coder_param.flag_arith) == 1){
+			if (input_buffer.bit_cnt < *outputsize){
+			if (QccENTArithmeticDecode(&input_buffer, model, &symbol, 1))
+			{
+			QccErrorAddMessage("%s: Error calling QccENTArithmeticDecode()",
+			argv1[0]);
+			QccErrorExit();
+			}
+			} else break;
+//                         test++;
+			bit = (unsigned char) symbol;
+} else {
    if ((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) < *outputsize){
       bit = read_from_stream((datablock[blockind].stream), (datablock[blockind].count), (datablock[blockind].streamlast));
    } else {
-	   current_el=first_el(LSC[res]); //correct positionning for the final correction
+	   current_el=first_el(LSC[res]); //correct positionning for the final correction -> SHOULD BE USELESS NOW...
 	   break;
    }
-
+}
   if (bit == 1) { //SPIHT 2.1.2)
+if (*(coder_param.flag_arith) == 1){
+			if (input_buffer.bit_cnt < *outputsize){
+			if (QccENTArithmeticDecode(&input_buffer, model, &symbol, 1))
+			{
+			QccErrorAddMessage("%s: Error calling QccENTArithmeticDecode()",
+			argv1[0]);
+			QccErrorExit();
+			}
+			} else break;
+//                         test++;
+			bitsig = (unsigned char) symbol;
+} else {
      if ((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) < *outputsize){
         bitsig = read_from_stream((datablock[blockind].stream), (datablock[blockind].count), (datablock[blockind].streamlast));
      } else{
 	     current_el=first_el(LSC[res]); //correct positionning for the final correction
 	     break;
      }
+}
      image[trans_pixel(current_el->pixel)] += threshold + threshold/2;
 
      if (bitsig == 0) {
@@ -1054,10 +1433,23 @@ while ((current_el != NULL) && (current_el->thres > thres_ind) && ((*(datablock[
 #ifdef DEBUG
 	nLSCloop++;
 #endif
+if (*(coder_param.flag_arith) == 1){
+			if (input_buffer.bit_cnt < *outputsize){
+			if (QccENTArithmeticDecode(&input_buffer, model, &symbol, 1))
+			{
+			QccErrorAddMessage("%s: Error calling QccENTArithmeticDecode()",
+			argv1[0]);
+			QccErrorExit();
+			}
+			} else break;
+//                         test++;
+			bit = (unsigned char) symbol;
+} else {
 	if ((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) < *outputsize){
 	bit = read_from_stream((datablock[blockind].stream), (datablock[blockind].count), (datablock[blockind].streamlast));
 	flagLSC=1;
 	} else break;
+}
 	if (bit == 1){
 		if (image[trans_pixel(current_el->pixel)] > 0){
 			image[trans_pixel(current_el->pixel)] += threshold/2;
@@ -1118,9 +1510,22 @@ nLISloop++;
         nLISloopA++;
 #endif
 //          //SPIHT 2.2.1.1
+if (*(coder_param.flag_arith) == 1){
+			if (input_buffer.bit_cnt < *outputsize){
+			if (QccENTArithmeticDecode(&input_buffer, model, &symbol, 1))
+			{
+			QccErrorAddMessage("%s: Error calling QccENTArithmeticDecode()",
+			argv1[0]);
+			QccErrorExit();
+			}
+			} else break;
+//                         test++;
+			bit = (unsigned char) symbol;
+} else {
         if ((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) < *outputsize){
 	   bit = read_from_stream((datablock[blockind].stream), (datablock[blockind].count), (datablock[blockind].streamlast));
         } else break;
+}
         if (bit == 1) { //SPIHT 2.2.1.2
 	   list_desc=list_init();
 	   r=spat_spec_desc_spiht(current_el->pixel, list_desc, 1, image, thres_ind, map_LSC);
@@ -1131,9 +1536,22 @@ nLISloop++;
 #ifndef NEWTREE
 	      if ((map_LSC[trans_pixel(current_child->pixel)] == 0) && (map_LIC[trans_pixel(current_child->pixel)] == 0)){ 
 #endif
+if (*(coder_param.flag_arith) == 1){
+			if (input_buffer.bit_cnt < *outputsize){
+			if (QccENTArithmeticDecode(&input_buffer, model, &symbol, 1))
+			{
+			QccErrorAddMessage("%s: Error calling QccENTArithmeticDecode()",
+			argv1[0]);
+			QccErrorExit();
+			}
+			} else break;
+//                         test++;
+			bit = (unsigned char) symbol;
+} else {
 		if ((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) < *outputsize){
 		   bit = read_from_stream((datablock[blockind].stream), (datablock[blockind].count), (datablock[blockind].streamlast));
 		} else break;
+}
 		if (bit == 0){ //SPIHT 2.2.1.2.1.3
 #ifndef NEWTREE
  			(map_LIC[trans_pixel(current_child->pixel)])++;
@@ -1158,9 +1576,22 @@ nLISloop++;
 			insert_el(LIC[res+1],el);
 #endif
 		} else { //SPIHT 2.2.1.2.1.2
+if (*(coder_param.flag_arith) == 1){
+			if (input_buffer.bit_cnt < *outputsize){
+			if (QccENTArithmeticDecode(&input_buffer, model, &symbol, 1))
+			{
+			QccErrorAddMessage("%s: Error calling QccENTArithmeticDecode()",
+			argv1[0]);
+			QccErrorExit();
+			}
+			} else break;
+//                         test++;
+			bitsig = (unsigned char) symbol;
+} else {
 			if ((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) < *outputsize){
 			   bitsig = read_from_stream((datablock[blockind].stream), (datablock[blockind].count), (datablock[blockind].streamlast));
 			} else break;
+}
 			image[trans_pixel(current_child->pixel)] += threshold + threshold/2; 
 			if (bitsig == 0){
 				image[trans_pixel(current_child->pixel)] = -image[trans_pixel(current_child->pixel)];
@@ -1224,9 +1655,22 @@ nLISloop++;
 #endif
 		//On doit faire l'output de Sn(L(i,j))
 	  bit = 0;
+if (*(coder_param.flag_arith) == 1){
+			if (input_buffer.bit_cnt < *outputsize){
+			if (QccENTArithmeticDecode(&input_buffer, model, &symbol, 1))
+			{
+			QccErrorAddMessage("%s: Error calling QccENTArithmeticDecode()",
+			argv1[0]);
+			QccErrorExit();
+			}
+			} else break;
+//                         test++;
+			bit = (unsigned char) symbol;
+} else {
 	if ((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) < *outputsize){
 	   bit = read_from_stream((datablock[blockind].stream), (datablock[blockind].count), (datablock[blockind].streamlast));
 	} else break;
+}
 	  if (bit == 1){
 		list_desc=list_init();//list_free(list_desc);  //decode only done
 	  	r=spat_spec_desc_spiht(current_el->pixel, list_desc, 1, image, thres_ind, map_LSC);//decode only
@@ -1290,10 +1734,23 @@ while ((current_el != NULL) && (current_el->thres > thres_ind) && ((*(datablock[
 #ifdef DEBUG
 	nLSCloop++;
 #endif
+if (*(coder_param.flag_arith) == 1){
+			if (input_buffer.bit_cnt < *outputsize){
+			if (QccENTArithmeticDecode(&input_buffer, model, &symbol, 1))
+			{
+			QccErrorAddMessage("%s: Error calling QccENTArithmeticDecode()",
+			argv1[0]);
+			QccErrorExit();
+			}
+			} else break;
+//                         test++;
+			bit = (unsigned char) symbol;
+} else {
 	if ((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) < *outputsize){
 	   bit = read_from_stream((datablock[blockind].stream), (datablock[blockind].count), (datablock[blockind].streamlast));
 	   flagLSC=1;
 	} else break;
+}
 	if (bit == 1){
 		if (image[trans_pixel(current_el->pixel)] > 0){
 			image[trans_pixel(current_el->pixel)] += threshold/2;
@@ -1311,6 +1768,17 @@ while ((current_el != NULL) && (current_el->thres > thres_ind) && ((*(datablock[
 };
 #endif
 
+if (*(coder_param.flag_arith) == 1){
+if (input_buffer.bit_cnt > *outputsize){//ne doit pas servir, on devrait recuperer l'erreur de arithmeticDecode en cas de troncature de la stream
+#ifdef DEBUG2
+ 	printf("Sortie: fin du train de bit (threshold %ld)\n", threshold);
+#endif
+#ifdef CHECKEND
+	 printf("Sortie: fin du train de bit (blk: %d) (threshold %ld, res %d, flagLSC:%d, flagLIS:%d)\n", blockind, threshold, res, flagLSC, flagLIS);
+#endif
+	break;
+}
+} else {
 if ((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) >= *outputsize){
 #ifdef DEBUG
  	printf("Sortie: fin du train de bit (threshold %ld)\n", threshold);
@@ -1320,6 +1788,7 @@ if ((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) >= *ou
 #endif
 	break;
 };
+}
 
 };//fin threshold
 
@@ -1331,18 +1800,31 @@ printf("Before jump %ld %d\n",*(datablock[blockind].streamlast),*(datablock[bloc
 #ifdef RES_SCAL
 }
 endpos += (datablock[blockind].partsize)[res];
-*(datablock[blockind].streamlast) = endpos /8;
-*(datablock[blockind].count) = endpos % 8;
+  if (*(coder_param.flag_arith) == 1){
+//   input_buffer.bit_cnt = endpos;
+//TODO resynchroniser le decodeur arithmetique en lisant les output...
+  } else {
+  *(datablock[blockind].streamlast) = endpos /8;
+  *(datablock[blockind].count) = endpos % 8;
+  }
 #else
 if (thres_ind <= 10){
 endpos += (datablock[blockind].partsize)[thres_ind];
-*(datablock[blockind].streamlast) = endpos /8;
-*(datablock[blockind].count) = endpos % 8;
+  if (*(coder_param.flag_arith) == 1){
+//   input_buffer.bit_cnt = endpos;
+//TODO resynchroniser le decodeur arithmetique en lisant les output..
+  } else {
+  *(datablock[blockind].streamlast) = endpos /8;
+  *(datablock[blockind].count) = endpos % 8;
+  }
 }
 #endif
 #ifdef DEBUG
 printf("After jump %ld %d\n",*(datablock[blockind].streamlast),*(datablock[blockind].count));
 #endif
+
+// printf("test %d\n",test);
+// printf("at %ld bits for thres %d\n",input_buffer.bit_cnt,thres_ind);//tmp
 
 if ((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) > *outputsize){//temporaire, il faudrait faire plus fin
 #ifdef DEBUG
@@ -1361,6 +1843,12 @@ if ((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) > *out
 
 #ifdef RES_SCAL
 };//fin res
+#endif
+
+#ifdef DEBUG2
+  if (*(coder_param.flag_arith) == 1){
+printf("Processed %ld bits for current block\n",input_buffer.bit_cnt);
+}
 #endif
 
 #ifdef CHECKEND
@@ -1396,5 +1884,6 @@ free(streamlast);
  
 return 0;
 }
+
 
 

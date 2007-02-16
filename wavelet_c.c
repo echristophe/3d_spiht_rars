@@ -56,34 +56,36 @@ printf("Wavelet transform using QccPack...\n");
 
 
 if (*(coder_param.flag_wavelet_int)){
-  QccConvertToQccString(WaveletFilename, "CohenDaubechiesFeauveau.5-3.int.lft");
+//   QccConvertToQccString(WaveletFilename, "CohenDaubechiesFeauveau.5-3.int.lft");
+  QccConvertToQccString(WaveletFilename,  "CohenDaubechiesFeauveau.5-3.lft");
 } else {
   QccConvertToQccString(WaveletFilename, QCCWAVWAVELET_DEFAULT_WAVELET);
+//   QccConvertToQccString(WaveletFilename,  "CohenDaubechiesFeauveau.5-3.lft");
 }
 
-QccWAVWaveletInitialize(&Wavelet);
+QccWAVWaveletInitialize(&Wavelet); 
 QccWAVPerceptualWeightsInitialize(&PerceptualWeights);
 
 QccWAVWaveletCreate(&Wavelet, WaveletFilename, Boundary);
 
-if (*(coder_param.flag_wavelet_int)){
-  input_volume_int=QccVolumeIntAlloc(nbmax, nlmax, nsmax);
-  QccVolumeIntZero(input_volume_int, nbmax, nlmax, nsmax);
-} else {
+// if (*(coder_param.flag_wavelet_int)){
+//   input_volume_int=QccVolumeIntAlloc(nbmax, nlmax, nsmax);
+//   QccVolumeIntZero(input_volume_int, nbmax, nlmax, nsmax);
+// } else {
   input_volume=QccVolumeAlloc(nbmax, nlmax, nsmax);
   QccVolumeZero(input_volume, nbmax, nlmax, nsmax);
-}
+// }
 
-if (*(coder_param.flag_wavelet_int)){
-  for (i=0; i<nsmax; i++){
-    for (j=0; j<nlmax; j++){
-      for (k=0; k<nbmax; k++){
-        i_l= i + j*nsmax + k*nsmax*nlmax;
-        (*(*(input_volume_int+k) +j))[i] = (double) imagein[i_l];
-      }
-    }
-  }
-} else {
+// if (*(coder_param.flag_wavelet_int)){
+//   for (i=0; i<nsmax; i++){
+//     for (j=0; j<nlmax; j++){
+//       for (k=0; k<nbmax; k++){
+//         i_l= i + j*nsmax + k*nsmax*nlmax;
+//         (*(*(input_volume_int+k) +j))[i] = (double) imagein[i_l];
+//       }
+//     }
+//   }
+// } else {
   for (i=0; i<nsmax; i++){
     for (j=0; j<nlmax; j++){
       for (k=0; k<nbmax; k++){
@@ -92,26 +94,26 @@ if (*(coder_param.flag_wavelet_int)){
       }
     }
   }
-}
+// }
 
 free(imagein);imagein=NULL;
 
-if (*(coder_param.flag_wavelet_int)){
-  err = QccWAVWaveletPacketDWT3DInt(input_volume_int, nbmax, nlmax, nsmax, 0, 0, 0, 0, 0, 0, NumLevels_spec, NumLevels_spat, &Wavelet);
-} else {
+// if (*(coder_param.flag_wavelet_int)){
+//   err = QccWAVWaveletPacketDWT3DInt(input_volume_int, nbmax, nlmax, nsmax, 0, 0, 0, 0, 0, 0, NumLevels_spec, NumLevels_spat, &Wavelet);
+// } else {
   err = QccWAVWaveletPacketDWT3D(input_volume, nbmax, nlmax, nsmax, 0, 0, 0, 0, 0, 0, NumLevels_spec, NumLevels_spat, &Wavelet);
-}
+// }
 
-if (*(coder_param.flag_wavelet_int)){
-  for (i=0; i<nsmax; i++){
-    for (j=0; j<nlmax; j++){
-      for (k=0; k<nbmax; k++){
-        i_l= i + j*nsmax + k*nsmax*nlmax;
-        imageout[i_l] = (long int) lround( (*(*(input_volume_int+k) +j))[i] ); //WARNING check rint()
-      }
-    }
-  }
-} else {
+// if (*(coder_param.flag_wavelet_int)){
+//   for (i=0; i<nsmax; i++){
+//     for (j=0; j<nlmax; j++){
+//       for (k=0; k<nbmax; k++){
+//         i_l= i + j*nsmax + k*nsmax*nlmax;
+//         imageout[i_l] = (long int) lround( (*(*(input_volume_int+k) +j))[i] ); //WARNING check rint()
+//       }
+//     }
+//   }
+// } else {
   for (i=0; i<nsmax; i++){
     for (j=0; j<nlmax; j++){
       for (k=0; k<nbmax; k++){
@@ -120,15 +122,15 @@ if (*(coder_param.flag_wavelet_int)){
       }
     }
   }
-}
+// }
 
 
 
-if (*(coder_param.flag_wavelet_int)){
-  QccVolumeIntFree(input_volume_int, nbmax, nlmax);
-} else {
+// if (*(coder_param.flag_wavelet_int)){
+//   QccVolumeIntFree(input_volume_int, nbmax, nlmax);
+// } else {
   QccVolumeFree(input_volume, nbmax, nlmax);
-}
+// }
 
 
 
@@ -184,9 +186,11 @@ printf("Wavelet inverse transform using QccPack...\n");
 
 
 if (*(coder_param.flag_wavelet_int)){
-  QccConvertToQccString(WaveletFilename, "CohenDaubechiesFeauveau.5-3.int.lft");
+//   QccConvertToQccString(WaveletFilename, "CohenDaubechiesFeauveau.5-3.int.lft");
+  QccConvertToQccString(WaveletFilename, "CohenDaubechiesFeauveau.5-3.lft");
 } else {
   QccConvertToQccString(WaveletFilename, QCCWAVWAVELET_DEFAULT_WAVELET);
+//   QccConvertToQccString(WaveletFilename, "CohenDaubechiesFeauveau.5-3.lft");
 }
 
   QccWAVWaveletInitialize(&Wavelet);
@@ -194,23 +198,23 @@ if (*(coder_param.flag_wavelet_int)){
 
 QccWAVWaveletCreate(&Wavelet, WaveletFilename, Boundary);
 
-if (*(coder_param.flag_wavelet_int)){
-  input_volume_int=QccVolumeIntAlloc(nbmax, nlmax, nsmax);
-  QccVolumeIntZero(input_volume_int, nbmax, nlmax, nsmax);
-} else {
+// if (*(coder_param.flag_wavelet_int)){
+//   input_volume_int=QccVolumeIntAlloc(nbmax, nlmax, nsmax);
+//   QccVolumeIntZero(input_volume_int, nbmax, nlmax, nsmax);
+// } else {
   input_volume=QccVolumeAlloc(nbmax, nlmax, nsmax);
   QccVolumeZero(input_volume, nbmax, nlmax, nsmax);
-}
-if (*(coder_param.flag_wavelet_int)){
-  for (i=0; i<nsmax; i++){
-    for (j=0; j<nlmax; j++){
-      for (k=0; k<nbmax; k++){
-        i_l= i + j*nsmax + k*nsmax*nlmax;
-        (*(*(input_volume_int+k) +j))[i] = (double) imagein[i_l];
-      }
-    }
-  }
-} else {
+// }
+// if (*(coder_param.flag_wavelet_int)){
+//   for (i=0; i<nsmax; i++){
+//     for (j=0; j<nlmax; j++){
+//       for (k=0; k<nbmax; k++){
+//         i_l= i + j*nsmax + k*nsmax*nlmax;
+//         (*(*(input_volume_int+k) +j))[i] = (double) imagein[i_l];
+//       }
+//     }
+//   }
+// } else {
   for (i=0; i<nsmax; i++){
     for (j=0; j<nlmax; j++){
       for (k=0; k<nbmax; k++){
@@ -219,25 +223,25 @@ if (*(coder_param.flag_wavelet_int)){
       }
     }
   }
-}
+// }
 
 free(imagein);imagein=NULL;
 
-if (*(coder_param.flag_wavelet_int)){
-  err = QccWAVWaveletInversePacketDWT3DInt(input_volume_int, nbmax, nlmax, nsmax, 0, 0, 0, 0, 0, 0, NumLevels_spec, NumLevels_spat, &Wavelet);
-} else {
+// if (*(coder_param.flag_wavelet_int)){
+//   err = QccWAVWaveletInversePacketDWT3DInt(input_volume_int, nbmax, nlmax, nsmax, 0, 0, 0, 0, 0, 0, NumLevels_spec, NumLevels_spat, &Wavelet);
+// } else {
   err = QccWAVWaveletInversePacketDWT3D(input_volume, nbmax, nlmax, nsmax, 0, 0, 0, 0, 0, 0, NumLevels_spec, NumLevels_spat, &Wavelet);
-}
-if (*(coder_param.flag_wavelet_int)){
-  for (i=0; i<nsmax; i++){
-    for (j=0; j<nlmax; j++){
-      for (k=0; k<nbmax; k++){
-        i_l= i + j*nsmax + k*nsmax*nlmax;
-        imageout[i_l] = (long int) lround( (*(*(input_volume_int+k) +j))[i]/factor ); //WARNING check rint()
-      }
-    }
-  }
-} else {
+// }
+// if (*(coder_param.flag_wavelet_int)){
+//   for (i=0; i<nsmax; i++){
+//     for (j=0; j<nlmax; j++){
+//       for (k=0; k<nbmax; k++){
+//         i_l= i + j*nsmax + k*nsmax*nlmax;
+//         imageout[i_l] = (long int) lround( (*(*(input_volume_int+k) +j))[i]/factor ); //WARNING check rint()
+//       }
+//     }
+//   }
+// } else {
   for (i=0; i<nsmax; i++){
     for (j=0; j<nlmax; j++){
       for (k=0; k<nbmax; k++){
@@ -246,15 +250,15 @@ if (*(coder_param.flag_wavelet_int)){
       }
     }
   }
-}
+// }
 
 
 
-if (*(coder_param.flag_wavelet_int)){
-  QccVolumeIntFree(input_volume_int, nbmax, nlmax);
-} else {
+// if (*(coder_param.flag_wavelet_int)){
+//   QccVolumeIntFree(input_volume_int, nbmax, nlmax);
+// } else {
   QccVolumeFree(input_volume, nbmax, nlmax);
-}
+// }
 
 return 0;
 

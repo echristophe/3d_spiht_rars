@@ -222,7 +222,10 @@ struct stat filestat;
 
 // #endif
 
-
+#ifdef TIME
+clock_t start, end;
+double elapsedcomp;
+#endif
 
 #ifdef OUTPUTSIGNED
 unsigned char * imsignbyte;
@@ -270,7 +273,7 @@ fprintf(stderr, "Attention, non compatible avec le flag_jump_coding (-> update: 
 
 // #ifdef EZW_ARITH
 if (*(coder_param.flag_arith) == 1){
-    QccInit(*argc1, argv1);
+    QccInit(argc1, argv1);
     QccBitBufferInitialize(&output_buffer);
 
 	for (i = 0; i < num_context; i++)
@@ -307,6 +310,10 @@ if (*(coder_param.flag_arith) == 1){
 // #endif
 }
 
+#ifdef TIME
+start = clock();
+#endif
+
 for (i=0;i< npix;i++){
 	bin_value(image[i], &(image_signed[NBITS*i]));
 }
@@ -323,6 +330,12 @@ for (i=0;i< npix;i++){
 	change_rep(&(image_signed[NBITS*i]));
 }
 printf("#zero after modif: %ld \n", count_zero(image_signed));
+#endif
+
+#ifdef TIME
+end = clock();
+elapsedcomp = ((double) (end - start)) / CLOCKS_PER_SEC;
+printf("Conversion time: %f \n", elapsedcomp);
 #endif
 
 #ifdef OUTPUTSIGNED
