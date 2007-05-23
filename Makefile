@@ -24,6 +24,8 @@
 # NORA: disable random access (to correspond to the traditionnal SPIHT)
 # RES_SCAL: resolution scalability ordering (all bitplanes are processed for one resolution before going to the next one)
 # LSC_BEFORE: put the LSC processing before the LIS to be able to jump the last LIS for partial decoding (save few hundrends bits)
+# OLDRATE: trigger the original distortion computation in SPIHT which does not consider the deadzone quantizer
+
 
 # Information printing
 # TIME : compute and print time information
@@ -147,9 +149,9 @@ LIBS = -lQccPack -lm
 
 
 #SPIHT RARS
-# C_OPT = -Wall -O3  -DNEWTREE -DDEBUG2 -DTIME -DRES_SCAL -DSIZE -DLSCBEFORE
-# C_OPT = -Wall -g  -DNEWTREE -DDEBUG2 -DTIME -DRES_SCAL -DSIZE
-C_OPT = -Wall -O3  -DNEWTREE -DDEBUG2 -DTIME -DSIZE -DOLDRATE0 
+C_OPT = -Wall -O3  -DNEWTREE -DDEBUG2 -DTIME -DRES_SCAL -DSIZE -DLSCBEFORE
+# C_OPT = -Wall -O3  -DNEWTREE -DDEBUG2 -DTIME -DRES_SCAL -DSIZE
+# C_OPT = -Wall -O3  -DNEWTREE -DDEBUG2 -DTIME -DSIZE -DOLDRATE0 
 # C_OPT = -Wall -g -DNEWTREE -DDEBUG2 -DTIME -DSIZE -DOUTPUT -DTEMPWEIGHTCHECKING
 # C_OPT = -Wall -g -DNEWTREE -DDEBUG2 -DTIME -DSIZE -DRES_SCAL
 # C_OPT = -Wall -g -DNEWTREE -DDEBUG2 -DTIME -DSIZE
@@ -169,14 +171,15 @@ PROF =
 
 DEP = main.h Makefile
 
-all : libspiht.so spihtcode ezwcode
+all : spihtcode ezwcode
 
 spihtcode : spiht_code_c.o desc.o  main_spiht.o signdigit.o utils.o wavelet_c.o spiht_code_ra5.o 
 	$(CC) $(PROF) $(LIBS) -o spihtcode spiht_code_c.o desc.o  main_spiht.o signdigit.o  utils.o wavelet_c.o spiht_code_ra5.o 
 
 ezwcode : desc_ezw.o ezw_code_c.o main_ezw.o signdigit.o desc_ezw_signed.o ezw_code_signed_c.o  utils.o wavelet_c.o 
 	$(CC) $(PROF) $(LIBS) -o ezwcode desc_ezw.o ezw_code_c.o  main_ezw.o signdigit.o desc_ezw_signed.o ezw_code_signed_c.o  utils.o wavelet_c.o 
-	
+
+#just in case a dynamic librairy is required	
 libspiht.so : spiht_code_c.o desc.o desc_ezw.o ezw_code_c.o   signdigit.o utils.o  desc_ezw_signed.o ezw_code_signed_c.o wavelet_c.o spiht_code_ra5.o 
 	$(CC) $(PROF) $(LIBS) -shared -o libspiht.so spiht_code_c.o desc.o desc_ezw.o ezw_code_c.o  signdigit.o desc_ezw_signed.o ezw_code_signed_c.o utils.o wavelet_c.o spiht_code_ra5.o 
 

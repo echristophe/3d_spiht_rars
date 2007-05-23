@@ -589,9 +589,9 @@ while ((current_el != lastLSC) && ((*streamlast)*8+ (*count) <= *outputsize)){
 		};
 	} else {
 		if (image[trans_pixel(current_el->pixel)] > 0){
-			image[trans_pixel(current_el->pixel)] -= round(threshold/2.0+0.1);
+			image[trans_pixel(current_el->pixel)] -= ROUND(threshold/2.0+0.1);
 		} else {
-			image[trans_pixel(current_el->pixel)] += round(threshold/2.0+0.1);
+			image[trans_pixel(current_el->pixel)] += ROUND(threshold/2.0+0.1);
 		};
 	}
 	current_el=next_el(LSC);

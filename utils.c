@@ -525,7 +525,7 @@ int compute_weightingFactor(pixel_struct pixel){
        spatialFactor *= factorLowPass;
      }
   }
-  finalFactor = round(WEIGHTMULTVALUE*spatialFactor*spectralFactor);
+  finalFactor = ROUND(WEIGHTMULTVALUE*spatialFactor*spectralFactor);
 //   finalFactor = round(WEIGHTMULTVALUE/(spatialFactor*spectralFactor));
 #ifdef TEMPWEIGHTCHECKING
   imageweight[trans_pixel(pixel)] += finalFactor;
@@ -1141,6 +1141,7 @@ long int * read_hyper(char * filename, long int npix, int type){
   FILE *data_file;
   long int * image;
   short int * image_short;
+  unsigned short int * image_short_un;
   unsigned char * image_byte;
   long int i_l;
   int status=0;
@@ -1168,6 +1169,14 @@ long int * read_hyper(char * filename, long int npix, int type){
     }
     free(image_short);
   }
+  if (type ==3){
+    image_short_un = (unsigned short int *) calloc(npix,sizeof(unsigned short int));
+    status = fread(image_short_un, 2, npix, data_file);
+    for (i_l=0;i_l<npix;i_l++){
+      image[i_l] = (long int) image_short_un[i_l];
+    }
+    free(image_short_un);
+  }
   if (type ==4){
       status = fread(image, 4, npix, data_file);
   }
@@ -1180,6 +1189,7 @@ int write_hyper(char * filename, long int * image, long int npix, int type){
   FILE *data_file;
   int status=0;
   short int * image_short;
+  unsigned short int * image_short_un;
   unsigned char * image_byte;
   long int i_l=0;
 
@@ -1204,6 +1214,14 @@ int write_hyper(char * filename, long int * image, long int npix, int type){
     }
     status = fwrite(image_short, type, npix, data_file);
     free(image_short);		
+  }
+  if (type == 3){
+    image_short_un = (unsigned short int *) calloc(npix,sizeof(unsigned short int));
+    for (i_l=0;i_l<npix;i_l++){
+      image_short_un[i_l] = (unsigned short int) image[i_l];
+    }
+    status = fwrite(image_short_un, type, npix, data_file);
+    free(image_short_un);		
   }
   if (type == 4){
     status = fwrite(image, type, npix, data_file);

@@ -205,6 +205,15 @@ FILE *output_file;
 unsigned char * streambyte;
 #endif
 
+#ifdef TIME
+clock_t start, end;
+double elapsedcomp;
+#endif
+
+#ifdef OUTPUTSIGNED
+unsigned char * imsignbyte;
+#endif
+
 // #ifdef EZW_ARITH
 int symbol = -1;
 int num_context=CONT_NUM;
@@ -222,14 +231,7 @@ struct stat filestat;
 
 // #endif
 
-#ifdef TIME
-clock_t start, end;
-double elapsedcomp;
-#endif
 
-#ifdef OUTPUTSIGNED
-unsigned char * imsignbyte;
-#endif
 
 image_signed = (char *) malloc(imageprop.nsmax*imageprop.nbmax*imageprop.nlmax*NBITS*sizeof(char));
 map_zt=(unsigned char *) malloc(imageprop.nsmax*imageprop.nbmax*imageprop.nlmax*sizeof(unsigned char));

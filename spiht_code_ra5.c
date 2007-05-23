@@ -150,8 +150,8 @@ LIS[i] = list_init();
 rate_e = 3000000.*WEIGHTMULTVALUE*/;
 rate_i = 200.;
 rate_e = 3000000.;
-alpha = expf(1./NUMRD * logf(rate_e/rate_i));
-beta = NUMRD * logf(rate_i) / logf(rate_e/rate_i);
+alpha = exp(1./NUMRD * log(rate_e/rate_i));
+beta = NUMRD * log(rate_i) / log(rate_e/rate_i);
 
 for (i=0;i<imageprop.maxquant-1;i++){
    outputsize[i]=0;
@@ -193,7 +193,7 @@ for (kloc=0;kloc<nkloc;kloc++){
 #else
 	datablock[blockind].rddata.ptcourant=0;
 	for (i=0;i<NUMRD;i++){
-		((datablock[blockind]).rddata.reval)[i]= (long long int) powf(alpha, beta+i);
+		((datablock[blockind]).rddata.reval)[i]= (long long int) pow(alpha, beta+i);
 		((datablock[blockind]).rddata.r)[i]=0; //faster to use separate loops for memory access ?
 		((datablock[blockind]).rddata.d)[i]=0;
 	}	
@@ -931,7 +931,7 @@ if (*(coder_param.flag_arith) == 1){
 }
 
 #ifdef DEBUG2
-printf("Full blocksize  (in bit): %d\n",*(datablock[blockind].streamlast)*8 + (*(datablock[blockind].count)));
+printf("Full blocksize  (in bit): %ld\n",*(datablock[blockind].streamlast)*8 + (*(datablock[blockind].count)));
 #endif
 
 }// End of 
@@ -1458,9 +1458,9 @@ if (*(coder_param.flag_arith) == 1){
 		};
 	} else {
 		if (image[trans_pixel(current_el->pixel)] > 0){
-			image[trans_pixel(current_el->pixel)] -= round(threshold/2.0+0.1);
+			image[trans_pixel(current_el->pixel)] -= ROUND(threshold/2.0+0.1);
 		} else {
-			image[trans_pixel(current_el->pixel)] += round(threshold/2.0+0.1);
+			image[trans_pixel(current_el->pixel)] += ROUND(threshold/2.0+0.1);
 		};
 	}
 	current_el=next_el(LSC[res]);
@@ -1759,9 +1759,9 @@ if (*(coder_param.flag_arith) == 1){
 		};
 	} else {
 		if (image[trans_pixel(current_el->pixel)] > 0){
-			image[trans_pixel(current_el->pixel)] -= round(threshold/2.0+0.1);
+			image[trans_pixel(current_el->pixel)] -= ROUND(threshold/2.0+0.1);
 		} else {
-			image[trans_pixel(current_el->pixel)] += round(threshold/2.0+0.1);
+			image[trans_pixel(current_el->pixel)] += ROUND(threshold/2.0+0.1);
 		};
 	}
 	current_el=next_el(LSC[res]);
@@ -1847,7 +1847,7 @@ if ((*(datablock[blockind].streamlast))*8+ (*(datablock[blockind].count)) > *out
 
 #ifdef DEBUG2
   if (*(coder_param.flag_arith) == 1){
-printf("Processed %ld bits for current block\n",input_buffer.bit_cnt);
+printf("Processed %d bits for current block\n",input_buffer.bit_cnt);
 }
 #endif
 

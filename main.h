@@ -52,6 +52,8 @@ long int nbitswrittenheader;
 long int * imageoriglobal;
 #endif
 
+#define ROUND(a) (((a)-floor(a))<0.5 ? floor(a):(floor(a)+1))
+
 #define WEIGHTMULTVALUE 1000
 // #define WEIGHTMULTVALUE 1
 

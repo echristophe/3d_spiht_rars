@@ -17,7 +17,7 @@ Interface with QccPack wavelet transform
 #include "libQccPack.h"
 #include "main.h"
 
-long int lround(double x);
+// long int lround(double x);
 
 int waveletDWT(long int * imagein, long int * imageout, int specdec, int spatdec, coder_param_struct coder_param){
 
@@ -47,10 +47,12 @@ int nlmax=imageprop.nlmax;
 int nbmax=imageprop.nbmax;
 
 
-npix= nsmax*nlmax*nbmax;
 
 int NumLevels_spat = spatdec;
 int NumLevels_spec = specdec;
+
+
+npix= nsmax*nlmax*nbmax;
 
 printf("Wavelet transform using QccPack...\n");
 
@@ -118,7 +120,7 @@ free(imagein);imagein=NULL;
     for (j=0; j<nlmax; j++){
       for (k=0; k<nbmax; k++){
           i_l= i + j*nsmax + k*nsmax*nlmax;
-          imageout[i_l] = (long int) lround( (*(*(input_volume+k) +j))[i] ); //WARNING check rint()
+          imageout[i_l] = (long int) ROUND( (*(*(input_volume+k) +j))[i] ); //WARNING check rint()
       }
     }
   }
@@ -246,7 +248,7 @@ free(imagein);imagein=NULL;
     for (j=0; j<nlmax; j++){
       for (k=0; k<nbmax; k++){
           i_l= i + j*nsmax + k*nsmax*nlmax;
-          imageout[i_l] = (long int) lround( (*(*(input_volume+k) +j))[i]/factor ); //WARNING check rint()
+          imageout[i_l] = (long int) ROUND( (*(*(input_volume+k) +j))[i]/factor ); //WARNING check rint()
       }
     }
   }

@@ -6,7 +6,7 @@
  * Author:		Emmanuel Christophe	
  * Contact:		e.christophe at melaneum.com
  * Description:		Utility functions for hyperspectral image compression
- * Version:		v1.2 - 2007-02
+ * Version:		v1.3 - 2007-05
  * 
  */
 
@@ -17,6 +17,9 @@
 	- video
 
  The method is based on 3D SPIHT or 3D EZW with random access and resolution scalability properties.
+ 
+RESTRICTIONS: The tree structure has not been defined for any image size (power of 2 restrictions)
+Image size has to be of the type: k1*2^(d2+1) , k2*2^(d2+1), k3*2^(d1)
 
 ***************************************
 ************** History ****************
@@ -32,8 +35,9 @@ Here is a brief history of the development to help understand what may or may no
 07-08/2006: Signed binary digits added for 3D EZW. Arithmetic coding of the output for 3D EZW (using QccPack). Simplification of the partial decoding (dead zone quantizer made directly).
 09/2006: Contextual arithmetic coding added for 3D SPIHT
 11/2006: Improvement of the distortion estimation, making full use of the dead zone quantizer. Possibility to use the real weight for the distortion estimation (the 9/7 is only quasi-orthogonal).
+05/2007: Correction to make it compatible with SunOS
 
-As the overlapping tree was abandonned quite early for SPIHT, it will not work with the properties of scalability.
+WARNING: As the overlapping tree was abandonned quite early for SPIHT, it will not work with the properties of scalability.
 
 ***************************************
 ************ Installation *************
@@ -50,20 +54,28 @@ As the overlapping tree was abandonned quite early for SPIHT, it will not work w
 ***************************************
 *************** Syntax ****************
 ***************************************
-
-Usage:spihtcode [-e | -d] [-r rate] [-s ns nl nb] [-n d1 d2] [-t datatype][filename]
+Usage:
+spihtcode [-e | -d] [-r rate] [-s ns nl nb] [-n d1 d2] [-t datatype] [-m] [-i] [-a] [-f roifile] [-o outputfile] [filename]
 ns: # samples                 [256]
 nl: # lines                   [256]
 nb: # bands                   [224]
 d1: # spectral decompositions [5]
 d2: # spatial decompositions  [5]
-datatype: 2 short int (default), 1 unsigned char
+-t datatype: 2 short int (default), 1 unsigned char, 3 unsigned short int, 4 long int
+-i: use 5/3 integer transform instead of default 9/7
+-m: use mean substraction for every spectral band prior to wavelet transform
+-a: use arithmetic coding (still experimental)
+  Default value in []
+
+
+Most information necessary for decoding are included in the file header. It should not be necessary to specify any option.
 
 ***************************************
 ***************** Files ***************
 ***************************************
 
 What file correspond to what ?
+
 - main.c : command line reading, help message, encoding and decoding function (in charge of combining the wavelet transform and the coefficient coding)
 - main.h : all functions headers
 - utils.c : all the small side functions, handle list, manipulates bits, lagrangian rate allocation, etc
@@ -78,8 +90,12 @@ What file correspond to what ?
 - spiht_code_c.c : standard 3D SPIHT encoding and decoding functions
 - spiht_code_ra5.c : 3D SPIHT encoding and decoding functions with random access, resolution scalability, ROI coding and decoding, etc...
 
+***************************************
+********** Compilation option *********
+***************************************
 
+To preserve efficiency and keep only one piece of code to maintain, options are triggered through compilation option in the Makefile. The Makefile contains description for most options.
 
-
+Several warning will appear during compilation due to a lack of checking for unused variables with some options.
 
 

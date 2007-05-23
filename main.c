@@ -220,16 +220,19 @@ void usage(char *str1){
 #endif
 	fprintf(stderr,
 		"\nUsage:\n"
-		"%s [-e | -d] [-r rate] [-s ns nl nb] [-n d1 d2] [-t datatype] [-m] [-i] [-f roifile] [-o outputfile] [filename]\n"
+		"%s [-e | -d] [-r rate] [-s ns nl nb] [-n d1 d2] [-t datatype] [-m] [-i] [-a] [-f roifile] [-o outputfile] [filename]\n"
 		"ns: # samples                 [256]\n"
 		"nl: # lines                   [256]\n"
 		"nb: # bands                   [224]\n"
 		"d1: # spectral decompositions [5]\n"
 		"d2: # spatial decompositions  [5]\n"
-		"-t datatype: 2 short int (default), 1 unsigned char\n"
+		"-t datatype: 2 short int (default), 1 unsigned char, 3 unsigned short int, 4 long int\n"
                 "-i: use 5/3 integer transform instead of default 9/7\n"
 		"-m: use mean substraction for every spectral band prior to wavelet transform\n"
-                "  Default value in []\n\n",
+                "-a: use arithmetic coding (still experimental)\n"
+                "  Default value in []\n\n"
+
+                "WARNING: Image size has to be of the type: k1*2^(d2+1) , k2*2^(d2+1), k3*2^(d1)\n\n",
 	       str1
 	       );
 	exit(1);
@@ -758,7 +761,7 @@ for (i_l=0;i_l<npix;i_l++){
 	pixel.x = i_l % nsnewmax;
 	pixel.y = (i_l / nsnewmax) % nlnewmax;
 	pixel.l = (i_l / (nsnewmax*nlnewmax));
-	imagepartori[i_l]=(short int) lround( (imagedwtori[trans_pixel(pixel)]/factor));
+	imagepartori[i_l]=(short int) ROUND( (imagedwtori[trans_pixel(pixel)]/factor));
 }
 
 data_file = fopen("/home/christop/Boulot/images/output_stream/output-ori.img", "w");

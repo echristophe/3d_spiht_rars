@@ -723,9 +723,9 @@ if (*(coder_param.flag_arith) == 1){
 				};
 			} else {
 				if (image[i]>0) {
-					image[i] -= round(threshold/2.0+0.1);
+					image[i] -= ROUND(threshold/2.0+0.1);
 				} else {
-					image[i] += round(threshold/2.0+0.1);
+					image[i] += ROUND(threshold/2.0+0.1);
 				};
 			};
 			nref++;
@@ -961,9 +961,9 @@ if (*(coder_param.flag_arith) == 1){
 				};
 			} else {
 				if (image[i]>0) {
-					image[i] -= round(threshold/2.0+0.1);;
+					image[i] -= ROUND(threshold/2.0+0.1);;
 				} else {
-					image[i] += round(threshold/2.0+0.1);;
+					image[i] += ROUND(threshold/2.0+0.1);;
 				};
 			};
 			nref++;
