@@ -470,7 +470,7 @@ if (coder_param.rate != 0.0){
    if (*(coder_param.flag_arith) == 1){
      add_to_rddata(&datablock[blockind].rddata, output_buffer.bit_cnt, dist);
    } else {
-		add_to_rddata(&datablock[blockind].rddata, *(datablock[blockind].streamlast)*8+*(datablock[blockind].count), dist);
+     add_to_rddata(&datablock[blockind].rddata, *(datablock[blockind].streamlast)*8+*(datablock[blockind].count), dist);          
    }
 // #endif
 	} else {
@@ -788,7 +788,10 @@ if (coder_param.rate != 0.0){
 #ifdef OLDRATE
 		update_dist(current_el->pixel, thres_ind, &dist, image);
 #else
+//                 printf("old dist: %lld\n", dist);
                 update_dist1(current_el->pixel, thres_ind, &dist, image);
+//                 printf("new dist: %lld\n", dist);
+//                 printf("  (with thresh: %d\n", thres_ind);
 #endif
 }
 // #ifdef RES_RATE
@@ -882,6 +885,7 @@ if (*(coder_param.flag_arith) == 1){
 (datablock[blockind].rddata.r)[NUMRD-1]=(*(datablock[blockind].streamlast))*8 + (*(datablock[blockind].count));
 }
 (datablock[blockind].rddata.d)[NUMRD-1]=dist;
+// printf("dist: %lld\n", dist); 
 #endif
 
 for (i=0; i<imageprop.nres; i++){

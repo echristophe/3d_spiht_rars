@@ -140,16 +140,21 @@ LIBS = -lQccPack -lm
 # C_OPT = -g  -DDEBUG -DNEWTREE -DNORA
 #SPIHT original (3D tree)
 # C_OPT = -O3  -DDEBUG -DNORA
-#SPIHT RA (resolution scalable, but no separation between spatial and spectral)
+#SPIHT RA (random access, resolution scalable, but no separation between spatial and spectral)
 # C_OPT = -Wall -O3  -DNEWTREE -DTIME -DDEBUG2 -DSIZE
+# C_OPT = -Wall -O3  -DNEWTREE -DTIME -DSIZE
+C_OPT = -Wall -O3  -DNEWTREE -DTIME -DSIZE -DNOWEIGHT
+# C_OPT = -Wall -O3  -DNEWTREE
+# C_OPT = -Wall -O3  -DNEWTREE -DNOWEIGHT
 
 #for testing only
 # C_OPT = -Wall -g -DNEWTREE -DSIZE -DDEBUG2 
+# C_OPT = -Wall -O3  -DNEWTREE -DTIME -DDEBUG2 -DSIZE -DLSCBEFORE 
 
 
 
 #SPIHT RARS
-C_OPT = -Wall -O3  -DNEWTREE -DDEBUG2 -DTIME -DRES_SCAL -DSIZE -DLSCBEFORE
+# C_OPT = -Wall -O3  -DNEWTREE -DDEBUG2 -DTIME -DRES_SCAL -DSIZE -DLSCBEFORE
 # C_OPT = -Wall -O3  -DNEWTREE -DDEBUG2 -DTIME -DRES_SCAL -DSIZE
 # C_OPT = -Wall -O3  -DNEWTREE -DDEBUG2 -DTIME -DSIZE -DOLDRATE0 
 # C_OPT = -Wall -g -DNEWTREE -DDEBUG2 -DTIME -DSIZE -DOUTPUT -DTEMPWEIGHTCHECKING

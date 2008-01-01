@@ -445,6 +445,7 @@ int update_dist_first(pixel_struct pixel, int thres_ind, long long int * dist,  
   long long int value=0;
   int weightingFactor;
   weightingFactor = compute_weightingFactor(pixel);
+//   printf("%i\n",weightingFactor);
   value = (long long int) abs(image[trans_pixel(pixel)]);
 //   *dist -= -weightingFactor*((1<<(thres_ind-1))+(1<<(thres_ind)))
 //           *(2*value -(1<<(thres_ind-1)) - (1<<(thres_ind)));
@@ -464,7 +465,7 @@ int update_dist1(pixel_struct pixel, int thres_ind, long long int * dist,  long 
   value = (long long int) abs(image[trans_pixel(pixel)]);
   if (thres_ind != 0 ){
     *dist -= weightingFactor*(1<<(thres_ind-1))
-          *(2*(value - ((value>>(thres_ind+1))<<(thres_ind+1))-(1<<(thres_ind)) )-(1<<(thres_ind-1)));
+          *(2*(value - ((value>>(thres_ind+1))<<(thres_ind+1))-(1<<(thres_ind)) ) -(1<<(thres_ind-1)));
   } else {
     //nothing should happen here
   }
@@ -488,10 +489,22 @@ int update_dist0(pixel_struct pixel, int thres_ind, long long int * dist,  long 
 }
 
 int compute_weightingFactor(pixel_struct pixel){
+#ifdef NOWEIGHT
+  return WEIGHTMULTVALUE;
+#else
   double factorLowPass = 0.982954; //valid only for the 9/7 wavelet
   double factorHighPass = 1.040435;
-//   double factorLowPass = 1/1.040435; //valid only for the 9/7 wavelet
-//   double factorHighPass = 1/0.982954;
+//   double factorLowPass = sqrt(0.982954); //valid only for the 9/7 wavelet
+//   double factorHighPass = sqrt(1.040435);
+// // // //   double factorLowPass = 1/1.040435; //valid only for the 9/7 wavelet
+// // // //   double factorHighPass = 1/0.982954;
+//   double factorLowPass = 1.50000; //valid only for the 5/3 wavelet
+//   double factorHighPass = 0.718750;
+//   double factorLowPass = 0.718750; //valid only for the 5/3 wavelet
+//   double factorHighPass = 1.50000;
+//   double factorLowPass = 1.34; //valid only for the 5/3 wavelet
+//   double factorHighPass = 0.60;
+  
   int spec_pos = 0;
   int spat_pos = 0;
   int currentValuex=pixel.x;
@@ -533,6 +546,8 @@ int compute_weightingFactor(pixel_struct pixel){
 #endif
   return finalFactor;
 //   return WEIGHTMULTVALUE; //WARNING
+#endif
+
 }
 
 //Is it time to add the cutting point to the rate-distortion list ?
@@ -607,22 +622,28 @@ int compute_cost(rddata_struct *rddata, float lambda){
 
 //fin the lambda corresponding to a given rate
 float compute_lambda(datablock_struct *datablock, long int rate, int nblock){
-  float lambda_inf = 0.0;
-  float lambda_sup = 500000.0*WEIGHTMULTVALUE;
-  float lambda = 0.0;
-  long int current_rate=0;
+  double lambda_inf = 0.0;
+  double lambda_sup = 500000.0*WEIGHTMULTVALUE;
+  double lambda = 0.0;
+  long long int current_rate=0;
+  long long int current_dist=0;//just for checking, could be removed
 #ifdef RES_RATE
 // 	int posmin[NRES];
   int * posmin = (int *) calloc(imageprop.nres, sizeof(int));
 #else
   int posmin;
 #endif
+  
   int i;
+  
 #ifdef RES_RATE
   int j;
 #endif	
-  while ((lambda_sup-lambda_inf) > 1.0*WEIGHTMULTVALUE) {
+  
+//   while ((lambda_sup-lambda_inf) > 1.0*WEIGHTMULTVALUE) {
+  while ((lambda_sup-lambda_inf) > 1.0) {  
     current_rate=0;
+    current_dist=0;
     lambda = (lambda_sup + lambda_inf) /2.;
     for (i=0;i<nblock;i++){
       
@@ -631,12 +652,17 @@ float compute_lambda(datablock_struct *datablock, long int rate, int nblock){
       posmin[j]=compute_cost(&(datablock[i].rddata[j]),lambda);
               if ((j<imageprop.nres-imageprop.nresspec) && (posmin[j] < posmin[j+imageprop.nresspec])) posmin[j]=posmin[j+imageprop.nresspec];
       if (((j % imageprop.nresspec)!=imageprop.nresspec-1) && (posmin[j] < posmin[j+1])) 
-              posmin[j]=posmin[j+1];
-      current_rate += datablock[i].rddata[j].r[posmin[j]];
+        posmin[j]=posmin[j+1];
+        current_rate += datablock[i].rddata[j].r[posmin[j]];
+        current_dist += datablock[i].rddata[j].d[posmin[j]];
       }
 #else
       posmin=compute_cost(&(datablock[i].rddata),lambda);
       current_rate += datablock[i].rddata.r[posmin];
+      current_dist += datablock[i].rddata.d[posmin];
+      #ifdef DEBUG2
+        printf("dist :%lld rate:  %lld (blk %d, point, %d)\n",datablock[i].rddata.d[posmin],datablock[i].rddata.r[posmin],i,posmin);
+     #endif
 #endif
     }
     if (current_rate > rate) {
@@ -645,7 +671,10 @@ float compute_lambda(datablock_struct *datablock, long int rate, int nblock){
             lambda_sup=lambda;
     }
   }
-  printf("Going for lambda=%f giving rate %ld\n",lambda,current_rate);
+  printf("Going for lambda=%f giving rate %lld\n",lambda,current_rate);
+#ifndef RES_RATE
+  printf("  with estimated dist %lld\n", current_dist);
+#endif  
   return lambda;
 }
 

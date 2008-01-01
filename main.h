@@ -272,7 +272,7 @@ int spiht_code_ra5(long int *image, stream_struct streamstruct,long int * output
 int spiht_decode_ra5(long int *image, stream_struct streamstruct, long int *outputsize, coder_param_struct coder_param);
 
 //rate allocation
-#define NUMRD 2000
+#define NUMRD 10000
 typedef struct{
 	long long int r[NUMRD];
 	long long int d[NUMRD];
