@@ -5,27 +5,21 @@
 #  Author:		Emmanuel Christophe	
 #  Contact:		e.christophe at melaneum.com
 #  Description:		Utility functions for hyperspectral image compression
-#  Version:		v1.1 - 2006-10	
+#  Version:		v1.4 - 2008-01	
  
 
-# options possibles
-# Taille images
-# S64 pour des images de 64x64x56, 
-# par defaut 256x256x224
 
-# Structure darbre
-# NEWTREE suppression du lien spectral dans la majorite des cas. (SINON overlapping tree)
-# EZWTREE descendance de la LLL type EZW (attention si applique a spiht a l'init) deprecated ?
-# par defaut structure redondante et LLL type spiht
-# INPLACE insert element in LIS in place instead of at the end (avoid zerotrees ?)
+# Tree structure
+# by default: redondant structure and LLL like SPIHT (overlapping tree): EXPERIMENTAL
+# NEWTREE: removing spectral link (asymetric tree): SHOULD BE USED
+
 
 # SKIPWAV: skip wavelet transform (assuming that the file provided is already a transform)
-# WAV53 : use the 5/3 wavelet transform (with the modified QccPack, corresponds to lossless transform)
 # NORA: disable random access (to correspond to the traditionnal SPIHT)
 # RES_SCAL: resolution scalability ordering (all bitplanes are processed for one resolution before going to the next one)
 # LSC_BEFORE: put the LSC processing before the LIS to be able to jump the last LIS for partial decoding (save few hundrends bits)
-# OLDRATE: trigger the original distortion computation in SPIHT which does not consider the deadzone quantizer
-
+# INPLACE: insert element in LIS in place instead of at the end (avoid zerotrees ?)
+# NOWEIGHT: do not take into account the non-orthogonality of the 9/7 wavelet in the rate distortion evaluation
 
 # Information printing
 # TIME : compute and print time information
@@ -33,6 +27,8 @@
 # DEBUG : many details
 # DEBUG2: more synthetic information
 # OUTPUT: output intermediates wavelet hypercubes
+# LATEX: can trigger some table output for insertion in latex documents
+# OUTPUTRD: output Rate-Distortion curves in a files
 
 #WARNING:
 #Do not use the -DEZW option anymore, it is now automatically included
@@ -40,21 +36,16 @@
 CC = LC_ALL=C gcc
 
 LIBS = -lQccPack -lm
-# LIBS = -lQccPack051 -lm
+#with modified version of QccPack for integer transform
+# LIBS = -lQccPack051 -lm 
+#without QccPack, you may want to use -DSKIPWAV also
 # LIBS = -lm 
-# LIBS = -lm -lefence
+#check for memory leaks
+# LIBS = -lm -lefence 
 
-# C_OPT = -g  -DEZWTREE -DS64 -DEZW #pour debug
-# C_OPT = -g 
-# C_OPT = -O3 -ansi
-# C_OPT = -O3 -DNEWTREE -DS64 -DEZW
-# C_OPT = -O3 -DEZWTREE -DEZW -DLATEX
-# C_OPT = -O3 -DEZWTREE -DEZW -DDEBUG
-# C_OPT = -O3 -DEZWTREE -DEZW -DDEBUG -DOUTPUT -DMEANSUB
-# C_OPT = -g -DEZWTREE -DEZW -DDEBUG -DSIGNED
-# C_OPT = -O3 -DEZWTREE -DEZW -DDEBUG -DSIGNED -DEZW_ARITH -DOUTPUT -DMEANSUB -DOUTPUTSIGNED
-# C_OPT = -O3 -DEZWTREE -DNEWTREE -DEZW  -DDEBUG 
-# C_OPT = -g -DEZW
+############################################
+#EXPERIMENTS WITH EZW (TREE/SIGNED BINARY)
+############################################
 
 #EZW AT (spat tree)
 # C_OPT = -O3 -DNEWTREE -DEZW -DDEBUG
@@ -63,7 +54,7 @@ LIBS = -lQccPack -lm
 # C_OPT = -O3 -DEZW -DDEBUG 
 # C_OPT = -O3 -DEZW -DDEBUG -DEZWUSEZ
 
-#EZW SIGNED AT (spat tree) -101
+#EZW SIGNED AT (spat tree) 101
 # C_OPT = -O3 -DNEWTREE -DEZW -DSIGNED -DDEBUG 
 # C_OPT = -O3 -DNEWTREE -DEZW -DSIGNED -DDEBUG -DEZWUSEZ
 #EZW SIGNED OT (3D tree)
@@ -115,8 +106,9 @@ LIBS = -lQccPack -lm
 # C_OPT = -O3 -DDEBUG -DNEWTREE2 -DSIGNED -DEZWUSEZ -DEZW_ARITH -DEZW_ARITH_CONTEXT -DEZW_ARITH_RESET_MODEL
 
 
-
-# spiht
+###################################
+# SPIHT
+###################################
 # C_OPT = -O3  -DDEBUG
 # spiht2 -> correspond l'implementation QccPack
 # C_OPT = -O3 -DNEWTREE  -DDEBUG
@@ -143,17 +135,20 @@ LIBS = -lQccPack -lm
 #SPIHT RA (random access, resolution scalable, but no separation between spatial and spectral)
 # C_OPT = -Wall -O3  -DNEWTREE -DTIME -DDEBUG2 -DSIZE
 # C_OPT = -Wall -O3  -DNEWTREE -DTIME -DSIZE
-C_OPT = -Wall -O3  -DNEWTREE -DTIME -DSIZE -DNOWEIGHT
+
+# Reference
+# THIS IS PROBABLY THE OPTION YOU WANT TO USE
+C_OPT = -Wall -O3  -DNEWTREE -DTIME -DSIZE -DNOWEIGHT 
 # C_OPT = -Wall -O3  -DNEWTREE
 # C_OPT = -Wall -O3  -DNEWTREE -DNOWEIGHT
 
 #for testing only
 # C_OPT = -Wall -g -DNEWTREE -DSIZE -DDEBUG2 
 # C_OPT = -Wall -O3  -DNEWTREE -DTIME -DDEBUG2 -DSIZE -DLSCBEFORE 
+# C_OPT = -Wall -g  -DNEWTREE -DTIME -DSIZE -DNOWEIGHT 
 
 
-
-#SPIHT RARS
+#SPIHT RARS (with optimal structure for resolution scalability)
 # C_OPT = -Wall -O3  -DNEWTREE -DDEBUG2 -DTIME -DRES_SCAL -DSIZE -DLSCBEFORE
 # C_OPT = -Wall -O3  -DNEWTREE -DDEBUG2 -DTIME -DRES_SCAL -DSIZE
 # C_OPT = -Wall -O3  -DNEWTREE -DDEBUG2 -DTIME -DSIZE -DOLDRATE0 
@@ -170,6 +165,7 @@ C_OPT = -Wall -O3  -DNEWTREE -DTIME -DSIZE -DNOWEIGHT
 # C_OPT = -O3 -DEZW -DDEBUG -DSKIPWAV
 # C_OPT = -O3 -DEZW -DDEBUG  -DWAV53
 
+# Profiling options
 PROF = 
 # PROF = -pg
 # PROF =  -fprofile-arcs -ftest-coverage  -pg

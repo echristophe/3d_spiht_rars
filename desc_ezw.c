@@ -6,7 +6,7 @@
  * Author:		Emmanuel Christophe	
  * Contact:		e.christophe at melaneum.com
  * Description:		Utility functions for hyperspectral image compression
- * Version:		v1.1 - 2006-10	
+ * Version:		v1.4 - 2008-01	
  * 
  */
 
@@ -25,7 +25,7 @@ Attention, l'option directchildonly a une signification difference si compile av
 sans option:
 recherche uniquement les descendants directs, sans appel recursif
 avec option:
-recherche tous les descendant, mais pas de sortie anticip�
+recherche tous les descendant, mais pas de sortie anticipee
 */
 
 
@@ -45,7 +45,11 @@ int out=1;
 
 int nsmax=imageprop.nsmax;
 int nlmax=imageprop.nlmax;
+#ifndef NEWTREE
+#ifndef NEWTREE2
 int nbmax=imageprop.nbmax;
+#endif
+#endif
 #ifdef NEWTREE
 int nsmin=imageprop.nsmin;
 int nlmin=imageprop.nlmin;

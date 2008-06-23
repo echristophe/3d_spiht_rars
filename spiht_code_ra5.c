@@ -2,11 +2,11 @@
  *
  *  Hyperspectral compression program
  *
- * Name:		spiht_code_ra.c	
+ * Name:		spiht_code_ra5.c	
  * Author:		Emmanuel Christophe	
  * Contact:		e.christophe at melaneum.com
  * Description:		Random access based coding and decoding for hyperspectral image
- * Version:		v1.1 - 2006-10	
+ * Version:		v1.4 - 2008-01	
  * 
  */
 
@@ -163,6 +163,7 @@ njloc=(nlmin+1)/2;
 nkloc=(nbmin+1)/2;
 nblock=niloc* njloc* nkloc;
 
+datablock=NULL;
 datablock=(datablock_struct *) malloc(nblock* sizeof(datablock_struct));
 
 
@@ -948,7 +949,9 @@ printf("\n");
 
 
 //TODO just a check to output RD curves (to be removed)
+#ifdef OUTPUTRD
  output_rd(datablock, nblock);
+#endif
 
 nbitswritten=0;
 

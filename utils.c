@@ -3,11 +3,11 @@
  *
  *  Hyperspectral compression program
  *
- * Name:		main.c	
+ * Name:		utils.c	
  * Author:		Emmanuel Christophe	
  * Contact:		e.christophe at melaneum.com
  * Description:		Utility functions for hyperspectral image compression
- * Version:		v1.1 - 2006-10	
+ * Version:		v1.4 - 2008-01	
  * 
  */
 
@@ -1443,6 +1443,7 @@ int read_roi_spec(coder_param_struct coder_param){
   FILE *file_roi;
   int current_value=0;
   int status=0;
+  char * statuschar=NULL;
   int i=0;
   int specres_value = 0;
   int spatres_value = 0;
@@ -1458,25 +1459,25 @@ int read_roi_spec(coder_param_struct coder_param){
   file_roi = fopen(coder_param.roi_filename, "r");
   if (file_roi == NULL) {
     fprintf(stderr, "Error opening ROI file...\n");
-    return NULL;
+    return 1;
   }
   // Initialize with the default values (for all blocks
   // some will be modified after
-  status = fgets(line, maxLineSize, file_roi);
+  statuschar = fgets(line, maxLineSize, file_roi);
   status = sscanf(line, "%i",&current_value );
   if (current_value == 0) {
     specres_value = imageprop.nresspec;
   } else {
     specres_value = current_value;
   }
-  status = fgets(line, maxLineSize, file_roi);
+  statuschar = fgets(line, maxLineSize, file_roi);
   status = sscanf(line, "%i",&current_value );
   if (current_value == 0) {
     spatres_value = imageprop.nresspat;
   } else {
     spatres_value = current_value;
   }
-  status = fgets(line, maxLineSize, file_roi);
+  statuschar = fgets(line, maxLineSize, file_roi);
   status = sscanf(line, "%i",&current_value );
   minquant_value = current_value;
 
@@ -1493,7 +1494,7 @@ int read_roi_spec(coder_param_struct coder_param){
   fprintf(stderr, "Check ROI default: %i %i %i\n",specres_value, spatres_value, minquant_value);
     
   while (1){
-    status = fgets(line, maxLineSize, file_roi);
+    statuschar = fgets(line, maxLineSize, file_roi);
     if (status == 0) break;
     status = sscanf(line , "%i %i %i %i %i %i", 
                 &iloc, &jloc, &kloc, &specres_value, &spatres_value, &minquant_value);

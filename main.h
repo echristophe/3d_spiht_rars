@@ -6,7 +6,7 @@
  * Author:		Emmanuel Christophe	
  * Contact:		e.christophe at melaneum.com
  * Description:		Utility functions header for hyperspectral image compression
- * Version:		v1.1 - 2006-10	
+ * Version:		v1.4 - 2008-01	
  * 
  */
 
@@ -272,7 +272,8 @@ int spiht_code_ra5(long int *image, stream_struct streamstruct,long int * output
 int spiht_decode_ra5(long int *image, stream_struct streamstruct, long int *outputsize, coder_param_struct coder_param);
 
 //rate allocation
-#define NUMRD 10000
+#define NUMRD 1000
+//NB: used to be 10000
 typedef struct{
 	long long int r[NUMRD];
 	long long int d[NUMRD];
@@ -303,12 +304,13 @@ typedef struct{
 	long int * streamlast;
 	unsigned char * count;
 	long int * partsize;
+        long int currentpos;
 #ifdef RES_RATE
 	rddata_struct rddata[NRES];
 #else
 	rddata_struct rddata;
 #endif
-	long int currentpos;
+
 
 } datablock_struct;
 

@@ -6,7 +6,7 @@
  * Author:		Emmanuel Christophe	
  * Contact:		e.christophe at melaneum.com
  * Description:		Utility functions for hyperspectral image compression
- * Version:		v1.1 - 2006-10	
+ * Version:		v1.4 - 2008-01	
  * 
  */
 
@@ -258,13 +258,13 @@ long int *image=NULL;
 unsigned char * stream=NULL;
 long int * streamlast=(long int *) calloc(1,sizeof(long int));
 unsigned char * count=(unsigned char *) calloc(1,sizeof(unsigned char *));
-int *maxquantvalue=(int*) malloc(sizeof(int));
+// int *maxquantvalue=(int*) malloc(sizeof(int));
 int * headerlength = (int *) malloc(sizeof(int));
 long int * outputsize=NULL;
 long int npix;
 long int i_l;
 int niloc, njloc,nkloc, nblock;
-int iloc, jloc, kloc, blockind;
+// int iloc, jloc, kloc, blockind;
 stream_struct streamstruct;
 
 int status;
@@ -456,20 +456,27 @@ int decode(coder_param_struct coder_param){
 char * filename = coder_param.filename;
 char * output_filename = coder_param.output_filename;
 int type = coder_param.type;
-float rate = coder_param.rate;
+// float rate = coder_param.rate;
 
 long int * imageidwt=NULL;
-short * imageitmp=NULL;
-unsigned char * imageitmpbyte=NULL;
-long int * imageoritmp=NULL;
+// short * imageitmp=NULL;
+// unsigned char * imageitmpbyte=NULL;
+
+
+
+#ifdef OUTPUT
+short *imageori=NULL;
+short int * imagepartori=NULL;
 long int *imagedwtori=NULL;
+long int * imageoritmp=NULL;
+#endif
 
 long int * image=NULL;
 long int * imagepart=NULL;
 long int * imagesav=NULL;
-long int * imagepartori1=NULL;
-short int * imagepartori=NULL;
-long int * imageidwtori=NULL;
+// long int * imagepartori1=NULL;
+
+// long int * imageidwtori=NULL;
 unsigned char * stream=NULL;
 long int * streamlast=(long int *) calloc(1,sizeof(long int));
 unsigned char * count=(unsigned char *) calloc(1,sizeof(unsigned char *));
@@ -481,7 +488,7 @@ clock_t start, end;
 double elapseddecomp;
 #endif
 
-int *maxquantvalue=(int*) malloc(sizeof(int));
+// int *maxquantvalue=(int*) malloc(sizeof(int));
 long int * outputsize =(long int*) malloc(sizeof(int)) ;
 long int npix;
 
@@ -489,23 +496,28 @@ int status;
 FILE *stream_file;
 long int stream_size;
 int niloc, njloc, nkloc, nblock;
-int iloc, jloc, kloc, blockind;
+// int iloc, jloc, kloc, blockind;
 // coder_param_struct coder_param;
 
-short *imageori;
 
-FILE *data_file;
-int err=0;
-long int maxerr=0;
-long int maxerrnz=0;
+
+
+
+// long int maxerr=0;
+// long int maxerrnz=0;
 long int i_l=0;
 long int * mean=NULL;
-int i;
+
 pixel_struct pixel;
-long int nnewpix;
+// long int nnewpix;
 int nsnewmax, nbnewmax, nlnewmax;
 int spatdec, specdec;
+#ifdef OUTPUT
+FILE *data_file;
+int err=0;
+int i;
 double factor=1.0;
+#endif
 //decoder parameter initialization
 
 stream_file = fopen(filename,"r");
@@ -806,7 +818,7 @@ err = compare_hyper_short(imageidwt, imageori);//TODO change to right type
 fprintf(stderr, "Read %ld bits\n",nbitsread);
 #endif
 
-free(maxquantvalue);
+// free(maxquantvalue);
 free(outputsize);
 free(stream);
 

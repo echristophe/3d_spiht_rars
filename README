@@ -6,7 +6,7 @@
  * Author:		Emmanuel Christophe	
  * Contact:		e.christophe at melaneum.com
  * Description:		Utility functions for hyperspectral image compression
- * Version:		v1.3 - 2007-05
+ * Version:		v1.4 - 2008-01
  * 
  */
 
@@ -35,7 +35,8 @@ Here is a brief history of the development to help understand what may or may no
 07-08/2006: Signed binary digits added for 3D EZW. Arithmetic coding of the output for 3D EZW (using QccPack). Simplification of the partial decoding (dead zone quantizer made directly).
 09/2006: Contextual arithmetic coding added for 3D SPIHT
 11/2006: Improvement of the distortion estimation, making full use of the dead zone quantizer. Possibility to use the real weight for the distortion estimation (the 9/7 is only quasi-orthogonal).
-05/2007: Correction to make it compatible with SunOS
+05/2007: Correction to make it compatible with SunOS.
+01/2008: Cleaning to remove warnings.
 
 WARNING: As the overlapping tree was abandonned quite early for SPIHT, it will not work with the properties of scalability.
 
@@ -96,6 +97,6 @@ What file correspond to what ?
 
 To preserve efficiency and keep only one piece of code to maintain, options are triggered through compilation option in the Makefile. The Makefile contains description for most options.
 
-Several warning will appear during compilation due to a lack of checking for unused variables with some options.
+Some warnings might appear during compilation due to a lack of checking for unused variables with some options.
 
 

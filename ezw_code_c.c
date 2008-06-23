@@ -6,7 +6,7 @@
  * Author:		Emmanuel Christophe	
  * Contact:		e.christophe at melaneum.com
  * Description:		Utility functions for hyperspectral image compression
- * Version:		v1.1 - 2006-10	
+ * Version:		v1.4 - 2008-01	
  * 
  */
 
@@ -94,7 +94,9 @@ long int npos=0;
 long int nneg=0;
 long int nzeroisol=0;
 long int nzerotree=0;
+#ifdef EZWUSEZ
 long int nz=0;
+#endif
 
 FILE *data_file;//TODO useless after...
 int status=0;

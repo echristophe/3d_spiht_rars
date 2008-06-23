@@ -6,7 +6,7 @@
  * Author:		Emmanuel Christophe	
  * Contact:		e.christophe at melaneum.com
  * Description:		Utility functions for hyperspectral image compression
- * Version:		v1.1 - 2006-10	
+ * Version:		v1.4 - 2008-01	
  * 
  */
 
@@ -223,7 +223,7 @@ int num_symbols[CONT_NUM];
 // FILE *output_file; //int status;
 QccBitBuffer output_buffer;
 QccENTArithmeticModel *model = NULL;
-int * argc1=NULL;
+int argc1=1;
 char * argv1[1];
 argv1[0] = (char *) malloc(256*sizeof(char)); 
 strcpy(argv1[0],"spihtcode");

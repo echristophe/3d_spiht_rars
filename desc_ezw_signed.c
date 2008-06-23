@@ -6,7 +6,7 @@
  * Author:		Emmanuel Christophe	
  * Contact:		e.christophe at melaneum.com
  * Description:		Utility functions for hyperspectral image compression
- * Version:		v1.1 - 2006-10	
+ * Version:		v1.4 - 2008-01	
  * 
  */
 
@@ -45,7 +45,11 @@ int out=1;
 
 int nsmax=imageprop.nsmax;
 int nlmax=imageprop.nlmax;
+#ifndef NEWTREE
+#ifndef NEWTREE2
 int nbmax=imageprop.nbmax;
+#endif
+#endif
 #ifdef NEWTREE
 int nsmin=imageprop.nsmin;
 int nlmin=imageprop.nlmin;
@@ -156,7 +160,7 @@ SPECTRAL
 int spec_desc_ezw_signed(pixel_struct pixel, list_struct * list_desc, int directchildonly, char *image_signed, int thres_ind, unsigned char *map_LSC){
 
 pixel_struct new_pixel;
-long int value_pix;
+// long int value_pix;
 list_el * current_el=NULL;
 
 int r=0;
@@ -258,7 +262,7 @@ pixel_struct new_pixel2;
 pixel_struct new_pixel3;
 pixel_struct new_pixel4; 
 
-long int value_pix;
+// long int value_pix;
 
 int r;
 int out=1;
